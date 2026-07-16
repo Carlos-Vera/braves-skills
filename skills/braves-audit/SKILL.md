@@ -34,7 +34,10 @@ agente fresco ejecuta en una conversación nueva sin contexto previo
 
 ## El runbook (obligatorio)
 
-Escribir `braves-audit-<AAAA-MM-DD>.md` en la raíz con esta estructura:
+Escribir `braves-audit-AAAA-MM-DD.md` en la raíz del proyecto auditado — el
+git root / donde vive el manifiesto del código (package.json, pyproject, …).
+Si el workspace contiene varios proyectos anidados, confirmar cuál se audita
+ANTES de empezar. Estructura:
 
 ```markdown
 # Braves Audit — <proyecto> — <AAAA-MM-DD>
@@ -74,6 +77,10 @@ Escribir `braves-audit-<AAAA-MM-DD>.md` en la raíz con esta estructura:
 - [ ] Ningún secreto en el bundle/cliente: `<rg sobre el build>` → sin matches
 - [ ] Lint/tests (si existen) en verde
 
+## Requiere acceso a plataforma (lo toca el usuario, no el agente)
+- <fixes que viven en un dashboard externo (Supabase, Cloudflare, EasyPanel):
+  qué activar, dónde, y cómo verificarlo después>
+
 ## Fuera de alcance (registrado, no ejecutar)
 - <hallazgos LOW/decisiones de producto que el usuario debe decidir>
 ```
@@ -85,6 +92,15 @@ Escribir `braves-audit-<AAAA-MM-DD>.md` en la raíz con esta estructura:
 - Todo paso tiene verificación ejecutable y no destructiva, con resultado
   esperado observable. Paso sin verificación no entra al plan.
 - Orden por severidad: CRITICAL → HIGH → MEDIUM → LOW.
+- Severidad de over-engineering y performance: nunca superan MEDIUM — MEDIUM
+  si causa bugs o costo hoy (N+1 en ruta caliente, lógica incorrecta), LOW el
+  resto. CRITICAL y HIGH son exclusivos de seguridad.
+- Los hallazgos de braves-security se subsumen en la tabla de hallazgos (una
+  fila cada uno); su línea `exposición: ...` va solo en el resumen de
+  conversación, no duplicada en el archivo.
+- Fix que vive en un dashboard externo (rate limits, pooling gestionado,
+  restricciones de dominio) → sección "Requiere acceso a plataforma" con su
+  verificación posterior; el agente ejecutor no puede tocarlo.
 - Los hallazgos que requieren decisión del usuario (borrar features, cambiar
   de proveedor) van a "Fuera de alcance", no al plan.
 - Si ya existe un `braves-audit-*.md` anterior en la raíz, mencionarlo y

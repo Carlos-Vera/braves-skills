@@ -50,7 +50,9 @@ que quema dinero o tumba el servicio) → `MEDIUM` (se cae bajo carga) →
 - `load:` cero evidencia de que el sistema aguanta usuarios concurrentes.
   Fix: escenario k6 o Artillery (sus capas gratuitas simulan ~100 usuarios
   virtuales) contra los 2-3 endpoints principales; guardar el script en
-  `loadtest/`.
+  `loadtest/`. El paso ejecutable es ESCRIBIR el script; correrlo (y contra
+  qué entorno) lo decide el usuario — nunca contra producción por cuenta
+  propia.
 
 ## Pase B — Código (OWASP práctico)
 
@@ -65,7 +67,9 @@ que quema dinero o tumba el servicio) → `MEDIUM` (se cae bajo carga) →
 - `csrf/ssrf:` mutaciones por cookie sin token CSRF; servidor haciendo fetch
   a URLs que da el usuario sin allowlist (SSRF a metadata interna).
 - `deps:` vulnerabilidades conocidas — correr el que exista: `bun audit` /
-  `npm audit` / `pip-audit` / `osv-scanner`. Reportar solo high/critical.
+  `npm audit` / `pip-audit` / `osv-scanner`. High/critical son hallazgos;
+  moderate/low van en una watchlist aparte al final del reporte (no se
+  pierden, no bloquean).
 - `leak:` errores que devuelven stack traces/SQL al cliente; CORS `*` con
   credenciales; directorio `.git`/backups servidos.
 - `upload:` archivos subidos sin validar tipo/tamaño/ruta (path traversal),
