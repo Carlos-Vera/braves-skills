@@ -4,11 +4,12 @@
 CONFIG="$HOME/.claude/braves-skills.json"
 if [ ! -f "$CONFIG" ]; then
   cat <<'EOF'
-BRAVES SKILLS: primera instalación detectada (no existe ~/.claude/braves-skills.json).
-Al inicio de la conversación, ofrece al usuario correr /braves-setup — onboarding único que configura:
-usuario de GitHub para commits, si Claude hace commits por él, firma de commits (co-autoría de IA
-desactivada por defecto), política de PR/merge, activación opcional de NotebookLM y adopción de
-skills propias. NO lo ejecutes sin que el usuario acepte. Si declina, no insistir en esta sesión.
+BRAVES SKILLS: first-time install detected (~/.claude/braves-skills.json does not exist).
+At the start of the conversation, offer the user to run /braves-setup — a one-time onboarding
+that configures: GitHub username for commits, whether Claude commits on their behalf, commit
+signature (AI co-authorship disabled by default), PR/merge policy, optional NotebookLM
+activation, and adoption of custom skills. Do NOT run it without the user's consent. If
+declined, don't insist again this session.
 EOF
 fi
 exit 0

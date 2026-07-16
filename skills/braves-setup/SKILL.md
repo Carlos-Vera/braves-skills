@@ -1,84 +1,96 @@
 ---
 name: braves-setup
 description: >
-  Usar cuando el usuario diga "/braves-setup", "configura braves", "onboarding
-  braves", cuando el hook de SessionStart detecte primera instalación (no
-  existe ~/.claude/braves-skills.json), o cuando braves-ship o braves-save
-  necesiten configuración que aún no existe.
+  Use when the user says "/braves-setup", "configura braves" (set up
+  braves), "onboarding braves" (braves onboarding), when the SessionStart
+  hook detects a first-time install (no ~/.claude/braves-skills.json
+  exists), or when braves-ship or braves-save need configuration that
+  doesn't exist yet.
 license: MIT
 ---
 
 # Braves Setup
 
-Onboarding único de la caja. Hace las preguntas UNA A LA VEZ (esperar
-respuesta antes de la siguiente; en Claude Code usar AskUserQuestion cuando
-aplique) y guarda el resultado en `~/.claude/braves-skills.json`.
+Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
+if unset, mirror the language the user writes in.
 
-## Preguntas (en este orden)
+One-time onboarding for the toolbox. Ask the questions ONE AT A TIME
+(wait for the answer before the next; in Claude Code use AskUserQuestion
+when applicable) and save the result to `~/.claude/braves-skills.json`.
 
-1. **Identidad para commits** — usuario de GitHub y email a usar en los
-   commits. Proponer los de `git config --global user.name / user.email` si
-   existen; el usuario confirma o corrige.
-2. **¿Hago los commits por ti?** — opciones: `siempre` (commiteo al cerrar
-   trabajo), `preguntar` (propongo mensaje y espero ok), `nunca` (solo
-   preparo el mensaje, el usuario commitea).
-3. **Firma de commits** — texto libre que irá al pie de cada commit (puede
-   ser vacío). Mostrar un ejemplo:
+## Questions (in this order)
+
+1. **Language** — "Which language should Claude use to talk with you?"
+   Offer at least Español / English plus free text for any other. Store
+   it as `"language": "<short code or name, e.g. es, en>"`. From the
+   moment the user answers, the rest of the onboarding continues in that
+   language.
+2. **Identity for commits** — GitHub username and email to use in
+   commits. Propose the ones from `git config --global user.name /
+   user.email` if they exist; the user confirms or corrects.
+3. **Do I make the commits for you?** — options: `always` (I commit when
+   closing out work), `ask` (I propose a message and wait for ok),
+   `never` (I only prepare the message, the user commits).
+4. **Commit signature** — free text that goes in the footer of every
+   commit (can be empty). Show an example:
    ```
-   Autor: Nombre <email>
+   Author: Name <email>
    ---
-   Frase personal opcional.
+   Optional personal line.
    ```
-4. **Co-autoría de IA** — explicar en una línea: "por defecto NO añado líneas
-   `Co-Authored-By: Claude...` ni menciones a IA en los commits". Solo
-   activarla si el usuario lo pide explícitamente aquí. Default: `false`.
-5. **PR y merge** — ¿creo PRs o solo ramas? ¿estrategia de merge preferida
-   (merge / squash / rebase)? ¿puedo mergear yo o siempre mergea el usuario?
-   ¿push directo a main permitido? (default: no).
-6. **NotebookLM** — explicar en 2-3 líneas: "braves-save puede subir una
-   bitácora de cada sesión a un notebook 'AI Brain' en Google NotebookLM,
-   buscable y con el que puedes chatear o generar podcasts/informes
-   (braves-notebook). Usa la librería no oficial notebooklm-py con tu cuenta
-   Google." Preguntar si desea activarlo.
-   - Si SÍ: seguir el "Paso 0: Configuración" de la skill braves-notebook
-     (instalar CLI en venv + login asistido por navegador) y al terminar
-     verificar con `notebooklm auth check`. Guardar `enabled: true`.
-   - Si NO: guardar `enabled: false`. braves-save funcionará solo en local.
-7. **Adopción de skills propias** — listar los directorios de
-   `~/.claude/skills/` y `.claude/skills/` del proyecto que NO pertenezcan a
-   la caja ni a plugins conocidos. Para cada skill propia del usuario,
-   evaluar en una línea si es redundante con alguna de las 11 de la caja.
-   Ofrecer adoptar las NO redundantes: copiarlas a `skills/<nombre>/` dentro
-   del plugin braves-skills y añadirlas al array `skills` de
-   `.claude-plugin/plugin.json`. Solo copiar con aprobación explícita, skill
-   por skill. Las redundantes: decir con cuál de la caja chocan y sugerir
-   retirarlas (decisión del usuario, no borrar nada sin permiso).
+5. **AI co-authorship** — explain in one line: "by default I do NOT add
+   `Co-Authored-By: Claude...` lines or AI mentions in commits". Only
+   enable it if the user explicitly requests it here. Default: `false`.
+6. **PR and merge** — do I create PRs or just branches? preferred merge
+   strategy (merge / squash / rebase)? can I merge myself or does the
+   user always merge? is direct push to main allowed? (default: no).
+7. **NotebookLM** — explain in 2-3 lines: "braves-save can upload a log
+   of each session to an 'AI Brain' notebook in Google NotebookLM,
+   searchable and one you can chat with or generate podcasts/reports
+   from (braves-notebook). Uses the unofficial notebooklm-py library
+   with your Google account." Ask if they want to enable it.
+   - If YES: follow "Step 0: Configuration" from the braves-notebook
+     skill (install the CLI in a venv + browser-assisted login) and once
+     done verify with `notebooklm auth check`. Save `enabled: true`.
+   - If NO: save `enabled: false`. braves-save will work locally only.
+8. **Adoption of own skills** — list the directories under
+   `~/.claude/skills/` and the project's `.claude/skills/` that do NOT
+   belong to the toolbox or to known plugins. For each of the user's own
+   skills, evaluate in one line whether it's redundant with one of the
+   toolbox's 11. Offer to adopt the NON-redundant ones: copy them to
+   `skills/<name>/` inside the braves-skills plugin and add them to the
+   `skills` array in `.claude-plugin/plugin.json`. Only copy with
+   explicit approval, skill by skill. For redundant ones: say which
+   toolbox skill it collides with and suggest retiring it (the user's
+   decision, never delete without permission).
 
-## Escribir la configuración
+## Writing the configuration
 
-Guardar en `~/.claude/braves-skills.json`:
+Save to `~/.claude/braves-skills.json`:
 
 ```json
 {
   "version": 1,
-  "github_user": "usuario",
+  "language": "es",
+  "github_user": "user",
   "git_email": "email",
-  "commits_by_claude": "siempre|preguntar|nunca",
+  "commits_by_claude": "always|ask|never",
   "coauthor_ai": false,
-  "commit_signature": "texto de la firma o \"\"",
-  "pr": { "create": true, "merge_strategy": "squash", "who_merges": "usuario", "direct_push_main": false },
+  "commit_signature": "signature text or \"\"",
+  "pr": { "create": true, "merge_strategy": "squash", "who_merges": "user", "direct_push_main": false },
   "notebooklm": { "enabled": false },
   "adopted_skills": []
 }
 ```
 
-## Cierre
+## Closing
 
-Confirmar en 2-3 líneas: configuración guardada, qué quedó activado, y que
-`/braves-help` muestra la caja completa. Si el usuario declina el onboarding,
-no insistir: el hook lo recordará en la próxima sesión.
+Confirm in 2-3 lines: configuration saved, what got enabled, and that
+`/braves-help` shows the full toolbox. If the user declines onboarding,
+don't push it: the hook will remind them next session.
 
-## Límites
+## Limits
 
-No hace commits ni toca repos del usuario; solo configura. Re-ejecutable:
-si la config ya existe, mostrar los valores actuales y preguntar qué cambiar.
+Doesn't make commits or touch the user's repos; only configures.
+Re-runnable: if the config already exists, show the current values and
+ask what to change.

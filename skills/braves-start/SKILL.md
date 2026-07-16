@@ -1,68 +1,76 @@
 ---
 name: braves-start
 description: >
-  Usar cuando el usuario diga "/braves-start", "arranca un proyecto", "nuevo
-  proyecto", "empecemos el proyecto", "cómo empiezo esto", o pida crear una
-  app/sistema desde cero. También cuando un proyecto existente no tenga
-  documentos fundacionales (PRD, plan) y se vayan a construir features
-  grandes sobre él.
+  Use when the user says "/braves-start", "arranca un proyecto"/"start a
+  project", "nuevo proyecto"/"new project", "empecemos el proyecto"/"let's
+  start the project", "cómo empiezo esto"/"how do I start this", or asks
+  to create an app/system from scratch. Also when an existing project
+  lacks foundational documents (PRD, plan) and large features are about
+  to be built on top of it.
 license: MIT
 ---
 
 # Braves Start
 
-Arranque profesional de cualquier proyecto. El objetivo: que no se caiga al
-mes. Ni una línea de código de producción antes de que existan los documentos
-fundacionales y el usuario los apruebe.
+Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
+if unset, mirror the language the user writes in.
 
-## Regla de oro
+Professional kickoff for any project. The goal: it doesn't collapse a
+month in. Not one line of production code before the foundational
+documents exist and the user approves them.
 
-Código sin PRD aprobado = deuda desde el día cero. Si el usuario pide "hazlo
-ya", construir solo un spike desechable y decirlo: "esto es un prototipo para
-validar X, el proyecto real arranca con los docs".
+## Golden rule
 
-## Flujo
+Code without an approved PRD = debt from day zero. If the user asks to
+"just do it now," build only a throwaway spike and say so: "this is a
+prototype to validate X, the real project starts with the docs."
 
-1. **Entrevista** — usar las preguntas de fable-plan (REQUIRED SUB-SKILL:
-   fable-plan), una a la vez, hasta tener respuestas que soporten decisiones:
-   problema, usuario, alcance y NO-alcance, datos, restricciones, éxito.
-   Saltar las que el contexto ya responde.
-2. **Generar los documentos** en `docs/` del proyecto, EN ESTE ORDEN, cada
-   uno corto y decisorio (máximo ~2 páginas, decisiones, no prosa):
-   - `PRD.md` — problema, usuarios, casos de uso, alcance, NO-alcance
-     explícito, métricas de éxito.
-   - `TRD.md` — stack elegido y por qué (la opción más aburrida que cumpla),
-     integraciones externas, restricciones, riesgos técnicos con mitigación.
-   - `UIUX.md` — flujos de usuario pantalla a pantalla, wireframes en texto o
-     mermaid, y SIEMPRE los estados vacío / carga / error de cada vista.
-   - `FLUJO.md` — flujo de datos end-to-end: quién llama a quién, dónde viven
-     los secretos (el navegador jamás llama APIs externas con keys — proxy en
-     el servidor), qué se cachea.
-   - `BACKEND.md` — esquema de datos con constraints en la DB, endpoints con
-     auth de cada uno, trust boundaries, RLS/policies si aplica.
-   - `PLAN.md` — plan de implementación por fases.
-3. **Someter los docs a braves-opinion** antes de codear. Incorporar el
-   veredicto.
-4. Con docs aprobados → ejecutar PLAN.md fase por fase (o delegar).
+## Flow
 
-## Reglas del PLAN.md (el anti-colapso)
+1. **Interview** — use fable-plan's questions (REQUIRED SUB-SKILL:
+   fable-plan), one at a time, until you have answers that support
+   decisions: problem, user, scope and NON-scope, data, constraints,
+   success. Skip whatever context already answers.
+2. **Generate the documents** in the project's `docs/`, IN THIS ORDER,
+   each short and decisive (max ~2 pages, decisions, not prose):
+   - `PRD.md` — problem, users, use cases, scope, explicit NON-scope,
+     success metrics.
+   - `TRD.md` — chosen stack and why (the most boring option that
+     qualifies), external integrations, constraints, technical risks with
+     mitigation.
+   - `UIUX.md` — user flows screen by screen, wireframes in text or
+     mermaid, and ALWAYS the empty / loading / error states of each
+     view.
+   - `FLUJO.md` — end-to-end data flow: who calls whom, where secrets
+     live (the browser never calls external APIs with keys — proxy on
+     the server), what gets cached.
+   - `BACKEND.md` — data schema with DB constraints, endpoints with auth
+     for each one, trust boundaries, RLS/policies if applicable.
+   - `PLAN.md` — phased implementation plan.
+3. **Submit the docs to braves-opinion** before coding. Incorporate the
+   verdict.
+4. With approved docs → execute PLAN.md phase by phase (or delegate).
 
-- Cada fase termina con algo EJECUTABLE y su verificación (comando + resultado
-  esperado). Fase que no se puede demostrar corriendo = fase mal cortada.
-- Fase 1 demo-able en días, no semanas: esqueleto end-to-end (UI mínima →
-  API → DB) antes que cualquier feature completa.
-- Cada fase cabe en una sesión de trabajo. Si no cabe, partirla.
-- Dependencias entre fases explícitas. Nada de "fase 9: seguridad" — la
-  seguridad va dentro de cada fase (braves-security como puerta antes de
-  cerrar cada una).
+## PLAN.md rules (the anti-collapse rules)
 
-## Proyecto existente sin docs
+- Every phase ends with something EXECUTABLE and its verification
+  (command + expected result). A phase that can't be demonstrated
+  running = a poorly cut phase.
+- Phase 1 demoable in days, not weeks: end-to-end skeleton (minimal UI →
+  API → DB) before any complete feature.
+- Every phase fits in one work session. If it doesn't, split it.
+- Explicit dependencies between phases. No "phase 9: security" —
+  security goes inside each phase (braves-security as a gate before
+  closing each one).
 
-Ingeniería inversa primero: leer el código y generar los docs faltantes desde
-lo que existe (marcando `[ASUMIDO]` lo no verificable). Luego el flujo normal.
+## Existing project without docs
 
-## Límites
+Reverse engineering first: read the code and generate the missing docs
+from what exists (marking `[ASSUMED]` for anything unverifiable). Then
+the normal flow.
 
-No construye el proyecto; deja los documentos y el plan listos. La ejecución
-es de fable-plan/desarrollo normal. No inventar requisitos que el usuario no
-dio: preguntar.
+## Limits
+
+Doesn't build the project; leaves the documents and plan ready.
+Execution is normal fable-plan/desarrollo territory. Don't invent
+requirements the user didn't give: ask.

@@ -1,102 +1,107 @@
 ---
 name: braves-security
 description: >
-  Usar cuando el usuario diga "/braves-security", "audita la seguridad",
-  "chequeo de seguridad", "hardening", "production readiness", "¿es seguro?",
-  o antes de un deploy/lanzamiento. Cubre seguridad de infraestructura
-  (secretos, proxy de APIs, RLS, pooling, cache, rate limits, carga) y de
-  código (OWASP). Solo reporta, no aplica fixes.
+  Use when the user says "/braves-security", "audita la seguridad"
+  (audit security), "chequeo de seguridad" (security check), "hardening",
+  "production readiness", "¿es seguro?" (is this secure?), or before a
+  deploy/launch. Covers infrastructure security (secrets, API proxying,
+  RLS, pooling, cache, rate limits, load) and code security (OWASP).
+  Reports only, doesn't apply fixes.
 license: MIT
 ---
 
 # Braves Security
 
-El candado. Auditoría de seguridad en dos pases: infraestructura y código.
-Reporte de una sola pasada: una línea por hallazgo, ranked por severidad.
-No aplica nada.
+Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
+if unset, mirror the language the user writes in.
 
-## Formato de hallazgo
+The lock. Two-pass security audit: infrastructure and code. Single-pass
+report: one line per finding, ranked by severity. Applies nothing.
 
-`<SEVERIDAD> <tag> <qué>. <fix recomendado>. [ruta:línea]`
+## Finding format
 
-Severidades: `CRITICAL` (fuga de datos/dinero ya posible) → `HIGH` (abuso
-que quema dinero o tumba el servicio) → `MEDIUM` (se cae bajo carga) →
-`LOW` (capacidad desconocida).
+`<SEVERITY> <tag> <what>. <recommended fix>. [path:line]`
 
-## Pase A — Infraestructura
+Severities: `CRITICAL` (data/money leak already possible) → `HIGH`
+(abuse that burns money or takes down the service) → `MEDIUM` (falls
+over under load) → `LOW` (unknown capacity).
 
-- `secret:` credencial alcanzable desde el cliente: hardcodeada en frontend,
-  en el repo o su historial, o expuesta vía env de build (`VITE_*`,
-  `NEXT_PUBLIC_*`, `REACT_APP_*`). Keys secretas (service_role, sk_live,
-  OpenAI, etc.) JAMÁS llegan al navegador. Las publishable/anon keys están
-  diseñadas para el cliente — no son hallazgo, pero verificar el guardia
-  detrás (RLS, restricción de dominio).
-- `proxy:` frontend llamando una API externa (OpenAI, Stripe, Resend, …)
-  directamente con una key secreta. Fix: API route/backend proxy — el
-  navegador llama a NUESTRO servidor y el servidor guarda las keys.
-- `rls:` base de datos alcanzable con key de cliente pero tablas sin
-  row-level security o con policies permisivas (Supabase: anon key + tabla
-  sin RLS = base de datos pública).
-- `pool:` Postgres/MySQL sin connection pooling (PgBouncer, Supavisor,
-  pgpool) — especialmente servicios en EasyPanel/self-hosted y funciones
-  serverless abriendo conexiones crudas.
-- `cache:` lecturas calientes o que casi no cambian golpeando la DB en cada
-  request. Fix: el más barato que aguante — headers HTTP/CDN primero, Redis/
-  KV si hace falta invalidación.
-- `limit:` endpoint público sin rate limit ni límite de concurrencia (auth,
-  signup, búsqueda, webhooks, llamadas a LLM). Fix: rate limiter de
-  plataforma primero (Cloudflare, nginx, middleware del framework), código
-  propio al final.
-- `load:` cero evidencia de que el sistema aguanta usuarios concurrentes.
-  Fix: escenario k6 o Artillery (sus capas gratuitas simulan ~100 usuarios
-  virtuales) contra los 2-3 endpoints principales; guardar el script en
-  `loadtest/`. El paso ejecutable es ESCRIBIR el script; correrlo (y contra
-  qué entorno) lo decide el usuario — nunca contra producción por cuenta
-  propia.
+## Pass A — Infrastructure
 
-## Pase B — Código (OWASP práctico)
+- `secret:` credential reachable from the client: hardcoded in the
+  frontend, in the repo or its history, or exposed via build env
+  (`VITE_*`, `NEXT_PUBLIC_*`, `REACT_APP_*`). Secret keys (service_role,
+  sk_live, OpenAI, etc.) must NEVER reach the browser. Publishable/anon
+  keys are designed for the client — not a finding, but verify the guard
+  behind them (RLS, domain restriction).
+- `proxy:` frontend calling an external API (OpenAI, Stripe, Resend, …)
+  directly with a secret key. Fix: API route/backend proxy — the
+  browser calls OUR server and the server holds the keys.
+- `rls:` database reachable with a client key but tables without
+  row-level security or with permissive policies (Supabase: anon key +
+  table without RLS = public database).
+- `pool:` Postgres/MySQL without connection pooling (PgBouncer,
+  Supavisor, pgpool) — especially services on EasyPanel/self-hosted and
+  serverless functions opening raw connections.
+- `cache:` hot or near-static reads hitting the DB on every request.
+  Fix: the cheapest thing that holds — HTTP/CDN headers first, Redis/KV
+  only if invalidation is actually needed.
+- `limit:` public endpoint with no rate limit or concurrency cap (auth,
+  signup, search, webhooks, LLM calls). Fix: platform rate limiter
+  first (Cloudflare, nginx, framework middleware), custom code last.
+- `load:` zero evidence the system holds up under concurrent users.
+  Fix: a k6 or Artillery scenario (their free tiers simulate ~100
+  virtual users) against the 2-3 main endpoints; save the script under
+  `loadtest/`. The actionable step is WRITING the script; running it
+  (and against which environment) is the user's call — never against
+  production on your own.
 
-- `inject:` input externo concatenado en SQL/comandos/HTML: queries sin
-  parámetros, `exec`/`eval` con input, `dangerouslySetInnerHTML`/`v-html`
-  sin sanitizar.
-- `authz:` IDOR y checks solo en el cliente: cada endpoint debe verificar EN
-  EL SERVIDOR que el usuario es dueño del recurso (`/api/orders/123` — ¿de
-  quién es el 123?). UI que oculta el botón no es autorización.
-- `authn:` JWT sin verificar firma/expiración, sesiones eternas, passwords
-  sin hash fuerte (bcrypt/argon2), endpoints de admin sin gate.
-- `csrf/ssrf:` mutaciones por cookie sin token CSRF; servidor haciendo fetch
-  a URLs que da el usuario sin allowlist (SSRF a metadata interna).
-- `deps:` vulnerabilidades conocidas — correr el que exista: `bun audit` /
-  `npm audit` / `pip-audit` / `osv-scanner`. High/critical son hallazgos;
-  moderate/low van en una watchlist aparte al final del reporte (no se
-  pierden, no bloquean).
-- `leak:` errores que devuelven stack traces/SQL al cliente; CORS `*` con
-  credenciales; directorio `.git`/backups servidos.
-- `upload:` archivos subidos sin validar tipo/tamaño/ruta (path traversal),
-  servidos desde el mismo origen.
+## Pass B — Code (practical OWASP)
 
-## Dónde cazar
+- `inject:` external input concatenated into SQL/commands/HTML:
+  unparameterized queries, `exec`/`eval` with input,
+  `dangerouslySetInnerHTML`/`v-html` without sanitizing.
+- `authz:` IDOR and client-only checks: every endpoint must verify ON
+  THE SERVER that the user owns the resource (`/api/orders/123` — whose
+  is 123?). UI that hides the button isn't authorization.
+- `authn:` JWT without signature/expiration verification, eternal
+  sessions, passwords without strong hashing (bcrypt/argon2), admin
+  endpoints without a gate.
+- `csrf/ssrf:` cookie-based mutations without a CSRF token; server
+  fetching user-supplied URLs without an allowlist (SSRF to internal
+  metadata).
+- `deps:` known vulnerabilities — run whatever exists: `bun audit` /
+  `pnpm audit` / `pip-audit` / `osv-scanner`. High/critical are
+  findings; moderate/low go in a separate watchlist at the end of the
+  report (not lost, don't block).
+- `leak:` errors that return stack traces/SQL to the client; CORS `*`
+  with credentials; `.git`/backup directories being served.
+- `upload:` uploaded files without type/size/path validation (path
+  traversal), served from the same origin.
 
-`rg` de patrones de keys en código cliente (`sk_live`, `sk-proj`,
-`service_role`, `Bearer `); qué vars expone el build; llamadas
-`fetch`/`axios` del frontend a hosts de terceros; migraciones (¿RLS por
-tabla?); configs de deploy (docker-compose, EasyPanel: ¿pooler?, ¿DB expuesta
-a internet?); middleware (¿algún rate limit?); repo (¿existe `loadtest/`?).
+## Where to hunt
 
-## La regla lazy
+`rg` for key patterns in client code (`sk_live`, `sk-proj`,
+`service_role`, `Bearer `); which vars the build exposes; frontend
+`fetch`/`axios` calls to third-party hosts; migrations (RLS per table?);
+deploy configs (docker-compose, EasyPanel: pooler? DB exposed to the
+internet?); middleware (any rate limit at all?); repo (does
+`loadtest/` exist?).
 
-Config de plataforma > código propio: RLS > checks en app, PgBouncer >
-pool casero, CDN/headers > cache custom, rate limiter de plataforma >
-middleware artesanal. Recomendar siempre el peldaño más alto que aguante.
+## The lazy rule
 
-## Salida
+Platform config > custom code: RLS > app-level checks, PgBouncer >
+homemade pooling, CDN/headers > custom cache, platform rate limiter >
+hand-rolled middleware. Always recommend the highest rung that holds.
 
-Hallazgos ranked, una línea cada uno. Cerrar con:
-`exposición: <N> critical, <M> high.` Si no hay nada: `Blindado. Ship.`
+## Output
 
-## Límites
+Findings ranked, one line each. Close with:
+`exposure: <N> critical, <M> high.` If nothing: `Locked down. Ship.`
 
-Reporta, no arregla — los fixes van a braves-fix o al runbook de
-braves-audit. El over-engineering no es asunto de esta skill (va en
-braves-audit). Nunca ejecutar exploits ni tocar datos de producción:
-verificación por lectura de código y configs.
+## Limits
+
+Reports, doesn't fix — fixes go to braves-fix or the braves-audit
+runbook. Over-engineering isn't this skill's concern (that's
+braves-audit). Never run exploits or touch production data:
+verification is by reading code and configs only.

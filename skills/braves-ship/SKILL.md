@@ -1,75 +1,86 @@
 ---
 name: braves-ship
 description: >
-  Usar cuando el usuario diga "/braves-ship", "cierra la feature", "haz el
-  commit", "crea el PR", "mergea esto", "sube los cambios", "vamos a
-  producción" o "release". Cierre profesional del trabajo: pre-vuelo,
-  commits con la firma configurada, PR/merge según la política del usuario.
+  Use when the user says "/braves-ship", "cierra la feature" (close out
+  the feature), "haz el commit" (make the commit), "crea el PR" (create
+  the PR), "mergea esto" (merge this), "sube los cambios" (push the
+  changes), "vamos a producción" (let's ship to production), or
+  "release". Professional close-out of the work: pre-flight, commits
+  with the configured signature, PR/merge per the user's policy.
 license: MIT
 ---
 
 # Braves Ship
 
-Cierre profesional del trabajo. Nada sale sin pre-vuelo, y los commits salen
-como el usuario los configuró — no como el modelo quiera.
+Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
+if unset, mirror the language the user writes in.
 
-## Paso 0 — Configuración
+Professional close-out of the work. Nothing ships without pre-flight,
+and commits go out the way the user configured them — not however the
+model feels like it.
 
-Leer `~/.claude/braves-skills.json`. Si no existe → correr braves-setup
-primero (REQUIRED SUB-SKILL: braves-setup). De ahí salen: identidad git,
-`commits_by_claude`, firma, `coauthor_ai`, política de PR/merge.
+## Step 0 — Configuration
 
-## Paso 1 — Pre-vuelo (bloqueante)
+Read `~/.claude/braves-skills.json`. If it doesn't exist → run
+braves-setup first (REQUIRED SUB-SKILL: braves-setup). From it comes:
+git identity, `commits_by_claude`, signature, `coauthor_ai`, PR/merge
+policy.
 
-En orden, con los comandos del proyecto:
+## Step 1 — Pre-flight (blocking)
 
-1. `lint` y `build` en verde. `test` si existe.
-2. Revisar el diff completo (`git diff` + `git status`) con ojos de
-   braves-security: ¿el diff mete secretos, endpoints sin auth, deps nuevas
-   sin justificar, `console.log`/código de debug?
-3. ¿Archivos que no deberían ir? (.env, dumps, binarios, node_modules).
-4. Si el alcance cambió respecto al plan/docs, actualizar `PLAN.md`/docs en
-   el mismo commit o decir por qué no.
+In order, using the project's commands:
 
-Pre-vuelo en rojo = no se commitea. Arreglar primero (braves-fix si es bug).
+1. `lint` and `build` green. `test` if it exists.
+2. Review the full diff (`git diff` + `git status`) with braves-security
+   eyes: does the diff carry secrets, unauthenticated endpoints,
+   unjustified new deps, `console.log`/debug code?
+3. Any files that shouldn't be included? (.env, dumps, binaries,
+   node_modules).
+4. If scope changed relative to the plan/docs, update `PLAN.md`/docs in
+   the same commit or say why not.
 
-## Paso 2 — Commit
+Pre-flight red = no commit. Fix first (braves-fix if it's a bug).
+
+## Step 2 — Commit
 
 - Conventional commits: `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, …
-  Mensaje corto en imperativo; cuerpo solo si el porqué no es obvio.
-- Pie del commit: la `commit_signature` de la config, tal cual.
-- `coauthor_ai: false` (default) → JAMÁS añadir `Co-Authored-By: Claude...`
-  ni menciones a IA. Solo si la config lo activa explícitamente.
-- Según `commits_by_claude`: `siempre` → commitear directo; `preguntar` →
-  mostrar mensaje propuesto y esperar ok; `nunca` → dejar el mensaje listo y
-  que el usuario commitee.
-- En rama default con cambios nuevos → crear rama primero
-  (`feat/<slug>`, `fix/<slug>`), salvo que la config permita push directo.
+  Short imperative message; body only if the "why" isn't obvious.
+- Commit footer: the `commit_signature` from the config, as-is.
+- `coauthor_ai: false` (default) → NEVER add `Co-Authored-By: Claude...`
+  lines or AI mentions. Only if the config explicitly enables it.
+- Per `commits_by_claude`: `always` → commit directly; `ask` → show the
+  proposed message and wait for ok; `never` → leave the message ready
+  and let the user commit.
+- On the default branch with new changes → create a branch first
+  (`feat/<slug>`, `fix/<slug>`), unless the config allows direct push.
 
-## Paso 3 — PR / Merge (según config)
+## Step 3 — PR / Merge (per config)
 
-- `pr.create: true` → PR con `gh pr create`: título = mensaje del commit
-  principal; body con **Qué / Por qué / Cómo verificar** (comandos
-  concretos del pre-vuelo).
-- Merge con la estrategia configurada (`merge_strategy`), y SOLO si
-  `who_merges` lo permite — si mergea el usuario, dejar el PR listo y el
-  link.
-- Nunca push forzado, nunca a main directo salvo `direct_push_main: true`.
+- `pr.create: true` → PR with `gh pr create`: title = main commit
+  message; body with **What / Why / How to verify** (concrete commands
+  from pre-flight).
+- Merge with the configured strategy (`merge_strategy`), and ONLY if
+  `who_merges` allows it — if the user merges, leave the PR ready and
+  the link.
+- Never force push, never straight to main unless
+  `direct_push_main: true`.
 
-## Paso 4 — Checklist de release (si va a producción)
+## Step 4 — Release checklist (if going to production)
 
-- [ ] Variables de entorno nuevas documentadas (README/`.env.example`)
-- [ ] Migraciones aplicadas y con vuelta atrás conocida
-- [ ] Plan de rollback en una línea (¿revert? ¿redeploy anterior?)
-- [ ] Dónde mirar si algo explota (logs, dashboard) anotado en el PR
+- [ ] New environment variables documented (README/`.env.example`)
+- [ ] Migrations applied with a known rollback path
+- [ ] One-line rollback plan (revert? previous redeploy?)
+- [ ] Where to look if something breaks (logs, dashboard) noted in the
+      PR
 
-## Paso 5 — Cierre
+## Step 5 — Close-out
 
-Confirmar en ≤3 líneas: qué se commiteó/pusheó, link del PR si hay, y si la
-sesión tuvo decisiones o aprendizajes significativos, sugerir braves-save.
+Confirm in ≤3 lines: what got committed/pushed, PR link if any, and if
+the session had significant decisions or learnings, suggest braves-save.
 
-## Límites
+## Limits
 
-No mergea sin permiso de la config, no salta el pre-vuelo aunque haya prisa
-("es un cambio chiquito" — los chiquitos también tumban prod), no reescribe
-historia publicada. Push a repos ajenos: jamás sin orden explícita.
+Doesn't merge without the config's permission, doesn't skip pre-flight
+even under time pressure ("it's a tiny change" — tiny ones take down
+prod too), doesn't rewrite published history. Push to other people's
+repos: never without explicit orders.

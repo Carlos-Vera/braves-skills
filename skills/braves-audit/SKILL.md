@@ -1,119 +1,129 @@
 ---
 name: braves-audit
 description: >
-  Usar cuando el usuario diga "/braves-audit", "auditoría completa", "audita
-  todo el proyecto", "audita el repo", "braves-global", o quiera el estado
-  real del proyecto (seguridad + over-engineering + performance) con un plan
-  de remediación ejecutable escrito en la raíz.
+  Use when the user says "/braves-audit", "auditoría completa" (full
+  audit), "audita todo el proyecto" (audit the whole project), "audita
+  el repo" (audit the repo), "braves-global", or wants the real state of
+  the project (security + over-engineering + performance) with an
+  executable remediation plan written to the root.
 license: MIT
 ---
 
 # Braves Audit
 
-Auditoría global del proyecto en tres pases. SIEMPRE termina escribiendo
-`braves-audit-AAAA-MM-DD.md` en la raíz del proyecto: un runbook que un
-agente fresco ejecuta en una conversación nueva sin contexto previo
-(braves-fix lo ejecuta).
+Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
+if unset, mirror the language the user writes in.
 
-## Los tres pases
+Full project audit in three passes. ALWAYS ends by writing
+`braves-audit-YYYY-MM-DD.md` to the project root: a runbook a fresh
+agent can run in a brand-new conversation with no prior context
+(braves-fix runs it).
 
-1. **Seguridad** — REQUIRED SUB-SKILL: braves-security completa (Pase A
-   infra + Pase B código).
-2. **Over-engineering** — tags heredados de ponytail, una línea por hallazgo:
-   - `delete:` código muerto, flexibilidad sin uso, feature especulativa.
-   - `stdlib:` reimplementación de algo que la librería estándar ya trae.
-   - `native:` dependencia o código que la plataforma ya cubre (CSS > JS,
-     constraint de DB > validación en app, `<input type="date">` > picker).
-   - `yagni:` abstracción con una sola implementación, config que nadie
-     cambia, capa con un solo caller.
-   - `shrink:` misma lógica en menos líneas — mostrar la forma corta.
-3. **Performance básica** — N+1 queries, índices faltantes en columnas
-   filtradas/joineadas, bundle inflado (deps pesadas para una función),
-   waterfalls de requests secuenciales paralelizables, imágenes sin
-   optimizar, re-renders/loops calientes evidentes.
+## The three passes
 
-## El runbook (obligatorio)
+1. **Security** — REQUIRED SUB-SKILL: full braves-security (Pass A
+   infra + Pass B code).
+2. **Over-engineering** — tags inherited from ponytail, one line per
+   finding:
+   - `delete:` dead code, unused flexibility, speculative feature.
+   - `stdlib:` reimplementation of something the standard library
+     already provides.
+   - `native:` dependency or code that the platform already covers
+     (CSS > JS, DB constraint > app-level validation, `<input
+     type="date">` > custom picker).
+   - `yagni:` abstraction with a single implementation, config nobody
+     changes, layer with a single caller.
+   - `shrink:` same logic in fewer lines — show the short form.
+3. **Basic performance** — N+1 queries, missing indexes on
+   filtered/joined columns, bloated bundle (heavy deps for one
+   function), sequential request waterfalls that could be
+   parallelized, unoptimized images, obvious re-render/hot-loop issues.
 
-Escribir `braves-audit-AAAA-MM-DD.md` en la raíz del proyecto auditado — el
-git root / donde vive el manifiesto del código (package.json, pyproject, …).
-Si el workspace contiene varios proyectos anidados, confirmar cuál se audita
-ANTES de empezar. Estructura:
+## The runbook (mandatory)
+
+Write `braves-audit-YYYY-MM-DD.md` to the root of the audited project —
+the git root / wherever the code's manifest lives (package.json,
+pyproject, …). If the workspace contains several nested projects,
+confirm which one is being audited BEFORE starting. Structure:
 
 ```markdown
-# Braves Audit — <proyecto> — <AAAA-MM-DD>
+# Braves Audit — <project> — <YYYY-MM-DD>
 
-## Instrucciones para el agente ejecutor
-1. Lee este archivo COMPLETO antes de tocar nada.
-2. Ejecuta los pasos en orden. No saltes ni reordenes.
-3. Tras cada paso corre su bloque **Verificación** y marca `[x]` SOLO si el
-   resultado coincide con lo esperado.
-4. Si una verificación falla: detente en ese paso, corrige, re-verifica.
-   No avances con verificaciones en rojo.
-5. Al terminar todos los pasos, ejecuta la **Verificación final** completa y
-   reporta la tabla paso → estado con la evidencia (comando + output).
+## Instructions for the executing agent
+1. Read this file COMPLETELY before touching anything.
+2. Run the steps in order. Don't skip or reorder them.
+3. After each step, run its **Verification** block and mark `[x]` ONLY
+   if the result matches what's expected.
+4. If a verification fails: stop at that step, fix it, re-verify. Don't
+   move forward with red verifications.
+5. Once all steps are done, run the full **Final verification** and
+   report the table step → status with evidence (command + output).
 
-## Contexto
-- Proyecto: <nombre> — <una línea de qué es>
-- Raíz: <ruta absoluta> | Stack: <resumen>
-- Comandos: install `<cmd>` · build `<cmd>` · lint `<cmd>` · test `<cmd>`
+## Context
+- Project: <name> — <one line of what it is>
+- Root: <absolute path> | Stack: <summary>
+- Commands: install `<cmd>` · build `<cmd>` · lint `<cmd>` · test `<cmd>`
 
-## Hallazgos
-| # | Severidad | Tag | Hallazgo | Ruta |
+## Findings
+| # | Severity | Tag | Finding | Path |
 |---|-----------|-----|----------|------|
 
-## Plan de ejecución
-### Paso 1 — <título> [CRITICAL]
-- Hallazgo: #<n>
-- Acción: <qué cambiar, concreto>
-- Archivos: <rutas>
-- **Verificación**: `<comando no destructivo>` → esperado: <resultado>
-- [ ] Verificado
+## Execution plan
+### Step 1 — <title> [CRITICAL]
+- Finding: #<n>
+- Action: <what to change, concrete>
+- Files: <paths>
+- **Verification**: `<non-destructive command>` → expected: <result>
+- [ ] Verified
 
-### Paso 2 — ...
+### Step 2 — ...
 
-## Verificación final
-- [ ] Todas las verificaciones de todos los pasos re-ejecutadas en verde
-- [ ] Build de producción sin errores: `<cmd>`
-- [ ] Ningún secreto en el bundle/cliente: `<rg sobre el build>` → sin matches
-- [ ] Lint/tests (si existen) en verde
+## Final verification
+- [ ] All verifications from all steps re-run green
+- [ ] Production build with no errors: `<cmd>`
+- [ ] No secret in the bundle/client: `<rg over the build>` → no matches
+- [ ] Lint/tests (if any) green
 
-## Requiere acceso a plataforma (lo toca el usuario, no el agente)
-- <fixes que viven en un dashboard externo (Supabase, Cloudflare, EasyPanel):
-  qué activar, dónde, y cómo verificarlo después>
+## Requires platform access (the user handles this, not the agent)
+- <fixes that live in an external dashboard (Supabase, Cloudflare,
+  EasyPanel): what to enable, where, and how to verify it afterward>
 
-## Fuera de alcance (registrado, no ejecutar)
-- <hallazgos LOW/decisiones de producto que el usuario debe decidir>
+## Out of scope (logged, not executed)
+- <LOW findings / product decisions the user must make>
 ```
 
-## Reglas del runbook
+## Runbook rules
 
-- Autocontenido: el ejecutor NO vio esta conversación. Rutas absolutas,
-  comandos completos, cero referencias a "lo que hablamos".
-- Todo paso tiene verificación ejecutable y no destructiva, con resultado
-  esperado observable. Paso sin verificación no entra al plan.
-- Orden por severidad: CRITICAL → HIGH → MEDIUM → LOW.
-- Severidad de over-engineering y performance: nunca superan MEDIUM — MEDIUM
-  si causa bugs o costo hoy (N+1 en ruta caliente, lógica incorrecta), LOW el
-  resto. CRITICAL y HIGH son exclusivos de seguridad.
-- Los hallazgos de braves-security se subsumen en la tabla de hallazgos (una
-  fila cada uno); su línea `exposición: ...` va solo en el resumen de
-  conversación, no duplicada en el archivo.
-- Fix que vive en un dashboard externo (rate limits, pooling gestionado,
-  restricciones de dominio) → sección "Requiere acceso a plataforma" con su
-  verificación posterior; el agente ejecutor no puede tocarlo.
-- Los hallazgos que requieren decisión del usuario (borrar features, cambiar
-  de proveedor) van a "Fuera de alcance", no al plan.
-- Si ya existe un `braves-audit-*.md` anterior en la raíz, mencionarlo y
-  preguntar si se reemplaza o se genera uno nuevo con otra fecha.
+- Self-contained: the executor did NOT see this conversation. Absolute
+  paths, full commands, zero references to "what we discussed".
+- Every step has an executable, non-destructive verification with an
+  observable expected result. A step without verification doesn't make
+  it into the plan.
+- Ordered by severity: CRITICAL → HIGH → MEDIUM → LOW.
+- Over-engineering and performance severity: never exceeds MEDIUM —
+  MEDIUM if it causes bugs or costs money today (N+1 in a hot path,
+  incorrect logic), LOW otherwise. CRITICAL and HIGH are exclusive to
+  security.
+- braves-security findings get folded into the findings table (one row
+  each); its `exposure: ...` line only goes in the conversation
+  summary, not duplicated in the file.
+- A fix that lives in an external dashboard (rate limits, managed
+  pooling, domain restrictions) → "Requires platform access" section
+  with its follow-up verification; the executing agent can't touch it.
+- Findings that require a user decision (deleting features, switching
+  providers) go to "Out of scope", not the plan.
+- If a previous `braves-audit-*.md` already exists in the root, mention
+  it and ask whether to replace it or generate a new one with a
+  different date.
 
-## Salida en conversación
+## Conversation output
 
-Resumen corto: total de hallazgos por severidad, los 3 más graves en una
-línea cada uno, y la ruta del runbook generado. El detalle vive en el
-archivo, no duplicarlo en el chat.
+Short summary: total findings by severity, the 3 most serious ones in
+one line each, and the path to the generated runbook. The detail lives
+in the file, don't duplicate it in the chat.
 
-## Límites
+## Limits
 
-Audita y escribe el runbook; NO aplica los fixes (eso es braves-fix, o un
-agente fresco con el runbook). Análisis por lectura de código: nada de
-exploits ni datos de producción.
+Audits and writes the runbook; does NOT apply the fixes (that's
+braves-fix, or a fresh agent with the runbook). Analysis by reading
+code only: no exploits, no production data.

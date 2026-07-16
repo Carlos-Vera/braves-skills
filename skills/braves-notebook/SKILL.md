@@ -1,79 +1,96 @@
 ---
 name: braves-notebook
-description: API completa para Google NotebookLM - acceso programatico completo incluyendo funciones no disponibles en la interfaz web. Crear notebooks, anadir fuentes, generar todos los tipos de artefactos, descargar en multiples formatos. Se activa con /braves-notebook o /notebooklm explicito o con intencion como "crea un podcast sobre X", "instalar notebooklm"
+description: Full API for Google NotebookLM - complete programmatic access including features not available in the web interface. Create notebooks, add sources, generate every artifact type, download in multiple formats. Triggers on explicit /braves-notebook or /notebooklm, or on intent such as "crea un podcast sobre X" (create a podcast about X), "instalar notebooklm" (install notebooklm)
 ---
-<!-- notebooklm-py v0.3.4 | Port de BrainClaude: https://github.com/Carlos-Vera/BrainClaude -->
+<!-- notebooklm-py v0.3.4 | Ported from BrainClaude: https://github.com/Carlos-Vera/BrainClaude -->
 
-# Automatizacion de NotebookLM
+# NotebookLM Automation
 
-Acceso programatico completo a Google NotebookLM, incluyendo capacidades no expuestas en la interfaz web. Crear notebooks, anadir fuentes (URLs, YouTube, PDFs, audio, video, imagenes), chatear con el contenido, generar todos los tipos de artefactos y descargar resultados en multiples formatos.
+Speak to the user in the `language` set in `~/.claude/braves-skills.json`; if
+unset, mirror the language the user writes in.
 
-## Paso 0: Configuracion (Se Ejecuta Automaticamente en el Primer Uso)
+Full programmatic access to Google NotebookLM, including capabilities not
+exposed in the web interface. Create notebooks, add sources (URLs, YouTube,
+PDFs, audio, video, images), chat with the content, generate every artifact
+type, and download results in multiple formats.
 
-Cuando esta skill se activa y `notebooklm` aun no esta instalado o autenticado, completar la configuracion primero.
+## Step 0: Setup (Runs Automatically on First Use)
 
-### Pre-vuelo: Verificar Version de Python
+When this skill activates and `notebooklm` isn't installed or authenticated
+yet, complete setup first.
 
-`notebooklm-py` requiere **Python 3.10+**. Verificar la version disponible antes de instalar:
+### Preflight: Check Python Version
+
+`notebooklm-py` requires **Python 3.10+**. Check the available version
+before installing:
 
 ```bash
 python3 --version
 ```
 
-Si Python esta por debajo de 3.10 (p.ej. 3.9.x que es el predeterminado de macOS), instalar una version compatible:
+If Python is below 3.10 (e.g. 3.9.x, macOS's default), install a compatible
+version:
 
 **macOS (Homebrew):**
 ```bash
 brew install python@3.12
 ```
-Luego usar `/opt/homebrew/bin/python3.12` (Apple Silicon) o `/usr/local/bin/python3.12` (Intel) para el venv a continuacion.
+Then use `/opt/homebrew/bin/python3.12` (Apple Silicon) or
+`/usr/local/bin/python3.12` (Intel) for the venv below.
 
 **Linux (apt):**
 ```bash
 sudo apt update && sudo apt install -y python3.12 python3.12-venv
 ```
 
-### Instalar el CLI
+### Install the CLI
 
-Siempre usar un entorno virtual para evitar errores de "externally-managed-environment" y problemas de PATH.
+Always use a virtual environment to avoid "externally-managed-environment"
+errors and PATH issues.
 
-Determinar que Python usar - si el `python3` del sistema es 3.10+, usarlo directamente. De lo contrario usar el recien instalado (p.ej. `python3.12`):
+Determine which Python to use - if the system's `python3` is 3.10+, use it
+directly. Otherwise use the newly installed one (e.g. `python3.12`):
 
 ```bash
-# Establecer PYTHON al binario correcto (ajustar si es necesario)
+# Set PYTHON to the correct binary (adjust if needed)
 PYTHON=$(command -v python3.12 2>/dev/null || command -v python3.11 2>/dev/null || command -v python3.10 2>/dev/null || command -v python3)
 
-# Verificar que es 3.10+
-$PYTHON -c "import sys; assert sys.version_info >= (3,10), f'Python {sys.version} es muy antiguo - se necesita 3.10+'; print(f'Usando Python {sys.version}')"
+# Verify it's 3.10+
+$PYTHON -c "import sys; assert sys.version_info >= (3,10), f'Python {sys.version} is too old - 3.10+ required'; print(f'Using Python {sys.version}')"
 
-# Crear venv e instalar
+# Create venv and install
 $PYTHON -m venv ~/.notebooklm-venv
 source ~/.notebooklm-venv/bin/activate
 pip install "notebooklm-py[browser]"
 playwright install chromium
 ```
 
-Luego crear un enlace simbolico para que siempre este en el PATH:
+Then create a symlink so it's always in the PATH:
 ```bash
 mkdir -p ~/bin
 ln -sf ~/.notebooklm-venv/bin/notebooklm ~/bin/notebooklm
 export PATH="$HOME/bin:$PATH"
 ```
 
-Verificar que el CLI funciona:
+Verify the CLI works:
 ```bash
 notebooklm --help
 ```
 
-### Autenticar
+### Authenticate
 
-**IMPORTANTE:** El comando integrado `notebooklm login` requiere entrada interactiva en terminal (presionar Enter despues de iniciar sesion). La herramienta bash de Claude Code NO soporta entrada interactiva, por lo que `notebooklm login` fallara - el navegador se abre y cierra instantaneamente. En su lugar, usar este script de login personalizado.
+**IMPORTANT:** The built-in `notebooklm login` command requires interactive
+terminal input (pressing Enter after logging in). Claude Code's bash tool
+does NOT support interactive input, so `notebooklm login` will fail - the
+browser opens and closes instantly. Instead, use this custom login script.
 
-Decir al usuario:
+Tell the user:
 
-> Voy a abrir una ventana del navegador - simplemente inicia sesion en tu cuenta de Google y navega a notebooklm.google.com. Tomate tu tiempo, esperare a que confirmes antes de cerrarla.
+> I'm going to open a browser window - just log into your Google account and
+> navigate to notebooklm.google.com. Take your time, I'll wait for you to
+> confirm before closing it.
 
-Luego escribir y ejecutar este script de login:
+Then write and run this login script:
 
 ```bash
 cat > /tmp/nlm_login.py << 'PYEOF'
@@ -88,8 +105,8 @@ SIGNAL_FILE = Path("/tmp/nlm_save_signal")
 SIGNAL_FILE.unlink(missing_ok=True)
 STORAGE_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-print("Abriendo navegador para login de Google...")
-print("Inicia sesion en Google y navega a notebooklm.google.com")
+print("Opening browser for Google login...")
+print("Log into Google and navigate to notebooklm.google.com")
 
 with sync_playwright() as p:
     browser = p.chromium.launch_persistent_context(
@@ -100,32 +117,34 @@ with sync_playwright() as p:
     page = browser.pages[0] if browser.pages else browser.new_page()
     page.goto("https://notebooklm.google.com/")
 
-    print("El navegador esta abierto. Esperando senal de guardado...")
+    print("Browser is open. Waiting for save signal...")
     while not SIGNAL_FILE.exists():
         time.sleep(1)
 
-    print("Senal de guardado recibida! Capturando sesion...")
+    print("Save signal received! Capturing session...")
     storage = browser.storage_state()
     with open(STORAGE_PATH, "w") as f:
         json.dump(storage, f)
 
     cookie_names = [c["name"] for c in storage.get("cookies", [])]
-    print(f"Guardadas {len(cookie_names)} cookies: {cookie_names}")
+    print(f"Saved {len(cookie_names)} cookies: {cookie_names}")
     browser.close()
 
 SIGNAL_FILE.unlink(missing_ok=True)
-print(f"Autenticacion guardada en: {STORAGE_PATH}")
+print(f"Authentication saved to: {STORAGE_PATH}")
 PYEOF
 
-# Ejecutar el script de login en segundo plano
+# Run the login script in the background
 source ~/.notebooklm-venv/bin/activate
 python3 /tmp/nlm_login.py > /tmp/nlm_login_output.txt 2>&1 &
-echo "Login iniciado (PID=$!). El navegador deberia abrirse en unos segundos..."
+echo "Login started (PID=$!). The browser should open in a few seconds..."
 ```
 
-Esperar ~10 segundos a que se abra el navegador, luego preguntar al usuario si puede ver el navegador y ha iniciado sesion.
+Wait ~10 seconds for the browser to open, then ask the user if they can see
+the browser and have logged in.
 
-Una vez que el usuario confirme que esta en la pagina principal de NotebookLM, guardar la sesion:
+Once the user confirms they're on the NotebookLM home page, save the
+session:
 
 ```bash
 touch /tmp/nlm_save_signal
@@ -133,7 +152,7 @@ sleep 8
 cat /tmp/nlm_login_output.txt
 ```
 
-Luego verificar la autenticacion:
+Then verify authentication:
 
 ```bash
 export PATH="$HOME/bin:$PATH"
@@ -141,152 +160,158 @@ notebooklm auth check
 notebooklm list
 ```
 
-Si la autenticacion pasa (cookie SID presente), confirmar al usuario que NotebookLM esta configurado y listo. Limpiar el script temporal y restringir permisos en el archivo de credenciales:
+If authentication passes (SID cookie present), confirm to the user that
+NotebookLM is set up and ready. Clean up the temp script and restrict
+permissions on the credentials file:
 
 ```bash
 rm -f /tmp/nlm_login.py /tmp/nlm_login_output.txt /tmp/nlm_save_signal
 chmod 600 ~/.notebooklm/storage_state.json
 ```
 
-Si la autenticacion falla (cookie SID ausente), el usuario puede no haber completado el inicio de sesion. Eliminar el perfil del navegador y reintentar:
+If authentication fails (SID cookie absent), the user may not have
+completed login. Remove the browser profile and retry:
 
 ```bash
 rm -rf ~/.notebooklm/browser_profile ~/.notebooklm/storage_state.json
 ```
 
-Luego ejecutar el script de login de nuevo desde el principio.
+Then run the login script again from the start.
 
 ---
 
-## Cuando Se Activa Esta Skill
+## When This Skill Activates
 
-**Explicito:** El usuario dice "/notebooklm", "usar notebooklm", "instalar notebooklm", o menciona la herramienta por nombre
+**Explicit:** The user says "/notebooklm", "usar notebooklm" (use
+notebooklm), "instalar notebooklm" (install notebooklm), or mentions the
+tool by name
 
-**Deteccion de intencion:** Reconocer peticiones como:
-- "Crea un podcast sobre [tema]"
-- "Resume estas URLs/documentos"
-- "Genera un quiz de mi investigacion"
-- "Convierte esto en un resumen de audio"
-- "Crea tarjetas de estudio para repasar"
-- "Genera un video explicativo"
-- "Haz una infografia"
-- "Crea un mapa mental de los conceptos"
-- "Descarga el quiz en markdown"
-- "Anade estas fuentes a NotebookLM"
+**Intent detection:** Recognize requests like:
+- "Crea un podcast sobre [tema]" (Create a podcast about [topic])
+- "Resume estas URLs/documentos" (Summarize these URLs/documents)
+- "Genera un quiz de mi investigacion" (Generate a quiz from my research)
+- "Convierte esto en un resumen de audio" (Turn this into an audio summary)
+- "Crea tarjetas de estudio para repasar" (Create flashcards to review)
+- "Genera un video explicativo" (Generate an explainer video)
+- "Haz una infografia" (Make an infographic)
+- "Crea un mapa mental de los conceptos" (Create a mind map of the concepts)
+- "Descarga el quiz en markdown" (Download the quiz in markdown)
+- "Anade estas fuentes a NotebookLM" (Add these sources to NotebookLM)
 
-## Reglas de Autonomia
+## Autonomy Rules
 
-**Ejecutar automaticamente (sin confirmacion):**
-- `notebooklm status` - verificar contexto
-- `notebooklm auth check` - diagnosticar problemas de autenticacion
-- `notebooklm list` - listar notebooks
-- `notebooklm source list` - listar fuentes
-- `notebooklm artifact list` - listar artefactos
-- `notebooklm language list` - listar idiomas soportados
-- `notebooklm language get` - obtener idioma actual
-- `notebooklm language set` - establecer idioma (configuracion global)
-- `notebooklm artifact wait` - esperar a que el artefacto se complete
-- `notebooklm source wait` - esperar al procesamiento de fuentes
-- `notebooklm research status` - verificar estado de investigacion
-- `notebooklm research wait` - esperar a la investigacion
-- `notebooklm use <id>` - establecer contexto
-- `notebooklm create` - crear notebook
-- `notebooklm ask "..."` - consultas de chat (sin `--save-as-note`)
-- `notebooklm history` - mostrar historial de conversacion (solo lectura)
-- `notebooklm source add` - anadir fuentes
+**Run automatically (no confirmation):**
+- `notebooklm status` - check context
+- `notebooklm auth check` - diagnose authentication issues
+- `notebooklm list` - list notebooks
+- `notebooklm source list` - list sources
+- `notebooklm artifact list` - list artifacts
+- `notebooklm language list` - list supported languages
+- `notebooklm language get` - get current language
+- `notebooklm language set` - set language (global config)
+- `notebooklm artifact wait` - wait for the artifact to complete
+- `notebooklm source wait` - wait for source processing
+- `notebooklm research status` - check research status
+- `notebooklm research wait` - wait for research
+- `notebooklm use <id>` - set context
+- `notebooklm create` - create notebook
+- `notebooklm ask "..."` - chat queries (without `--save-as-note`)
+- `notebooklm history` - show conversation history (read-only)
+- `notebooklm source add` - add sources
 
-**Preguntar antes de ejecutar:**
-- `notebooklm delete` - destructivo
-- `notebooklm generate *` - larga duracion, puede fallar
-- `notebooklm download *` - escribe en el sistema de archivos
-- `notebooklm ask "..." --save-as-note` - escribe una nota
-- `notebooklm history --save` - escribe una nota
+**Ask before running:**
+- `notebooklm delete` - destructive
+- `notebooklm generate *` - long-running, can fail
+- `notebooklm download *` - writes to the filesystem
+- `notebooklm ask "..." --save-as-note` - writes a note
+- `notebooklm history --save` - writes a note
 
-## Referencia Rapida
+## Quick Reference
 
-| Tarea | Comando |
+| Task | Command |
 |-------|---------|
-| Listar notebooks | `notebooklm list` |
-| Crear notebook | `notebooklm create "Titulo"` |
-| Establecer contexto | `notebooklm use <notebook_id>` |
-| Mostrar contexto | `notebooklm status` |
-| Anadir fuente URL | `notebooklm source add "https://..."` |
-| Anadir archivo | `notebooklm source add ./archivo.pdf` |
-| Anadir YouTube | `notebooklm source add "https://youtube.com/..."` |
-| Listar fuentes | `notebooklm source list` |
-| Esperar procesamiento de fuente | `notebooklm source wait <source_id>` |
-| Investigacion web (rapida) | `notebooklm source add-research "consulta"` |
-| Investigacion web (profunda) | `notebooklm source add-research "consulta" --mode deep --no-wait` |
-| Ver estado de investigacion | `notebooklm research status` |
-| Esperar investigacion | `notebooklm research wait --import-all` |
-| Chat | `notebooklm ask "pregunta"` |
-| Chat (fuentes especificas) | `notebooklm ask "pregunta" -s src_id1 -s src_id2` |
-| Chat (con referencias) | `notebooklm ask "pregunta" --json` |
-| Chat (guardar respuesta como nota) | `notebooklm ask "pregunta" --save-as-note` |
-| Mostrar historial de conversacion | `notebooklm history` |
-| Guardar todo el historial como nota | `notebooklm history --save` |
-| Obtener texto completo de fuente | `notebooklm source fulltext <source_id>` |
-| Generar podcast | `notebooklm generate audio "instrucciones"` |
-| Generar video | `notebooklm generate video "instrucciones"` |
-| Generar informe | `notebooklm generate report --format briefing-doc` |
-| Generar quiz | `notebooklm generate quiz` |
-| Generar tarjetas de estudio | `notebooklm generate flashcards` |
-| Generar infografia | `notebooklm generate infographic` |
-| Generar mapa mental | `notebooklm generate mind-map` |
-| Generar presentacion | `notebooklm generate slide-deck` |
-| Revisar una diapositiva | `notebooklm generate revise-slide "prompt" --artifact <id> --slide 0` |
-| Ver estado de artefactos | `notebooklm artifact list` |
-| Esperar a que se complete | `notebooklm artifact wait <artifact_id>` |
-| Descargar audio | `notebooklm download audio ./salida.mp3` |
-| Descargar video | `notebooklm download video ./salida.mp4` |
-| Descargar presentacion (PDF) | `notebooklm download slide-deck ./diapositivas.pdf` |
-| Descargar presentacion (PPTX) | `notebooklm download slide-deck ./diapositivas.pptx --format pptx` |
-| Descargar informe | `notebooklm download report ./informe.md` |
-| Descargar mapa mental | `notebooklm download mind-map ./mapa.json` |
-| Descargar tabla de datos | `notebooklm download data-table ./datos.csv` |
-| Descargar quiz | `notebooklm download quiz quiz.json` |
-| Descargar tarjetas de estudio | `notebooklm download flashcards tarjetas.json` |
-| Listar idiomas | `notebooklm language list` |
-| Establecer idioma | `notebooklm language set zh_Hans` |
+| List notebooks | `notebooklm list` |
+| Create notebook | `notebooklm create "Title"` |
+| Set context | `notebooklm use <notebook_id>` |
+| Show context | `notebooklm status` |
+| Add URL source | `notebooklm source add "https://..."` |
+| Add file | `notebooklm source add ./file.pdf` |
+| Add YouTube | `notebooklm source add "https://youtube.com/..."` |
+| List sources | `notebooklm source list` |
+| Wait for source processing | `notebooklm source wait <source_id>` |
+| Web research (quick) | `notebooklm source add-research "query"` |
+| Web research (deep) | `notebooklm source add-research "query" --mode deep --no-wait` |
+| Check research status | `notebooklm research status` |
+| Wait for research | `notebooklm research wait --import-all` |
+| Chat | `notebooklm ask "question"` |
+| Chat (specific sources) | `notebooklm ask "question" -s src_id1 -s src_id2` |
+| Chat (with references) | `notebooklm ask "question" --json` |
+| Chat (save answer as note) | `notebooklm ask "question" --save-as-note` |
+| Show conversation history | `notebooklm history` |
+| Save entire history as note | `notebooklm history --save` |
+| Get full source text | `notebooklm source fulltext <source_id>` |
+| Generate podcast | `notebooklm generate audio "instructions"` |
+| Generate video | `notebooklm generate video "instructions"` |
+| Generate report | `notebooklm generate report --format briefing-doc` |
+| Generate quiz | `notebooklm generate quiz` |
+| Generate flashcards | `notebooklm generate flashcards` |
+| Generate infographic | `notebooklm generate infographic` |
+| Generate mind map | `notebooklm generate mind-map` |
+| Generate slide deck | `notebooklm generate slide-deck` |
+| Revise a slide | `notebooklm generate revise-slide "prompt" --artifact <id> --slide 0` |
+| Check artifact status | `notebooklm artifact list` |
+| Wait for completion | `notebooklm artifact wait <artifact_id>` |
+| Download audio | `notebooklm download audio ./output.mp3` |
+| Download video | `notebooklm download video ./output.mp4` |
+| Download slide deck (PDF) | `notebooklm download slide-deck ./slides.pdf` |
+| Download slide deck (PPTX) | `notebooklm download slide-deck ./slides.pptx --format pptx` |
+| Download report | `notebooklm download report ./report.md` |
+| Download mind map | `notebooklm download mind-map ./map.json` |
+| Download data table | `notebooklm download data-table ./data.csv` |
+| Download quiz | `notebooklm download quiz quiz.json` |
+| Download flashcards | `notebooklm download flashcards flashcards.json` |
+| List languages | `notebooklm language list` |
+| Set language | `notebooklm language set zh_Hans` |
 
-## Tipos de Generacion
+## Generation Types
 
-Todos los comandos de generacion soportan:
-- `-s, --source` para usar fuente(s) especifica(s) en lugar de todas las fuentes
-- `--language` para establecer el idioma de salida (por defecto 'en')
-- `--json` para salida legible por maquina
-- `--retry N` para reintentar automaticamente ante limites de tasa
+All generation commands support:
+- `-s, --source` to use specific source(s) instead of all sources
+- `--language` to set the output language (defaults to 'en')
+- `--json` for machine-readable output
+- `--retry N` to automatically retry on rate limits
 
-| Tipo | Comando | Opciones | Descarga |
+| Type | Command | Options | Download |
 |------|---------|----------|----------|
 | Podcast | `generate audio` | `--format [deep-dive\|brief\|critique\|debate]`, `--length [short\|default\|long]` | .mp3 |
 | Video | `generate video` | `--format [explainer\|brief]`, `--style [auto\|classic\|whiteboard\|kawaii\|anime\|watercolor\|retro-print\|heritage\|paper-craft]` | .mp4 |
-| Presentacion | `generate slide-deck` | `--format [detailed\|presenter]`, `--length [default\|short]` | .pdf / .pptx |
-| Revision de Diapositiva | `generate revise-slide "prompt" --artifact <id> --slide N` | `--wait`, `--notebook` | *(se redescarga la presentacion principal)* |
-| Infografia | `generate infographic` | `--orientation [landscape\|portrait\|square]`, `--detail [concise\|standard\|detailed]` | .png |
-| Informe | `generate report` | `--format [briefing-doc\|study-guide\|blog-post\|custom]`, `--append "instrucciones extra"` | .md |
-| Mapa Mental | `generate mind-map` | *(sincrono, instantaneo)* | .json |
-| Tabla de Datos | `generate data-table` | descripcion requerida | .csv |
+| Slide Deck | `generate slide-deck` | `--format [detailed\|presenter]`, `--length [default\|short]` | .pdf / .pptx |
+| Slide Revision | `generate revise-slide "prompt" --artifact <id> --slide N` | `--wait`, `--notebook` | *(re-download the main slide deck)* |
+| Infographic | `generate infographic` | `--orientation [landscape\|portrait\|square]`, `--detail [concise\|standard\|detailed]` | .png |
+| Report | `generate report` | `--format [briefing-doc\|study-guide\|blog-post\|custom]`, `--append "extra instructions"` | .md |
+| Mind Map | `generate mind-map` | *(synchronous, instant)* | .json |
+| Data Table | `generate data-table` | description required | .csv |
 | Quiz | `generate quiz` | `--difficulty [easy\|medium\|hard]`, `--quantity [fewer\|standard\|more]` | .json/.md/.html |
-| Tarjetas de Estudio | `generate flashcards` | `--difficulty [easy\|medium\|hard]`, `--quantity [fewer\|standard\|more]` | .json/.md/.html |
+| Flashcards | `generate flashcards` | `--difficulty [easy\|medium\|hard]`, `--quantity [fewer\|standard\|more]` | .json/.md/.html |
 
-## Flujos de Trabajo Comunes
+## Common Workflows
 
-### De Investigacion a Podcast
-1. `notebooklm create "Investigacion: [tema]"`
-2. `notebooklm source add` para cada URL/documento
-3. Esperar a las fuentes: `notebooklm source list --json` hasta que todos tengan status=READY
-4. `notebooklm generate audio "Enfocarse en [angulo especifico]"`
-5. Verificar `notebooklm artifact list` para ver el estado
-6. `notebooklm download audio ./podcast.mp3` cuando este completo
+### From Research to Podcast
+1. `notebooklm create "Research: [topic]"`
+2. `notebooklm source add` for each URL/document
+3. Wait for sources: `notebooklm source list --json` until all have
+   status=READY
+4. `notebooklm generate audio "Focus on [specific angle]"`
+5. Check `notebooklm artifact list` for status
+6. `notebooklm download audio ./podcast.mp3` once complete
 
-### Analisis de Documentos
-1. `notebooklm create "Analisis: [proyecto]"`
-2. `notebooklm source add ./doc.pdf` (o URLs)
-3. `notebooklm ask "Resume los puntos clave"`
-4. Continuar chateando segun sea necesario
+### Document Analysis
+1. `notebooklm create "Analysis: [project]"`
+2. `notebooklm source add ./doc.pdf` (or URLs)
+3. `notebooklm ask "Summarize the key points"`
+4. Keep chatting as needed
 
-## Formatos de Salida (--json)
+## Output Formats (--json)
 
 ```json
 // notebooklm list --json
@@ -299,17 +324,19 @@ Todos los comandos de generacion soportan:
 {"artifacts": [{"id": "...", "title": "...", "type": "Audio Overview", "status": "in_progress|pending|completed|unknown"}]}
 ```
 
-## Manejo de Errores
+## Error Handling
 
-| Error | Causa | Accion |
+| Error | Cause | Action |
 |-------|-------|--------|
-| Error de autenticacion/cookie | Sesion expirada | Ejecutar `notebooklm login` de nuevo |
-| "No notebook context" | Contexto no establecido | Ejecutar `notebooklm use <id>` |
-| Limite de tasa | Throttle de Google | Esperar 5-10 min, reintentar |
-| Fallo en descarga | Generacion incompleta | Verificar `artifact list` para ver el estado |
+| Authentication/cookie error | Session expired | Run `notebooklm login` again |
+| "No notebook context" | Context not set | Run `notebooklm use <id>` |
+| Rate limit | Google throttling | Wait 5-10 min, retry |
+| Download failure | Incomplete generation | Check `artifact list` for status |
 
-## Limitaciones Conocidas
+## Known Limitations
 
-- La generacion de audio, video, quiz, tarjetas de estudio, infografia y presentaciones puede fallar por limites de tasa de Google
-- Tiempos de generacion: audio 10-20 min, video 15-45 min, quiz/tarjetas de estudio 5-15 min
-- Esta es una API no oficial - Google puede cambiar las cosas sin previo aviso
+- Audio, video, quiz, flashcard, infographic, and slide-deck generation can
+  fail due to Google rate limits
+- Generation times: audio 10-20 min, video 15-45 min, quiz/flashcards
+  5-15 min
+- This is an unofficial API - Google may change things without notice
