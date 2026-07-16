@@ -1,0 +1,26 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "braves-skills",
+  "version": "1.0.0",
+  "description": "Caja de herramientas todo-en-uno de BravesLab: 11 skills que cubren el ciclo de vida completo de un proyecto (arranque, plan, crítica, seguridad, auditoría, fix, cierre, memoria). Fork de ponytail (MIT, Dietrich Gebert) + BrainClaude (Carlos Vera).",
+  "author": {
+    "name": "Carlos Vera",
+    "email": "carlos@braveslab.com",
+    "url": "https://braveslab.com"
+  },
+  "homepage": "https://github.com/Carlos-Vera/braves-skills",
+  "skills": [
+    "./skills/braves-help",
+    "./skills/braves-setup",
+    "./skills/braves-start",
+    "./skills/fable-plan",
+    "./skills/braves-opinion",
+    "./skills/braves-security",
+    "./skills/braves-audit",
+    "./skills/braves-fix",
+    "./skills/braves-ship",
+    "./skills/braves-save",
+    "./skills/braves-notebook"
+  ],
+  "hooks": "./hooks/hooks.json"
+}
