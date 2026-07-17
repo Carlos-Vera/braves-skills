@@ -74,19 +74,25 @@ When a task finishes:
 
 ## Model Selection
 
+**Hard ceiling: never dispatch a subagent on `fable`.** The orchestrator runs
+on Fable 5; workers always run on a smaller model, matched to the task:
+
 | Task type | Model |
 |-----------|-------|
 | Mechanical, search, file reading | `haiku` |
 | Integration, multi-file edits, judgment | `sonnet` |
-| Design, architecture, review | `opus` |
+| Design, architecture, review | `opus` (top escalation, still below fable) |
 
 **Cost exception:** the cheap model is not always the cheapest. If a task is
-complex enough that a smaller model (Sonnet 4.6) will likely fail or iterate
-many times — burning more tokens than Opus with no guaranteed success —
-dispatch the subagent directly with `opus` (4.7 or 4.6). Optimize
-tokens-to-success, not price-per-token. Escalate to Opus up front when the task
-needs deep reasoning, has high ambiguity, multiple valid approaches, or broad
-cross-dependencies.
+complex enough that `haiku`/`sonnet` will likely fail or iterate many times —
+burning more tokens than a bigger model with no guaranteed success — dispatch
+`opus` up front. Optimize tokens-to-success, not price-per-token. The `fable`
+ceiling holds regardless.
+
+**Frontend tasks:** if Gemini access is available (e.g. the `gemini` CLI is
+installed), ASK the user first whether to hand the frontend work to Gemini via
+a prompt (`gemini -p "..."` through Bash) instead of a Claude subagent. If they
+accept, review Gemini's output like any other worker report.
 
 ## Review And Correction
 
