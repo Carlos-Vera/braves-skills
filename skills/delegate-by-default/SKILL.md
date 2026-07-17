@@ -89,10 +89,13 @@ burning more tokens than a bigger model with no guaranteed success — dispatch
 `opus` up front. Optimize tokens-to-success, not price-per-token. The `fable`
 ceiling holds regardless.
 
-**Frontend tasks:** if Gemini access is available (e.g. the `gemini` CLI is
-installed), ASK the user first whether to hand the frontend work to Gemini via
-a prompt (`gemini -p "..."` through Bash) instead of a Claude subagent. If they
-accept, review Gemini's output like any other worker report.
+**Frontend tasks:** ASK the user first whether to hand the frontend work to
+Gemini instead of a Claude subagent. If they accept:
+- `gemini` CLI installed → dispatch via `gemini -p "..."` through Bash and
+  review its output like any other worker report.
+- CLI not installed → write the task as a self-contained prompt **in English**
+  (goal, stack, constraints, files involved) for the user to paste into
+  Antigravity, then review the resulting changes when they land.
 
 ## Review And Correction
 
