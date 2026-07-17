@@ -36,6 +36,9 @@ fires regardless of which language the user writes in.
 
 ## Pull requests
 
+- `master` is protected: only the maintainer (Carlos Vera) commits
+  directly. Everyone else works on a new branch, opens a PR, and the
+  maintainer verifies and merges.
 - PRs are squash-merged. Target branch: `master`.
 - Keep diffs minimal — no drive-by refactors bundled with unrelated
   changes.

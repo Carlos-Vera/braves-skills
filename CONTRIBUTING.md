@@ -37,6 +37,9 @@ se dispare sin importar en qué idioma escriba el usuario.
 
 ## Pull requests
 
+- `master` está protegida: solo el mantenedor (Carlos Vera) commitea
+  directo. Todos los demás trabajan en una rama nueva, abren un PR y el
+  mantenedor verifica y mergea.
 - Los PRs se mergean con squash. Rama destino: `master`.
 - Diffs mínimos — nada de refactors de paso mezclados con cambios que no
   vienen al caso.
