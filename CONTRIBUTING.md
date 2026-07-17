@@ -16,8 +16,8 @@ messages.
 Skill content (the prompts Claude reads) is written in English. The
 language Claude speaks with the user defaults to Spanish, overridable via
 the `language` field in `~/.claude/braves-skills.json`. The README is
-bilingual: `README.md` (English) and `README.es.md` (Spanish) — update
-both when you change one.
+bilingual: `README.md` (Spanish, the default GitHub sees) and
+`README.en.md` (English) — update both when you change one.
 
 Frontmatter `description` triggers are bilingual: keep the existing Spanish
 user-utterance triggers alongside their English equivalents, so a skill

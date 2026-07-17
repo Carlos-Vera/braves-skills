@@ -5,79 +5,81 @@
   </picture>
 </p>
 
-**English** | [Español](README.es.md)
+[English](README.en.md) | **Español**
 
 # braves-skills
 
-BravesLab's all-in-one toolbox for Claude Code: 17 skills that cover a
-project's full lifecycle (11 lifecycle skills + 6 support skills), so you
-don't have to remember 40 loose skills.
+La caja de herramientas todo-en-uno de BravesLab para Claude Code: 17 skills
+que cubren el ciclo de vida completo de un proyecto (11 skills de ciclo de
+vida + 6 skills de soporte), para que no tengas que recordar 40 skills
+sueltas.
 
-## The lifecycle
+## El ciclo de vida
 
 ```
 /braves-start → /fable-plan → /braves-opinion → [build] →
 /braves-security → /braves-audit → /braves-fix → /braves-ship → /braves-save
 ```
 
-| Skill | What it does |
+| Skill | Qué hace |
 |-------|----------|
-| `/braves-help` | Shows this toolbox and which skill to use for each task. |
-| `/braves-setup` | One-time onboarding: git identity, commit signature (AI co-authorship OFF by default), PR/merge policy, optional NotebookLM, adoption of your own skills. |
-| `/braves-start` | Project kickoff: PRD, TRD, UI/UX, Flow, Backend and Plan before touching code. |
-| `/fable-plan` | The questions a senior architect asks before building → a phased plan with verification. |
-| `/braves-opinion` | Devil's advocate: constructive critique without flattery. Verdict SHIP / SHIP WITH CHANGES / RETHINK / KILL. |
-| `/braves-security` | The lock: infra audit (secrets, API proxying, RLS, pooling, cache, rate limits, load testing with k6/Artillery) + code (OWASP). |
-| `/braves-audit` | Global audit (security + over-engineering + performance). Writes an executable `braves-audit-DATE.md` at the repo root. |
-| `/braves-fix` | Fixes bugs with mandatory evidence; runs the `braves-audit-DATE.md` runbook if one exists. |
-| `/braves-ship` | Professional close-out: pre-flight checks, commit with your signature, PR/merge per your configuration, release checklist. |
-| `/braves-save` | Session close: memories + log entry to the AI Brain notebook (NotebookLM). |
-| `/braves-notebook` | Full Google NotebookLM API (sources, podcasts, reports, quizzes, downloads). |
+| `/braves-help` | Muestra esta caja de herramientas y qué skill usar para cada tarea. |
+| `/braves-setup` | Onboarding único: identidad git, firma de commits (coautoría de IA OFF por defecto), política de PR/merge, NotebookLM opcional, adopción de tus propias skills. |
+| `/braves-start` | Arranque de proyecto: PRD, TRD, UI/UX, Flow, Backend y Plan antes de tocar código. |
+| `/fable-plan` | Las preguntas que un arquitecto senior hace antes de construir → un plan por fases con verificación. |
+| `/braves-opinion` | Abogado del diablo: crítica constructiva sin adulación. Veredicto SHIP / SHIP WITH CHANGES / RETHINK / KILL. |
+| `/braves-security` | El candado: auditoría de infraestructura (secretos, proxy de API, RLS, pooling, cache, rate limits, pruebas de carga con k6/Artillery) + código (OWASP). |
+| `/braves-audit` | Auditoría global (seguridad + sobre-ingeniería + rendimiento). Escribe un `braves-audit-DATE.md` ejecutable en la raíz del repo. |
+| `/braves-fix` | Arregla bugs con evidencia obligatoria; ejecuta el runbook `braves-audit-DATE.md` si existe uno. |
+| `/braves-ship` | Cierre profesional: chequeos previos, commit con tu firma, PR/merge según tu configuración, checklist de release. |
+| `/braves-save` | Cierre de sesión: memorias + entrada de log al notebook AI Brain (NotebookLM). |
+| `/braves-notebook` | API completa de Google NotebookLM (fuentes, podcasts, reportes, quizzes, descargas). |
 
-### Support skills (adopted)
+### Skills de soporte (adoptadas)
 
-| Skill | What it does |
+| Skill | Qué hace |
 |-------|----------|
-| `/desarrollo` | Plan a feature and build it via delegated agents. |
-| `codebase-memory` | Structural code queries via the codebase-memory-mcp graph. |
-| `delegate-by-default` | Orchestrator mode: dispatch subagents instead of working inline. |
-| `humanizar` | BravesLab brand voice for Spanish copy. |
-| `n8n-workflow-builder` | Build/debug n8n workflows with validation and CVE check. |
-| `wordpress-spanish` | es_ES translation for WordPress plugins. |
+| `/desarrollo` | Planifica una feature y constrúyela mediante agentes delegados. |
+| `codebase-memory` | Consultas estructurales de código mediante el grafo de codebase-memory-mcp. |
+| `delegate-by-default` | Modo orquestador: despacha subagentes en vez de trabajar en línea. |
+| `humanizar` | Voz de marca de BravesLab para copy en español. |
+| `n8n-workflow-builder` | Construye/depura workflows de n8n con validación y chequeo de CVE. |
+| `wordpress-spanish` | Traducción es_ES para plugins de WordPress. |
 
-## Installation
+## Instalación
 
-Clone (or copy) into Claude Code's skills directory:
+Clona (o copia) dentro del directorio de skills de Claude Code:
 
 ```bash
 git clone https://github.com/Carlos-Vera/braves-skills ~/.claude/skills/braves-skills
 ```
 
-It auto-loads on the next session as `braves-skills@skills-dir` (or run
-`/reload-plugins` to load it right away). On the first session, a hook
-detects there's no configuration yet and offers to run `/braves-setup`.
+Se auto-carga en la siguiente sesión como `braves-skills@skills-dir` (o
+ejecuta `/reload-plugins` para cargarla de inmediato). En la primera sesión,
+un hook detecta que aún no hay configuración y ofrece ejecutar
+`/braves-setup`.
 
-## Configuration
+## Configuración
 
-`/braves-setup` is a one-time onboarding flow (re-runnable any time to
-change values later). It asks one question at a time:
+`/braves-setup` es un flujo de onboarding único (re-ejecutable en cualquier
+momento para cambiar valores luego). Pregunta una cosa a la vez:
 
-1. Language Claude should use with you.
-2. Git identity for commits.
-3. Whether Claude commits for you (always / ask / never).
-4. Commit signature (free-text footer).
-5. AI co-authorship in commits — OFF by default.
-6. PR & merge policy (create PRs?, merge strategy, who merges, direct push to main — default no) and release policy (versioning convention — patch-per-change, semver or your own; releases are never published without asking, with recommendations at key moments).
-7. Optional NotebookLM integration (session logs sent to an "AI Brain" notebook via the unofficial `notebooklm-py` CLI, browser-assisted Google login).
-8. Optional MCP servers, with guided configuration: Perplexity (AI web search), Firecrawl (site crawling/scraping), Chrome DevTools (frontend debugging), Playwright (browser automation and testing), Codebase memory (code knowledge graph), n8n (workflow building).
-9. Adoption of your own skills, MCPs and plugins into the toolbox: skills are copied into the plugin, extra MCPs join the curated set, and plugins are recorded as part of your standard kit for new machines.
+1. Idioma en el que Claude debe hablarte.
+2. Identidad git para los commits.
+3. Si Claude hace los commits por ti (always / ask / never).
+4. Firma de commit (pie de texto libre).
+5. Coautoría de IA en los commits — OFF por defecto.
+6. Política de PR y merge (¿crear PRs?, estrategia de merge, quién mergea, push directo a main — no por defecto) y política de releases (convención de versionado — patch por cambio, semver o la tuya propia; los releases nunca se publican sin preguntar, con recomendaciones en momentos clave).
+7. Integración opcional con NotebookLM (logs de sesión enviados a un notebook "AI Brain" mediante el CLI no oficial `notebooklm-py`, login de Google asistido por navegador).
+8. MCPs opcionales, con configuración guiada: Perplexity (búsqueda web con IA), Firecrawl (rastreo/scraping de sitios), Chrome DevTools (debugging frontend), Playwright (automatización y pruebas de navegador), Codebase memory (grafo de conocimiento del código), n8n (construcción de workflows).
+9. Adopción de tus propias skills, MCPs y plugins en la caja: las skills se copian al plugin, los MCPs extra entran al set curado, y los plugins se registran como parte de tu kit estándar para máquinas nuevas.
 
-The configuration lives at `~/.claude/braves-skills.json`:
+La configuración vive en `~/.claude/braves-skills.json`:
 
 ```json
 {
   "version": 1,
-  "language": "en",
+  "language": "es",
   "github_user": "your-github-user",
   "git_name": "Your Name",
   "git_email": "you@example.com",
@@ -98,21 +100,22 @@ The configuration lives at `~/.claude/braves-skills.json`:
 }
 ```
 
-All skills speak to you in the configured `language` (fallback: defaults to
-Spanish if `language` is unset).
+Todas las skills te hablan en el `language` configurado (fallback: español
+por defecto si `language` no está definido).
 
-## Contributing
+## Contribuir
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add or change skills.
+Consulta [CONTRIBUTING.md](CONTRIBUTING.md) para saber cómo agregar o cambiar
+skills.
 
-## Credits
+## Créditos
 
-- The audit skills inherit the philosophy and format of
+- Las skills de auditoría heredan la filosofía y el formato de
   [ponytail](https://github.com/DietrichGebert/ponytail) (MIT, Dietrich
-  Gebert), of which this project is a conceptual fork.
-- `braves-save` and `braves-notebook` are ports of
+  Gebert), del cual este proyecto es un fork conceptual.
+- `braves-save` y `braves-notebook` son ports de
   [BrainClaude](https://github.com/Carlos-Vera/BrainClaude) (Carlos Vera).
 
-## License
+## Licencia
 
-MIT — see [LICENSE](LICENSE).
+MIT — ver [LICENSE](LICENSE).
