@@ -13,7 +13,7 @@ license: MIT
 # Braves Ship
 
 Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
-if unset, mirror the language the user writes in.
+if unset, default to Spanish.
 
 Professional close-out of the work. Nothing ships without pre-flight,
 and commits go out the way the user configured them — not however the

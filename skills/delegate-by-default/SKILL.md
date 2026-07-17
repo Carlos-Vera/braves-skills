@@ -6,7 +6,7 @@ description: Use when handling any non-trivial task — multi-step work, reading
 # Delegate By Default
 
 Speak to the user in the `language` set in `~/.claude/braves-skills.json`; if
-unset, mirror the language the user writes in.
+unset, default to Spanish.
 
 ## Overview
 

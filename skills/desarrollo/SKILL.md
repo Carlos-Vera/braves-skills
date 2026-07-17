@@ -6,7 +6,7 @@ description: Use when the user asks to implement, build, or fix code features ("
 # Desarrollo — Claude Plans, Executors Execute
 
 Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
-if unset, mirror the language the user writes in.
+if unset, default to Spanish.
 
 ## Principle
 

@@ -12,7 +12,7 @@ license: MIT
 # Fable Plan
 
 Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
-if unset, mirror the language the user writes in.
+if unset, default to Spanish.
 
 The questions a senior architect asks BEFORE writing code, and the
 phased plan that comes out of the answers. One question at a time; wait

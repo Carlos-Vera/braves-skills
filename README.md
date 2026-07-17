@@ -5,6 +5,8 @@
   </picture>
 </p>
 
+**English** | [Español](README.es.md)
+
 # braves-skills
 
 BravesLab's all-in-one toolbox for Claude Code: 17 skills that cover a
@@ -67,7 +69,8 @@ change values later). It asks one question at a time:
 5. AI co-authorship in commits — OFF by default.
 6. PR & merge policy (create PRs?, merge strategy, who merges, direct push to main — default no).
 7. Optional NotebookLM integration (session logs sent to an "AI Brain" notebook via the unofficial `notebooklm-py` CLI, browser-assisted Google login).
-8. Adoption of your own skills into the toolbox.
+8. Optional MCP servers, with guided configuration: Perplexity (AI web search), Firecrawl (site crawling/scraping), Chrome DevTools (frontend debugging), Playwright (browser automation and testing), Codebase memory (code knowledge graph), n8n (workflow building).
+9. Adoption of your own skills into the toolbox.
 
 The configuration lives at `~/.claude/braves-skills.json`:
 
@@ -88,12 +91,13 @@ The configuration lives at `~/.claude/braves-skills.json`:
     "direct_push_main": false
   },
   "notebooklm": { "enabled": false },
+  "mcps": [],
   "adopted_skills": []
 }
 ```
 
-All skills speak to you in the configured `language` (fallback: whichever
-language you write in).
+All skills speak to you in the configured `language` (fallback: defaults to
+Spanish if `language` is unset).
 
 ## Contributing
 

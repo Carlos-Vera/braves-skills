@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "braves-skills",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "BravesLab's all-in-one toolbox of 17 skills covering a project's full lifecycle (kickoff, plan, critique, security, audit, fix, ship, memory). Conceptual fork of ponytail (MIT, Dietrich Gebert) + BrainClaude (Carlos Vera).",
   "author": {
     "name": "Carlos Vera",

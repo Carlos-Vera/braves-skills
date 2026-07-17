@@ -6,7 +6,7 @@ description: Use when translating WordPress plugin strings to Spanish (es_ES) fo
 # WordPress Spanish Translation (es_ES)
 
 Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
-if unset, mirror the language the user writes in.
+if unset, default to Spanish.
 
 ## Overview
 Translates WordPress plugin strings to Spanish (es_ES) following the

@@ -13,7 +13,7 @@ license: MIT
 # Braves Start
 
 Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
-if unset, mirror the language the user writes in.
+if unset, default to Spanish.
 
 Professional kickoff for any project. The goal: it doesn't collapse a
 month in. Not one line of production code before the foundational

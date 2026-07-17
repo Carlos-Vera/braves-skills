@@ -7,7 +7,7 @@ description: Full API for Google NotebookLM - complete programmatic access inclu
 # NotebookLM Automation
 
 Speak to the user in the `language` set in `~/.claude/braves-skills.json`; if
-unset, mirror the language the user writes in.
+unset, default to Spanish.
 
 Full programmatic access to Google NotebookLM, including capabilities not
 exposed in the web interface. Create notebooks, add sources (URLs, YouTube,

@@ -6,7 +6,7 @@ description: Use when creating, modifying, or debugging n8n workflows. Enforces 
 # n8n Workflow Builder (safe, latest-version, agent-correct)
 
 Speak to the user in the `language` set in `~/.claude/braves-skills.json`; if
-unset, mirror the language the user writes in.
+unset, default to Spanish.
 
 ## Overview
 Build n8n flows safely and reproducibly. **Never** use outdated node

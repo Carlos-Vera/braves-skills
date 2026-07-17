@@ -13,7 +13,11 @@ messages.
 
 ## Language
 
-All skill content and documentation is English by default.
+Skill content (the prompts Claude reads) is written in English. The
+language Claude speaks with the user defaults to Spanish, overridable via
+the `language` field in `~/.claude/braves-skills.json`. The README is
+bilingual: `README.md` (English) and `README.es.md` (Spanish) — update
+both when you change one.
 
 Frontmatter `description` triggers are bilingual: keep the existing Spanish
 user-utterance triggers alongside their English equivalents, so a skill
@@ -30,9 +34,19 @@ fires regardless of which language the user writes in.
 
 ## Pull requests
 
-- PRs are squash-merged. Target branch: `main`.
+- PRs are squash-merged. Target branch: `master`.
 - Keep diffs minimal — no drive-by refactors bundled with unrelated
   changes.
+
+## Releases
+
+Updates ship as GitHub releases:
+
+1. Bump `version` in `.claude-plugin/plugin.json` (semver).
+2. Tag the commit: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+3. Publish: `gh release create vX.Y.Z --title "..." --notes "..."`.
+
+Users update with `git -C ~/.claude/skills/braves-skills pull`.
 
 ## License
 
