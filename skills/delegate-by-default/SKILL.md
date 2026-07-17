@@ -107,7 +107,7 @@ pollution) and never force the same model to retry unchanged.
 ## Cross-References
 
 - For executing a written code implementation plan → `subagent-driven-development`.
-- For multiple independent tasks in parallel → `dispatching-parallel-agents`.
+- For multiple independent tasks in parallel → dispatch several agents in a single message.
 
 This skill is the general layer that decides *when* to delegate; those handle
 specific execution shapes.
