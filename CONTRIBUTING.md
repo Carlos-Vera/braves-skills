@@ -1,54 +1,57 @@
-# Contributing to braves-skills
+**Español** | [English](CONTRIBUTING.en.md)
 
-Thanks for considering a contribution. A few rules keep this toolbox
-consistent and easy to maintain.
+# Contribuir a braves-skills
 
-## Commit messages
+Gracias por considerar una contribución. Unas pocas reglas mantienen esta
+caja de herramientas consistente y fácil de mantener.
 
-Use [Conventional Commits](https://www.conventionalcommits.org/):
+## Mensajes de commit
+
+Usa [Conventional Commits](https://www.conventionalcommits.org/):
 `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, etc.
 
-Do not add AI attribution lines (e.g. `Co-Authored-By: Claude`) to commit
-messages.
+No agregues líneas de atribución de IA (p. ej. `Co-Authored-By: Claude`) a
+los mensajes de commit.
 
-## Language
+## Idioma
 
-Skill content (the prompts Claude reads) is written in English. The
-language Claude speaks with the user defaults to Spanish, overridable via
-the `language` field in `~/.claude/braves-skills.json`. The README is
-bilingual: `README.md` (Spanish, the default GitHub sees) and
-`README.en.md` (English) — update both when you change one.
+El contenido de las skills (los prompts que Claude lee) se escribe en
+inglés. El idioma en el que Claude le habla al usuario es español por
+defecto, configurable con el campo `language` de
+`~/.claude/braves-skills.json`. El README y esta guía son bilingües: el
+archivo `.md` (español, el que GitHub muestra por defecto) y su gemelo
+`.en.md` (inglés) — actualiza ambos cuando cambies uno.
 
-Frontmatter `description` triggers are bilingual: keep the existing Spanish
-user-utterance triggers alongside their English equivalents, so a skill
-fires regardless of which language the user writes in.
+Los triggers del `description` en el frontmatter son bilingües: mantén los
+triggers en español junto a sus equivalentes en inglés, para que la skill
+se dispare sin importar en qué idioma escriba el usuario.
 
-## Adding a skill
+## Agregar una skill
 
-- One skill per directory: `skills/<name>/SKILL.md` with YAML frontmatter
+- Una skill por directorio: `skills/<nombre>/SKILL.md` con frontmatter YAML
   (`name`, `description`).
-- Register the new skill in `.claude-plugin/plugin.json`, in the `skills`
-  array.
-- Keep skills concise, imperative, and testable. Test with a clean agent
-  session before opening a PR.
+- Registra la skill nueva en `.claude-plugin/plugin.json`, en el array
+  `skills`.
+- Mantén las skills concisas, imperativas y testeables. Pruébalas con una
+  sesión de agente limpia antes de abrir un PR.
 
 ## Pull requests
 
-- PRs are squash-merged. Target branch: `master`.
-- Keep diffs minimal — no drive-by refactors bundled with unrelated
-  changes.
+- Los PRs se mergean con squash. Rama destino: `master`.
+- Diffs mínimos — nada de refactors de paso mezclados con cambios que no
+  vienen al caso.
 
 ## Releases
 
-Updates ship as GitHub releases:
+Las actualizaciones salen como releases de GitHub:
 
-1. Bump `version` in `.claude-plugin/plugin.json` (semver).
-2. Tag the commit: `git tag vX.Y.Z && git push origin vX.Y.Z`.
-3. Publish: `gh release create vX.Y.Z --title "..." --notes "..."`.
+1. Sube `version` en `.claude-plugin/plugin.json` (semver).
+2. Etiqueta el commit: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+3. Publica: `gh release create vX.Y.Z --title "..." --notes "..."`.
 
-Users update with `git -C ~/.claude/skills/braves-skills pull`.
+Los usuarios actualizan con `git -C ~/.claude/skills/braves-skills pull`.
 
-## License
+## Licencia
 
-MIT. Contributions are accepted under the same license — see
+MIT. Las contribuciones se aceptan bajo la misma licencia — ver
 [LICENSE](LICENSE).

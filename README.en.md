@@ -106,7 +106,7 @@ Spanish if `language` is unset).
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add or change skills.
+See [CONTRIBUTING.en.md](CONTRIBUTING.en.md) for how to add or change skills.
 
 ## Credits
 
