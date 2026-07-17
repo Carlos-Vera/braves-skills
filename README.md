@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-[English](README.en.md) | **Español**
+**Español** | [English](README.en.md) 
 
 # braves-skills
 
