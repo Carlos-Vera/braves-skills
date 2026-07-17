@@ -89,13 +89,12 @@ burning more tokens than a bigger model with no guaranteed success — dispatch
 `opus` up front. Optimize tokens-to-success, not price-per-token. The `fable`
 ceiling holds regardless.
 
-**Frontend tasks:** ASK the user first whether to hand the frontend work to
-Gemini instead of a Claude subagent. If they accept:
-- `gemini` CLI installed → dispatch via `gemini -p "..."` through Bash and
-  review its output like any other worker report.
-- CLI not installed → write the task as a self-contained prompt **in English**
-  (goal, stack, constraints, files involved) for the user to paste into
-  Antigravity, then review the resulting changes when they land.
+**Frontend tasks:** always go to Gemini, never to a Claude subagent. Follow
+the `desarrollo` skill's triage and its `agy` dispatch — the command, the
+absolute-path rule, and the model gotchas live there. If `agy` is not
+available, write the task as a self-contained prompt **in English** (goal,
+stack, constraints, files involved) for the user to paste into Antigravity,
+then review the resulting changes when they land.
 
 ## Review And Correction
 

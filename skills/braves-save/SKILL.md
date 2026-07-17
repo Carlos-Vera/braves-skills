@@ -9,7 +9,9 @@ Speak to the user in the `language` set in `~/.claude/braves-skills.json`; if
 unset, default to Spanish.
 
 Run this at the end of every session to capture what happened and save it to
-long-term memory.
+long-term memory. Recommend running it BEFORE the session reaches ~40% of its
+context window: past that point the summary quality degrades as earlier detail
+gets compacted away.
 
 <!-- Ported from BrainClaude: https://github.com/Carlos-Vera/BrainClaude -->
 
