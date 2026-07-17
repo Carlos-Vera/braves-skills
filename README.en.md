@@ -5,12 +5,19 @@
   </picture>
 </p>
 
+<p align="center">
+  <a href="https://github.com/Carlos-Vera/braves-skills/releases"><img src="https://img.shields.io/github/v/release/Carlos-Vera/braves-skills" alt="Release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Carlos-Vera/braves-skills" alt="License"></a>
+  <a href="https://github.com/Carlos-Vera/braves-skills/graphs/contributors"><img src="https://img.shields.io/github/contributors/Carlos-Vera/braves-skills" alt="Contributors"></a>
+  <a href="CONTRIBUTING.en.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs welcome"></a>
+</p>
+
 **English** | [Español](README.md)
 
 # braves-skills
 
-The all-in-one toolbox I use in my work with Claude Code. It has 17 skills
-covering a project's full lifecycle (11 lifecycle skills + 6 support
+The all-in-one toolbox I use in my work with Claude Code. It has 18 skills
+covering a project's full lifecycle (12 lifecycle skills + 6 support
 skills), because I was going crazy remembering 40 loose skills without
 knowing whether they collided or not — braves-skills solves that.
 
@@ -35,6 +42,7 @@ You can run it like this:
 | `/braves-ship` | Professional close-out: pre-flight checks, commit with your signature, PR/merge per your configuration, release checklist. |
 | `/braves-save` | Session close: memories + log entry to the AI Brain notebook (NotebookLM). (best run before hitting 40% of session context) |
 | `/braves-notebook` | Gives you the full Google NotebookLM API (sources, podcasts, reports, quizzes, downloads). Works hand in hand with `/braves-save`: the save uses it as memory when building your AI Brain notebook, which is why saving before 40% of session context is recommended. |
+| `/braves-update` | Tells you at session start when a new toolbox version exists (checked once a day) and verifies/updates it whenever you say, showing what the release brings. |
 
 ### Support skills (adopted)
 
@@ -107,6 +115,18 @@ Spanish if `language` is unset).
 ## Contributing
 
 See [CONTRIBUTING.en.md](CONTRIBUTING.en.md) for how to add or change skills.
+
+## Contributors
+
+`master` is protected: work happens on a new branch → PR → the maintainer
+verifies and merges (details in [CONTRIBUTING.en.md](CONTRIBUTING.en.md)).
+Every merged PR adds you to this grid and counts toward your GitHub badges
+(Pull Shark and friends) — the achievements belong to whoever contributes,
+not just the maintainer:
+
+<a href="https://github.com/Carlos-Vera/braves-skills/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Carlos-Vera/braves-skills" alt="Contributors" />
+</a>
 
 ## Credits
 

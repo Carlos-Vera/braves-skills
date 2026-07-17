@@ -43,6 +43,9 @@ se dispare sin importar en qué idioma escriba el usuario.
 - Los PRs se mergean con squash. Rama destino: `master`.
 - Diffs mínimos — nada de refactors de paso mezclados con cambios que no
   vienen al caso.
+- Cada PR mergeado te agrega a la grilla de contribuidores del README y
+  suma para tus logros/badges de GitHub (p. ej. Pull Shark). Contribuir
+  aquí también construye tu perfil, no solo el del mantenedor.
 
 ## Releases
 
@@ -52,7 +55,9 @@ Las actualizaciones salen como releases de GitHub:
 2. Etiqueta el commit: `git tag vX.Y.Z && git push origin vX.Y.Z`.
 3. Publica: `gh release create vX.Y.Z --title "..." --notes "..."`.
 
-Los usuarios actualizan con `git -C ~/.claude/skills/braves-skills pull`.
+Los usuarios se enteran solos: un hook de SessionStart chequea una vez al
+día si hay tag nuevo, y `/braves-update` verifica y actualiza en cualquier
+momento (o a mano: `git -C ~/.claude/skills/braves-skills pull`).
 
 ## Licencia
 

@@ -42,6 +42,9 @@ fires regardless of which language the user writes in.
 - PRs are squash-merged. Target branch: `master`.
 - Keep diffs minimal — no drive-by refactors bundled with unrelated
   changes.
+- Every merged PR adds you to the README contributors grid and counts
+  toward your GitHub achievements/badges (e.g. Pull Shark). Contributing
+  here builds your profile too, not just the maintainer's.
 
 ## Releases
 
@@ -51,7 +54,9 @@ Updates ship as GitHub releases:
 2. Tag the commit: `git tag vX.Y.Z && git push origin vX.Y.Z`.
 3. Publish: `gh release create vX.Y.Z --title "..." --notes "..."`.
 
-Users update with `git -C ~/.claude/skills/braves-skills pull`.
+Users find out on their own: a SessionStart hook checks once a day for a
+new tag, and `/braves-update` verifies and updates at any moment (or
+manually: `git -C ~/.claude/skills/braves-skills pull`).
 
 ## License
 
