@@ -31,18 +31,18 @@ Puedes ejecutarlo así:
 
 | Skill | Qué hace |
 |-------|----------|
-| `/braves-setup` | Te permite configurar el entorno de trabajo para que Claude pueda trabajar contigo. Configura: identidad git, firma de commits (coautoría de IA OFF por defecto), política de PR/merge, NotebookLM opcional, adopción de tus propias skills. |
+| `/braves-setup` | Te permite configurar tu entorno de trabajo para que Claude pueda trabajar contigo profesionalmente. Configura: identidad git, firma de commits (coautoría de IA OFF por defecto), política de PR/merge, NotebookLM opcional, adopción de tus propias skills. |
 | `/braves-help` | Muestra esta caja de ayuda para saber que skill usar para cada tarea. |
 | `/braves-start` | Arranque de proyecto: te ayuda a crear: PRD, TRD, UI/UX, Flujo, Backend y Plan antes de tocar código. |
 | `/fable-plan` | Te hace las preguntas que un arquitecto senior hace antes de construir → un plan por fases con verificación. |
 | `/braves-opinion` | Décimo Hombre: crítica constructiva sin adulación. Veredicto SHIP / SHIP WITH CHANGES / RETHINK / KILL. |
-| `/braves-security` | El candado: realiza una auditoría de infraestructura (secretos, proxy de API, RLS, pooling, cache, rate limits, pruebas de carga con k6/Artillery) + código (OWASP). |
+| `/braves-security` | El Candado: realiza una auditoría de infraestructura (secretos, proxy de API, RLS, pooling, cache, rate limits, pruebas de carga con k6/Artillery) + código (OWASP). |
 | `/braves-audit` | Auditoría Global (seguridad + sobre-ingeniería + rendimiento). Escribe un `braves-audit-DATE.md` ejecutable en la raíz del repo. |
 | `/braves-fix` | Arregla bugs con evidencia obligatoria; ejecuta el runbook `braves-audit-DATE.md` si existe uno. |
 | `/braves-ship` | Cierre profesional: chequeos previos, commit con tu firma, PR/merge según tu configuración, checklist de release. |
-| `/braves-save` | Cierre de sesión: memorias + entrada de log al notebook AI Brain (NotebookLM). (recomendable antes de llegar a 40% de contexto de la sesión) |
-| `/braves-notebook` | Te da la API completa de Google NotebookLM (fuentes, podcasts, reportes, quizzes, descargas). Va de la mano con `/braves-save`: el save lo usa como memoria al crear tu notebook AI Brain, por eso conviene guardar antes de llegar al 40% de contexto de la sesión. |
-| `/braves-update` | Te avisa al arrancar la sesión si hay versión nueva de la caja (chequeo 1 vez al día) y la verifica/actualiza cuando tú digas, mostrando qué trae el release. |
+| `/braves-save` | Cierre de sesión: memorias + entrada de log al notebook AI Brain (NotebookLM). |
+| `/braves-notebook` | Conecta la API completa de Google NotebookLM (fuentes, podcasts, reportes, quizzes, descargas) a Claude para usar como memoria y fuente de información, va de la mano con `/braves-save`: el save, al crear tu notebook un libro AI Brain donde guarda la bitacora de tu sessión, conviene guardar antes de llegar al 40% de contexto de la sesión. |
+| `/braves-update` | Te avisa al arrancar la sesión si hay versión nueva de Braves-skills (chequeo 1 vez al día) y la verifica/actualiza cuando tú digas, mostrando qué trae de nuevo. |
 
 ### Skills de soporte (adoptadas)
 
@@ -50,10 +50,10 @@ Puedes ejecutarlo así:
 |-------|----------|
 | `/desarrollo` | Planifica una feature y constrúyela mediante agentes delegados. |
 | `codebase-memory` | Consultas estructurales de código mediante el grafo de codebase-memory-mcp. |
-| `delegate-by-default` | Modo orquestador: despacha subagentes en vez de trabajar en línea. |
-| `humanizar` | Voz de marca de BravesLab para copy en español. |
-| `n8n-workflow-builder` | Construye/depura workflows de n8n con validación y chequeo de CVE. |
-| `wordpress-spanish` | Traducción es_ES para plugins de WordPress. |
+| `delegate-by-default` | Modo orquestador: despacha subagentes en vez de trabajar en línea, ideal para ahorro de tokens. |
+| `humanizar` | Voz de marca para copy en español, puedes personalizarla con tu estilo de copy. |
+| `n8n-workflow-builder` | Construye/depura workflows de n8n con validación de nodos y chequeo de CVE(Vulneravilidades). |
+| `wordpress-spanish` | Traducción es_ES para plugins de WordPress, ideal si creas plugins para WordPress. |
 
 ## Instalación
 
@@ -115,8 +115,7 @@ por defecto si `language` no está definido).
 
 ## Contribuir
 
-Consulta [CONTRIBUTING.md](CONTRIBUTING.md) para saber cómo agregar o cambiar
-skills.
+Consulta [CONTRIBUTING.md](CONTRIBUTING.md) para saber cómo colaborar en el proyecto.
 
 ## Contribuidores
 
