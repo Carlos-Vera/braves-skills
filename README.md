@@ -9,22 +9,37 @@
 
 # braves-skills
 
-La caja de herramientas todo-en-uno de BravesLab para Claude Code: 17 skills
+La caja de herramientas todo-en-uno que uso en mi trabajo con Claude Code, posee 17 skills
 que cubren el ciclo de vida completo de un proyecto (11 skills de ciclo de
-vida + 6 skills de soporte), para que no tengas que recordar 40 skills
-sueltas.
+vida + 6 skills de soporte), porque me volvia loco recordar 40 skills
+sueltas y sin saber si chocaban o no, braves skills resuelve esto.
 
-## El ciclo de vida
+## Mi ciclo de trabajo con Claude Code
+Puedes ejecutarlo así:
 
-```
-/braves-start → /fable-plan → /braves-opinion → [build] →
-/braves-security → /braves-audit → /braves-fix → /braves-ship → /braves-save
+```mermaid
+flowchart TD
+    subgraph plan [Planificación]
+        direction LR
+        A["/braves-start"] --> B["/fable-plan"] --> C["/braves-opinion"]
+    end
+    plan --> build([construye tu proyecto])
+    build --> quality
+    subgraph quality [Calidad]
+        direction LR
+        E["/braves-security"] --> F["/braves-audit"] --> G["/braves-fix"]
+    end
+    quality --> close
+    subgraph close [Cierre]
+        direction LR
+        H["/braves-ship"] --> I["/braves-save"]
+    end
 ```
 
 | Skill | Qué hace |
 |-------|----------|
+| `/braves-setup` | Te permite configurar el entorno de trabajo para que Claude pueda trabajar contigo. Configura: identidad git, firma de commits (coautoría de IA OFF por defecto), política de PR/merge, NotebookLM opcional, adopción de tus propias skills. |
 | `/braves-help` | Muestra esta caja de herramientas y qué skill usar para cada tarea. |
-| `/braves-setup` | Onboarding único: identidad git, firma de commits (coautoría de IA OFF por defecto), política de PR/merge, NotebookLM opcional, adopción de tus propias skills. |
 | `/braves-start` | Arranque de proyecto: PRD, TRD, UI/UX, Flow, Backend y Plan antes de tocar código. |
 | `/fable-plan` | Las preguntas que un arquitecto senior hace antes de construir → un plan por fases con verificación. |
 | `/braves-opinion` | Abogado del diablo: crítica constructiva sin adulación. Veredicto SHIP / SHIP WITH CHANGES / RETHINK / KILL. |

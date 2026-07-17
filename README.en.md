@@ -15,9 +15,23 @@ don't have to remember 40 loose skills.
 
 ## The lifecycle
 
-```
-/braves-start → /fable-plan → /braves-opinion → [build] →
-/braves-security → /braves-audit → /braves-fix → /braves-ship → /braves-save
+```mermaid
+flowchart TD
+    subgraph plan [Planning]
+        direction LR
+        A["/braves-start"] --> B["/fable-plan"] --> C["/braves-opinion"]
+    end
+    plan --> build([build])
+    build --> quality
+    subgraph quality [Quality]
+        direction LR
+        E["/braves-security"] --> F["/braves-audit"] --> G["/braves-fix"]
+    end
+    quality --> close
+    subgraph close [Close-out]
+        direction LR
+        H["/braves-ship"] --> I["/braves-save"]
+    end
 ```
 
 | Skill | What it does |
