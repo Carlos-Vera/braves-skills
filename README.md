@@ -17,38 +17,24 @@ sueltas y sin saber si chocaban o no, braves skills resuelve esto.
 ## Mi ciclo de trabajo con Claude Code
 Puedes ejecutarlo así:
 
-```mermaid
-flowchart TD
-    subgraph plan [Planificación]
-        direction LR
-        A["/braves-start"] --> B["/fable-plan"] --> C["/braves-opinion"]
-    end
-    plan --> build([construye tu proyecto])
-    build --> quality
-    subgraph quality [Calidad]
-        direction LR
-        E["/braves-security"] --> F["/braves-audit"] --> G["/braves-fix"]
-    end
-    quality --> close
-    subgraph close [Cierre]
-        direction LR
-        H["/braves-ship"] --> I["/braves-save"]
-    end
+```
+/braves-start → /fable-plan → /braves-opinion → [construye tu proyecto] →
+/braves-security → /braves-audit → /braves-fix → /braves-ship → /braves-save
 ```
 
 | Skill | Qué hace |
 |-------|----------|
 | `/braves-setup` | Te permite configurar el entorno de trabajo para que Claude pueda trabajar contigo. Configura: identidad git, firma de commits (coautoría de IA OFF por defecto), política de PR/merge, NotebookLM opcional, adopción de tus propias skills. |
-| `/braves-help` | Muestra esta caja de herramientas y qué skill usar para cada tarea. |
-| `/braves-start` | Arranque de proyecto: PRD, TRD, UI/UX, Flow, Backend y Plan antes de tocar código. |
-| `/fable-plan` | Las preguntas que un arquitecto senior hace antes de construir → un plan por fases con verificación. |
-| `/braves-opinion` | Abogado del diablo: crítica constructiva sin adulación. Veredicto SHIP / SHIP WITH CHANGES / RETHINK / KILL. |
-| `/braves-security` | El candado: auditoría de infraestructura (secretos, proxy de API, RLS, pooling, cache, rate limits, pruebas de carga con k6/Artillery) + código (OWASP). |
-| `/braves-audit` | Auditoría global (seguridad + sobre-ingeniería + rendimiento). Escribe un `braves-audit-DATE.md` ejecutable en la raíz del repo. |
+| `/braves-help` | Muestra esta caja de ayuda para saber que skill usar para cada tarea. |
+| `/braves-start` | Arranque de proyecto: te ayuda a crear: PRD, TRD, UI/UX, Flujo, Backend y Plan antes de tocar código. |
+| `/fable-plan` | Te hace las preguntas que un arquitecto senior hace antes de construir → un plan por fases con verificación. |
+| `/braves-opinion` | Décimo Hombre: crítica constructiva sin adulación. Veredicto SHIP / SHIP WITH CHANGES / RETHINK / KILL. |
+| `/braves-security` | El candado: realiza una auditoría de infraestructura (secretos, proxy de API, RLS, pooling, cache, rate limits, pruebas de carga con k6/Artillery) + código (OWASP). |
+| `/braves-audit` | Auditoría Global (seguridad + sobre-ingeniería + rendimiento). Escribe un `braves-audit-DATE.md` ejecutable en la raíz del repo. |
 | `/braves-fix` | Arregla bugs con evidencia obligatoria; ejecuta el runbook `braves-audit-DATE.md` si existe uno. |
 | `/braves-ship` | Cierre profesional: chequeos previos, commit con tu firma, PR/merge según tu configuración, checklist de release. |
-| `/braves-save` | Cierre de sesión: memorias + entrada de log al notebook AI Brain (NotebookLM). |
-| `/braves-notebook` | API completa de Google NotebookLM (fuentes, podcasts, reportes, quizzes, descargas). |
+| `/braves-save` | Cierre de sesión: memorias + entrada de log al notebook AI Brain (NotebookLM). (recomendable antes de llegar a 40% de contexto de la sesión) |
+| `/braves-notebook` | Te da la API completa de Google NotebookLM (fuentes, podcasts, reportes, quizzes, descargas). Va de la mano con `/braves-save`: el save lo usa como memoria al crear tu notebook AI Brain, por eso conviene guardar antes de llegar al 40% de contexto de la sesión. |
 
 ### Skills de soporte (adoptadas)
 
@@ -76,7 +62,7 @@ un hook detecta que aún no hay configuración y ofrece ejecutar
 
 ## Configuración
 
-`/braves-setup` es un flujo de onboarding único (re-ejecutable en cualquier
+`/braves-setup` es un flujo de configuración y onboarding único (re-ejecutable en cualquier
 momento para cambiar valores luego). Pregunta una cosa a la vez:
 
 1. Idioma en el que Claude debe hablarte.
@@ -86,8 +72,9 @@ momento para cambiar valores luego). Pregunta una cosa a la vez:
 5. Coautoría de IA en los commits — OFF por defecto.
 6. Política de PR y merge (¿crear PRs?, estrategia de merge, quién mergea, push directo a main — no por defecto) y política de releases (convención de versionado — patch por cambio, semver o la tuya propia; los releases nunca se publican sin preguntar, con recomendaciones en momentos clave).
 7. Integración opcional con NotebookLM (logs de sesión enviados a un notebook "AI Brain" mediante el CLI no oficial `notebooklm-py`, login de Google asistido por navegador).
-8. MCPs opcionales, con configuración guiada: Perplexity (búsqueda web con IA), Firecrawl (rastreo/scraping de sitios), Chrome DevTools (debugging frontend), Playwright (automatización y pruebas de navegador), Codebase memory (grafo de conocimiento del código), n8n (construcción de workflows).
+8. MCPs opcionales, con configuración guiada: Perplexity (búsqueda web con IA), Firecrawl (rastreo/scraping de sitios), Chrome DevTools (debugging frontend), Playwright (automatización y pruebas de navegador), Codebase memory (grafo de conocimiento del código), n8n (construcción de workflows), Context7 (docs actualizadas de librerías).
 9. Adopción de tus propias skills, MCPs y plugins en la caja: las skills se copian al plugin, los MCPs extra entran al set curado, y los plugins se registran como parte de tu kit estándar para máquinas nuevas.
+10. Chequeo de uso (en re-ejecuciones): audita cada MCP, skill y plugin contra los transcripts de sesión y te dice los días sin uso — siempre con número: si algo nunca se usó, muestra cuándo se instaló y cuántos días de historial cubre el análisis. Antes de retirar algo te dice con qué choca y qué cubre el hueco; nunca desinstala sin tu sí explícito.
 
 La configuración vive en `~/.claude/braves-skills.json`:
 
