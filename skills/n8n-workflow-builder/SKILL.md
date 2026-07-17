@@ -1,6 +1,6 @@
 ---
 name: n8n-workflow-builder
-description: Use when creating, modifying, or debugging n8n workflows. Enforces using the latest node versions, AI Agent node for sub-agents (not Chain/pipeline nodes), pre-deploy validation, post-deploy test, autofix, and a release/CVE check against github.com/n8n-io/n8n/releases proposing the minimal stable upgrade that fixes any bug or vulnerability affecting the user. Triggers on any mention of n8n, workflow, automation flow, n8n nodes, or when the user asks to build/update an n8n flow.
+description: Use when creating, modifying, or debugging n8n workflows, or when switching between named n8n instances. Enforces using the latest node versions, AI Agent node for sub-agents (not Chain/pipeline nodes), pre-deploy validation, post-deploy test, autofix, and a release/CVE check against github.com/n8n-io/n8n/releases proposing the minimal stable upgrade that fixes any bug or vulnerability affecting the user. Triggers on any mention of n8n, workflow, automation flow, n8n nodes, "cambia de n8n" (switch n8n), "conéctate al n8n de X" (connect to X's n8n), or when the user asks to build/update an n8n flow.
 ---
 
 # n8n Workflow Builder (safe, latest-version, agent-correct)
@@ -101,6 +101,27 @@ appears):
    date, no CVEs or bugs applicable to the flow." Don't pad the report.
 7. Don't upgrade the version on your own — you only propose. The instance
    upgrade is not an MCP tool call.
+
+## Named instances & switching (no restart)
+
+Multiple n8n instances live as `~/.claude/n8n-instances/<alias>.json`
+files (`{"N8N_API_URL": "...", "N8N_API_KEY": "..."}`). The file
+`~/.claude/n8n-instances/active` holds the alias in use; the MCP entry
+runs this plugin's `scripts/n8n-launcher.sh`, which reads the active
+alias when the server starts.
+
+- **One-time registration** (braves-setup does this):
+  `claude mcp add --scope user n8n-mcp -- sh ~/.claude/skills/braves-skills/scripts/n8n-launcher.sh`
+- **"switch to n8n <alias>" / "cámbiate al n8n de <alias>"**: check
+  `<alias>.json` exists (if not, list available aliases), write the
+  alias into `active`, then tell the user: run `/mcp` → `n8n-mcp` →
+  Reconnect — takes seconds, no Claude Code restart. Confirm with
+  `n8n_health_check` after reconnecting.
+- **"add an n8n instance <alias>"**: create `<alias>.json` with the URL
+  and `"N8N_API_KEY": "PASTE_YOUR_KEY_HERE"`, open it in the user's
+  editor for them to paste the key — never ask for keys in the chat.
+- **"which n8n am I on?"**: read `active` and print alias + URL (never
+  the key).
 
 ## Workflow
 

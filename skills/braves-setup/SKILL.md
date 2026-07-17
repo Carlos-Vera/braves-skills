@@ -69,19 +69,31 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
    - **n8n** — build/validate/deploy n8n workflows. Needs the instance
      URL + API key (n8n → Settings → API).
 
-   For each one selected, help configure it: ask for the required
-   credentials (one at a time), run the install command, then verify
-   with `claude mcp list`. Use `pnpm dlx` if pnpm exists, else `npx -y`:
+   For each one selected, help configure it. **Never ask the user to
+   paste an API key into the chat** (it would be exposed in the
+   conversation): install with the placeholder `PASTE_YOUR_KEY_HERE` as
+   the env value, then open `~/.claude.json` in their editor and point
+   them to the exact spot (`mcpServers.<name>.env.<VAR>`) to paste the
+   key themselves. Verify with `claude mcp list` once they confirm.
+   Use `pnpm dlx` if pnpm exists, else `npx -y`:
    ```bash
-   claude mcp add --scope user perplexity -e PERPLEXITY_API_KEY=<key> -- pnpm dlx server-perplexity-ask
-   claude mcp add --scope user firecrawl -e FIRECRAWL_API_KEY=<key> -- pnpm dlx firecrawl-mcp
+   claude mcp add --scope user perplexity -e PERPLEXITY_API_KEY=PASTE_YOUR_KEY_HERE -- pnpm dlx server-perplexity-ask
+   claude mcp add --scope user firecrawl -e FIRECRAWL_API_KEY=PASTE_YOUR_KEY_HERE -- pnpm dlx firecrawl-mcp
    claude mcp add --scope user chrome-devtools -- pnpm dlx chrome-devtools-mcp@latest
    claude mcp add --scope user playwright -- pnpm dlx @playwright/mcp@latest
    # Codebase memory: install the binary per
    # github.com/DeusData/codebase-memory-mcp, then run:
    codebase-memory-mcp install
-   claude mcp add --scope user n8n -e N8N_API_URL=<url> -e N8N_API_KEY=<key> -- pnpm dlx n8n-mcp
+   # n8n (named instances, switchable without restarting Claude Code):
+   # create ~/.claude/n8n-instances/<alias>.json with N8N_API_URL and
+   # N8N_API_KEY (placeholder + user pastes in editor), write the alias
+   # into ~/.claude/n8n-instances/active, then register the launcher:
+   claude mcp add --scope user n8n-mcp -- sh ~/.claude/skills/braves-skills/scripts/n8n-launcher.sh
    ```
+   Exception: if a credential already lives in a local file the user
+   controls (e.g. `~/.claude/n8n-instances/<alias>.json`), read it from
+   there in the shell command directly — without printing it — instead
+   of using the placeholder.
    Save the installed names in `"mcps": [...]`. Remind the user to
    restart Claude Code so the new MCPs load.
 9. **Adoption of own skills** — list the directories under
