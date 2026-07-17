@@ -73,6 +73,13 @@ Pre-flight red = no commit. Fix first (braves-fix if it's a bug).
 - [ ] Where to look if something breaks (logs, dashboard) noted in the
       PR
 
+**Publishing a release (tag + GitHub release) is a separate decision
+from committing**: NEVER publish one without asking first, and never
+one per change. Follow `releases` in the config: bump the version per
+`versioning`, and if `recommend_at_key_moments` is on, suggest a
+release when it's warranted (feature complete, security fix, breaking
+change) — then wait for an explicit yes.
+
 ## Step 5 — Close-out
 
 Confirm in ≤3 lines: what got committed/pushed, PR link if any, and if

@@ -45,6 +45,15 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
 6. **PR and merge** — do I create PRs or just branches? preferred merge
    strategy (merge / squash / rebase)? can I merge myself or does the
    user always merge? is direct push to main allowed? (default: no).
+   Then, releases:
+   - **Versioning convention** — bump `0.0.1` (patch) on every change,
+     classic semver (patch=fix, minor=feature, major=breaking), or their
+     own rule (free text, stored verbatim).
+   - **When to release** — releases are NEVER published without asking
+     first, and never one per change. Claude recommends a release at key
+     moments (feature complete, security fix, breaking change) and waits
+     for an explicit yes. Ask if the user wants those recommendations
+     (default: yes).
 7. **NotebookLM** — explain in 2-3 lines: "braves-save can upload a log
    of each session to an 'AI Brain' notebook in Google NotebookLM,
    searchable and one you can chat with or generate podcasts/reports
@@ -96,16 +105,25 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
    of using the placeholder.
    Save the installed names in `"mcps": [...]`. Remind the user to
    restart Claude Code so the new MCPs load.
-9. **Adoption of own skills** — list the directories under
-   `~/.claude/skills/` and the project's `.claude/skills/` that do NOT
-   belong to the toolbox or to known plugins. For each of the user's own
-   skills, evaluate in one line whether it's redundant with one of the
-   toolbox's skills. Offer to adopt the NON-redundant ones: copy them to
-   `skills/<name>/` inside the braves-skills plugin and add them to the
-   `skills` array in `.claude-plugin/plugin.json`. Only copy with
-   explicit approval, skill by skill. For redundant ones: say which
-   toolbox skill it collides with and suggest retiring it (the user's
-   decision, never delete without permission).
+9. **Adoption of own skills, MCPs and plugins** — same behavior for the
+   three kinds of user assets. Always evaluate redundancy in one line,
+   adopt only with explicit approval, item by item; for redundant ones,
+   say what they collide with and suggest retiring (the user's decision,
+   never delete without permission).
+   - **Skills**: list the directories under `~/.claude/skills/` and the
+     project's `.claude/skills/` that do NOT belong to the toolbox or to
+     known plugins. Adopt = copy to `skills/<name>/` inside the
+     braves-skills plugin and add to the `skills` array in
+     `.claude-plugin/plugin.json`.
+   - **MCPs**: read the user's configured servers (`claude mcp list`)
+     that are NOT in step 8's curated set. Adopt = append the server to
+     step 8's curated list in this SKILL.md (name, one-line purpose,
+     install command with `PASTE_YOUR_KEY_HERE` for any secret) and
+     record it in the config's `mcps`.
+   - **Plugins**: list installed plugins (`claude plugin list` or
+     `~/.claude/plugins/`) that aren't braves-skills itself. Adopt =
+     record the name in the config's `plugins` so setup on another
+     machine offers to install them as part of the user's standard kit.
 
 ## Writing the configuration
 
@@ -121,8 +139,10 @@ Save to `~/.claude/braves-skills.json`:
   "coauthor_ai": false,
   "commit_signature": "signature text or \"\"",
   "pr": { "create": true, "merge_strategy": "squash", "who_merges": "user", "direct_push_main": false },
+  "releases": { "versioning": "patch-per-change|semver|<custom rule>", "always_ask": true, "recommend_at_key_moments": true },
   "notebooklm": { "enabled": false },
   "mcps": [],
+  "plugins": [],
   "adopted_skills": []
 }
 ```

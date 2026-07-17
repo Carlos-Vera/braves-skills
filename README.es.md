@@ -69,10 +69,10 @@ momento para cambiar valores luego). Pregunta una cosa a la vez:
 3. Si Claude hace los commits por ti (always / ask / never).
 4. Firma de commit (pie de texto libre).
 5. Coautoría de IA en los commits — OFF por defecto.
-6. Política de PR y merge (¿crear PRs?, estrategia de merge, quién mergea, push directo a main — no por defecto).
+6. Política de PR y merge (¿crear PRs?, estrategia de merge, quién mergea, push directo a main — no por defecto) y política de releases (convención de versionado — patch por cambio, semver o la tuya propia; los releases nunca se publican sin preguntar, con recomendaciones en momentos clave).
 7. Integración opcional con NotebookLM (logs de sesión enviados a un notebook "AI Brain" mediante el CLI no oficial `notebooklm-py`, login de Google asistido por navegador).
 8. MCPs opcionales, con configuración guiada: Perplexity (búsqueda web con IA), Firecrawl (rastreo/scraping de sitios), Chrome DevTools (debugging frontend), Playwright (automatización y pruebas de navegador), Codebase memory (grafo de conocimiento del código), n8n (construcción de workflows).
-9. Adopción de tus propias skills en la caja de herramientas.
+9. Adopción de tus propias skills, MCPs y plugins en la caja: las skills se copian al plugin, los MCPs extra entran al set curado, y los plugins se registran como parte de tu kit estándar para máquinas nuevas.
 
 La configuración vive en `~/.claude/braves-skills.json`:
 
@@ -93,7 +93,9 @@ La configuración vive en `~/.claude/braves-skills.json`:
     "direct_push_main": false
   },
   "notebooklm": { "enabled": false },
+  "releases": { "versioning": "semver", "always_ask": true, "recommend_at_key_moments": true },
   "mcps": [],
+  "plugins": [],
   "adopted_skills": []
 }
 ```
