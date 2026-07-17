@@ -77,6 +77,8 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
      what, architecture queries). Binary install.
    - **n8n** — build/validate/deploy n8n workflows. Needs the instance
      URL + API key (n8n → Settings → API).
+   - **Context7** — up-to-date library/framework docs fetched into the
+     conversation. No key required.
 
    For each one selected, help configure it. **Never ask the user to
    paste an API key into the chat** (it would be exposed in the
@@ -98,6 +100,7 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
    # N8N_API_KEY (placeholder + user pastes in editor), write the alias
    # into ~/.claude/n8n-instances/active, then register the launcher:
    claude mcp add --scope user n8n-mcp -- sh ~/.claude/skills/braves-skills/scripts/n8n-launcher.sh
+   claude mcp add --scope user context7 -- pnpm dlx @upstash/context7-mcp
    ```
    Exception: if a credential already lives in a local file the user
    controls (e.g. `~/.claude/n8n-instances/<alias>.json`), read it from
@@ -124,6 +127,26 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
      `~/.claude/plugins/`) that aren't braves-skills itself. Adopt =
      record the name in the config's `plugins` so setup on another
      machine offers to install them as part of the user's standard kit.
+10. **Usage check (re-runs only)** — for each configured MCP, adopted or
+    user skill, and installed plugin, find its last use by searching the
+    session transcripts in `~/.claude/projects/*/*.jsonl` (`rg -l
+    "mcp__<server>__"` for MCPs; the skill/plugin name for the rest) and
+    taking the newest matching file's mtime. Report every item unused
+    for 30+ days with the days since last use. An item that never
+    appears must still get a number: report its install age (directory
+    birth time, `stat -f %B` on macOS) plus how many days the retained
+    history covers (oldest transcript's age) — e.g. "installed 90 days
+    ago, no use in the 45 days of history". Then ask item by item
+    whether to uninstall/retire it
+    (`claude mcp remove <name>`, delete the skill directory, `claude
+    plugin uninstall <name>`). Before each removal, check what it
+    collides with and say in one line how things end up: what else
+    references it (hooks, other skills' SKILL.md, config entries, index
+    skills) and what covers the gap afterwards — a native feature, a
+    toolbox skill, or nothing (a real loss the user accepts). After
+    removing, fix or flag any dangling reference found. Never remove
+    anything without an explicit yes, and keep `mcps`, `plugins` and
+    `adopted_skills` in the config in sync with the outcome.
 
 ## Writing the configuration
 
