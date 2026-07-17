@@ -31,18 +31,18 @@ You can run it like this:
 
 | Skill | What it does |
 |-------|----------|
-| `/braves-setup` | Lets you set up the working environment so Claude can work with you. Configures: git identity, commit signature (AI co-authorship OFF by default), PR/merge policy, optional NotebookLM, adoption of your own skills. |
+| `/braves-setup` | Lets you set up your working environment so Claude can work with you professionally. Configures: git identity, commit signature (AI co-authorship OFF by default), PR/merge policy, optional NotebookLM, adoption of your own skills/MCPs/plugins and a usage check of what's installed. |
 | `/braves-help` | Shows this help box so you know which skill to use for each task. |
 | `/braves-start` | Project kickoff: helps you create PRD, TRD, UI/UX, Flow, Backend and Plan before touching code. |
 | `/fable-plan` | Asks you the questions a senior architect asks before building → a phased plan with verification. |
 | `/braves-opinion` | Tenth Man: constructive criticism without flattery. Verdict SHIP / SHIP WITH CHANGES / RETHINK / KILL. |
-| `/braves-security` | The padlock: runs an infrastructure audit (secrets, API proxying, RLS, pooling, cache, rate limits, load testing with k6/Artillery) + code (OWASP). |
+| `/braves-security` | The Padlock: runs an infrastructure audit (secrets, API proxying, RLS, pooling, cache, rate limits, load testing with k6/Artillery) + code (OWASP). |
 | `/braves-audit` | Global Audit (security + over-engineering + performance). Writes an executable `braves-audit-DATE.md` at the repo root. |
 | `/braves-fix` | Fixes bugs with mandatory evidence; runs the `braves-audit-DATE.md` runbook if one exists. |
 | `/braves-ship` | Professional close-out: pre-flight checks, commit with your signature, PR/merge per your configuration, release checklist. |
-| `/braves-save` | Session close: memories + log entry to the AI Brain notebook (NotebookLM). (best run before hitting 40% of session context) |
-| `/braves-notebook` | Gives you the full Google NotebookLM API (sources, podcasts, reports, quizzes, downloads). Works hand in hand with `/braves-save`: the save uses it as memory when building your AI Brain notebook, which is why saving before 40% of session context is recommended. |
-| `/braves-update` | Tells you at session start when a new toolbox version exists (checked once a day) and verifies/updates it whenever you say, showing what the release brings. |
+| `/braves-save` | Session close: memories + log entry to the AI Brain notebook (NotebookLM). |
+| `/braves-notebook` | Connects the full Google NotebookLM API (sources, podcasts, reports, quizzes, downloads) to Claude to use as memory and information source. Goes hand in hand with `/braves-save`: when the save runs it creates/feeds your AI Brain notebook with your session log; best to save before hitting 40% of session context. |
+| `/braves-update` | Tells you at session start when a new Braves-skills version exists (checked once a day) and verifies/updates it whenever you say, showing what's new. |
 
 ### Support skills (adopted)
 
@@ -50,10 +50,10 @@ You can run it like this:
 |-------|----------|
 | `/desarrollo` | Plan a feature and build it via delegated agents. |
 | `codebase-memory` | Structural code queries via the codebase-memory-mcp graph. |
-| `delegate-by-default` | Orchestrator mode: dispatch subagents instead of working inline. |
-| `humanizar` | BravesLab brand voice for Spanish copy. |
-| `n8n-workflow-builder` | Build/debug n8n workflows with validation and CVE check. |
-| `wordpress-spanish` | es_ES translation for WordPress plugins. |
+| `delegate-by-default` | Orchestrator mode: dispatch subagents instead of working inline, ideal for saving tokens. |
+| `humanizar` | Brand voice for Spanish copy — you can customize it with your own copy style. |
+| `n8n-workflow-builder` | Build/debug n8n workflows with node validation and CVE (vulnerabilities) check. |
+| `wordpress-spanish` | es_ES translation for WordPress plugins, ideal if you build WordPress plugins. |
 
 ## Installation
 
@@ -79,9 +79,10 @@ any time to change values later). It asks one question at a time:
 5. AI co-authorship in commits — OFF by default.
 6. PR & merge policy (create PRs?, merge strategy, who merges, direct push to main — default no) and release policy (versioning convention — patch-per-change, semver or your own; releases are never published without asking, with recommendations at key moments).
 7. Optional NotebookLM integration (session logs sent to an "AI Brain" notebook via the unofficial `notebooklm-py` CLI, browser-assisted Google login).
-8. Optional MCP servers, with guided configuration: Perplexity (AI web search), Firecrawl (site crawling/scraping), Chrome DevTools (frontend debugging), Playwright (browser automation and testing), Codebase memory (code knowledge graph), n8n (workflow building), Context7 (up-to-date library docs).
-9. Adoption of your own skills, MCPs and plugins into the toolbox: skills are copied into the plugin, extra MCPs join the curated set, and plugins are recorded as part of your standard kit for new machines.
-10. Usage check (on re-runs): audits every MCP, skill and plugin against your session transcripts and tells you the days since last use — always as a number: if something was never used, it shows when it was installed and how many days of history the analysis covers. Before retiring anything it tells you what it collides with and what covers the gap; nothing gets uninstalled without your explicit yes.
+8. Copy voice: by default `humanizar` writes with BravesLab's voice; if you want your own, the setup asks you the necessary questions (brand, tone, tuteo/usted, audience, banned words, examples) and saves your style in `~/.claude/braves-voice.md`.
+9. Optional MCP servers, with guided configuration: Perplexity (AI web search), Firecrawl (site crawling/scraping), Chrome DevTools (frontend debugging), Playwright (browser automation and testing), Codebase memory (code knowledge graph), n8n (workflow building), Context7 (up-to-date library docs).
+10. Adoption of your own skills, MCPs and plugins into the toolbox: skills are copied into the plugin, extra MCPs join the curated set, and plugins are recorded as part of your standard kit for new machines.
+11. Usage check (on re-runs): audits every MCP, skill and plugin against your session transcripts and tells you the days since last use — always as a number: if something was never used, it shows when it was installed and how many days of history the analysis covers. Before retiring anything it tells you what it collides with and what covers the gap; nothing gets uninstalled without your explicit yes.
 
 The configuration lives at `~/.claude/braves-skills.json`:
 
@@ -102,6 +103,7 @@ The configuration lives at `~/.claude/braves-skills.json`:
     "direct_push_main": false
   },
   "notebooklm": { "enabled": false },
+  "voice": { "custom": false },
   "releases": { "versioning": "semver", "always_ask": true, "recommend_at_key_moments": true },
   "mcps": [],
   "plugins": [],
@@ -114,7 +116,7 @@ Spanish if `language` is unset).
 
 ## Contributing
 
-See [CONTRIBUTING.en.md](CONTRIBUTING.en.md) for how to add or change skills.
+See [CONTRIBUTING.en.md](CONTRIBUTING.en.md) to learn how to collaborate on the project.
 
 ## Contributors
 

@@ -63,7 +63,17 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
      skill (install the CLI in a venv + browser-assisted login) and once
      done verify with `notebooklm auth check`. Save `enabled: true`.
    - If NO: save `enabled: false`. braves-save will work locally only.
-8. **MCP servers** — offer to install a curated set of MCPs (multi-select,
+8. **Copy voice** — the `humanizar` skill rewrites copy with BravesLab's
+   brand voice by default. Ask if the user wants to customize it with
+   their own voice.
+   - If NO: save `"voice": { "custom": false }` (BravesLab voice).
+   - If YES: ask the necessary questions ONE AT A TIME — brand/project
+     name, tone (e.g. warm, professional, technical), tuteo or usted,
+     target audience, words/phrases to prefer, words to ban, and 1-2
+     short example snippets the user likes. Write the resulting style
+     guide to `~/.claude/braves-voice.md` and save
+     `"voice": { "custom": true, "file": "~/.claude/braves-voice.md" }`.
+9. **MCP servers** — offer to install a curated set of MCPs (multi-select,
    none pre-selected). One line each:
    - **Perplexity** — AI web search from the conversation. Needs
      `PERPLEXITY_API_KEY` (perplexity.ai → Settings → API).
@@ -108,7 +118,7 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
    of using the placeholder.
    Save the installed names in `"mcps": [...]`. Remind the user to
    restart Claude Code so the new MCPs load.
-9. **Adoption of own skills, MCPs and plugins** — same behavior for the
+10. **Adoption of own skills, MCPs and plugins** — same behavior for the
    three kinds of user assets. Always evaluate redundancy in one line,
    adopt only with explicit approval, item by item; for redundant ones,
    say what they collide with and suggest retiring (the user's decision,
@@ -127,7 +137,7 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
      `~/.claude/plugins/`) that aren't braves-skills itself. Adopt =
      record the name in the config's `plugins` so setup on another
      machine offers to install them as part of the user's standard kit.
-10. **Usage check (re-runs only)** — for each configured MCP, adopted or
+11. **Usage check (re-runs only)** — for each configured MCP, adopted or
     user skill, and installed plugin, find its last use by searching the
     session transcripts in `~/.claude/projects/*/*.jsonl` (`rg -l
     "mcp__<server>__"` for MCPs; the skill/plugin name for the rest) and
@@ -164,6 +174,7 @@ Save to `~/.claude/braves-skills.json`:
   "pr": { "create": true, "merge_strategy": "squash", "who_merges": "user", "direct_push_main": false },
   "releases": { "versioning": "patch-per-change|semver|<custom rule>", "always_ask": true, "recommend_at_key_moments": true },
   "notebooklm": { "enabled": false },
+  "voice": { "custom": false },
   "mcps": [],
   "plugins": [],
   "adopted_skills": []
