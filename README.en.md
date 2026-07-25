@@ -80,9 +80,10 @@ any time to change values later). It asks one question at a time:
 6. PR & merge policy (create PRs?, merge strategy, who merges, direct push to main — default no) and release policy (versioning convention — patch-per-change, semver or your own; releases are never published without asking, with recommendations at key moments).
 7. Optional NotebookLM integration (session logs sent to an "AI Brain" notebook via the unofficial `notebooklm-py` CLI, browser-assisted Google login).
 8. Copy voice: by default `humanizar` writes with BravesLab's voice; if you want your own, the setup asks you the necessary questions (brand, tone, tuteo/usted, audience, banned words, examples) and saves your style in `~/.claude/braves-voice.md`.
-9. Optional MCP servers, with guided configuration: Perplexity (AI web search), Firecrawl (site crawling/scraping), Chrome DevTools (frontend debugging), Playwright (browser automation and testing), Codebase memory (code knowledge graph), n8n (workflow building), Context7 (up-to-date library docs).
-10. Adoption of your own skills, MCPs and plugins into the toolbox: skills are copied into the plugin, extra MCPs join the curated set, and plugins are recorded as part of your standard kit for new machines.
-11. Usage check (on re-runs): audits every MCP, skill and plugin against your session transcripts and tells you the days since last use — always as a number: if something was never used, it shows when it was installed and how many days of history the analysis covers. Before retiring anything it tells you what it collides with and what covers the gap; nothing gets uninstalled without your explicit yes.
+9. Sound alerts: one tone when Claude needs permission and another when it finishes the task, so you don't have to babysit the terminal. On a Mac you pick them from the ~120 system tones (alert sounds, ringtones and AlertTones) and the setup plays them back announcing each one by number and name, spoken in your language; if you'd rather not choose, it uses Illuminate for permissions and Stargaze for task done. On Windows the standard system sounds play.
+10. Optional MCP servers, with guided configuration: Perplexity (AI web search), Firecrawl (site crawling/scraping), Chrome DevTools (frontend debugging), Playwright (browser automation and testing), Codebase memory (code knowledge graph), n8n (workflow building), Context7 (up-to-date library docs).
+11. Adoption of your own skills, MCPs and plugins into the toolbox: skills are copied into the plugin, extra MCPs join the curated set, and plugins are recorded as part of your standard kit for new machines.
+12. Usage check (on re-runs): audits every MCP, skill and plugin against your session transcripts and tells you the days since last use — always as a number: if something was never used, it shows when it was installed and how many days of history the analysis covers. Before retiring anything it tells you what it collides with and what covers the gap; nothing gets uninstalled without your explicit yes.
 
 The configuration lives at `~/.claude/braves-skills.json`:
 
@@ -104,6 +105,7 @@ The configuration lives at `~/.claude/braves-skills.json`:
   },
   "notebooklm": { "enabled": false },
   "voice": { "custom": false },
+  "sounds": { "permission": "Illuminate", "done": "Stargaze" },
   "releases": { "versioning": "semver", "always_ask": true, "recommend_at_key_moments": true },
   "mcps": [],
   "plugins": [],

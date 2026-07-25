@@ -73,7 +73,40 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
      short example snippets the user likes. Write the resulting style
      guide to `~/.claude/braves-voice.md` and save
      `"voice": { "custom": true, "file": "~/.claude/braves-voice.md" }`.
-9. **MCP servers** — offer to install a curated set of MCPs (multi-select,
+9. **Sound alerts** — Claude can play one sound when it needs permission
+   (or has been waiting on the user) and another when it finishes a task.
+   Ask if the user wants them (default: yes).
+   - If NO: don't write the `sounds` block — the hooks stay silent.
+   - If YES **on macOS**: ask whether they want to pick the sounds
+     themselves. If they decline, use the defaults `Illuminate`
+     (permission) and `Stargaze` (done). If they accept, play them a
+     batch — the hook has a preview mode that announces each tone by
+     number and localized name, spoken in the user's `language`, then
+     plays it:
+     ```bash
+     sh "$CLAUDE_PLUGIN_ROOT/hooks/braves-sound.sh" preview Illuminate Stargaze Glass Complete
+     ```
+     Enumerate the catalogs at runtime (`ls`), never from a hardcoded
+     list, since Apple changes the sets between releases:
+     ```
+     /System/Library/Sounds/*.aiff                      # 14 alert sounds
+     $TL/Ringtones/*.m4r                                # ringtones
+     $TL/AlertTones/Modern/*.m4r                        # short cues
+     $TL/AlertTones/Classic/*.m4r                       # short cues
+     # TL=/System/Library/PrivateFrameworks/ToneLibrary.framework/Versions/A/Resources
+     ```
+     There are ~120 of them: never dump the whole list or preview it in
+     one go. Offer 4-6 per round, ask which one they liked, and let them
+     ask for more. Pass **file base names** (`Illuminate`, `News Flash`)
+     — no extension, no path — and store that same name in the config;
+     the hook resolves the path and the display name on its own.
+   - If YES **on Windows or Linux**: nothing to choose — Windows plays the
+     standard system sounds (Exclamation for permission, Asterisk for
+     done) and Linux falls back to `paplay`. Save the macOS defaults
+     anyway so the same config works on a Mac later.
+
+   Save `"sounds": { "permission": "Illuminate", "done": "Stargaze" }`.
+10. **MCP servers** — offer to install a curated set of MCPs (multi-select,
    none pre-selected). One line each:
    - **Perplexity** — AI web search from the conversation. Needs
      `PERPLEXITY_API_KEY` (perplexity.ai → Settings → API).
@@ -118,7 +151,7 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
    of using the placeholder.
    Save the installed names in `"mcps": [...]`. Remind the user to
    restart Claude Code so the new MCPs load.
-10. **Adoption of own skills, MCPs and plugins** — same behavior for the
+11. **Adoption of own skills, MCPs and plugins** — same behavior for the
    three kinds of user assets. Always evaluate redundancy in one line,
    adopt only with explicit approval, item by item; for redundant ones,
    say what they collide with and suggest retiring (the user's decision,
@@ -129,15 +162,15 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
      braves-skills plugin and add to the `skills` array in
      `.claude-plugin/plugin.json`.
    - **MCPs**: read the user's configured servers (`claude mcp list`)
-     that are NOT in step 8's curated set. Adopt = append the server to
-     step 8's curated list in this SKILL.md (name, one-line purpose,
+     that are NOT in step 10's curated set. Adopt = append the server to
+     step 10's curated list in this SKILL.md (name, one-line purpose,
      install command with `PASTE_YOUR_KEY_HERE` for any secret) and
      record it in the config's `mcps`.
    - **Plugins**: list installed plugins (`claude plugin list` or
      `~/.claude/plugins/`) that aren't braves-skills itself. Adopt =
      record the name in the config's `plugins` so setup on another
      machine offers to install them as part of the user's standard kit.
-11. **Usage check (re-runs only)** — for each configured MCP, adopted or
+12. **Usage check (re-runs only)** — for each configured MCP, adopted or
     user skill, and installed plugin, find its last use by searching the
     session transcripts in `~/.claude/projects/*/*.jsonl` (`rg -l
     "mcp__<server>__"` for MCPs; the skill/plugin name for the rest) and
@@ -175,6 +208,7 @@ Save to `~/.claude/braves-skills.json`:
   "releases": { "versioning": "patch-per-change|semver|<custom rule>", "always_ask": true, "recommend_at_key_moments": true },
   "notebooklm": { "enabled": false },
   "voice": { "custom": false },
+  "sounds": { "permission": "Illuminate", "done": "Stargaze" },
   "mcps": [],
   "plugins": [],
   "adopted_skills": []
