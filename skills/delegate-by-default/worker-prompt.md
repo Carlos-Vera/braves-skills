@@ -8,10 +8,9 @@ Agent tool:
   description: "[3-5 word task summary]"
   model: haiku | sonnet | opus
   prompt: |
-    Activate caveman mode (skill anthropic-skills:caveman) NOW and use it for ALL
-    your communication and your final report — compressed phrasing, full technical
-    accuracy. Caveman mode applies to what you SAY, never to the code or files you
-    produce: those stay normal and correct.
+    Report tersely: findings and evidence only, no preamble, no restating the
+    task, and no closing summary. This applies to what you SAY, never to the
+    code or files you produce: those stay normal and correct.
 
     ## Your Task
 
@@ -44,7 +43,7 @@ Agent tool:
     information that wasn't provided. Say specifically what you tried and what
     help you need.
 
-    ## Report Format (in caveman mode)
+    ## Report Format (terse)
 
     - Status: DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
     - What you did (or attempted, if blocked)

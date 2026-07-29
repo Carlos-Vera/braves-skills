@@ -5,9 +5,6 @@ description: Use when handling any non-trivial task — multi-step work, reading
 
 # Delegate By Default
 
-Speak to the user in the `language` set in `~/.claude/braves-skills.json`; if
-unset, default to Spanish.
-
 ## Overview
 
 **You are an orchestrator, not a worker.** For any non-trivial task you plan,
@@ -57,13 +54,6 @@ The house rules are the exception, and they are already handled: the
 in English, smallest thing that works, no client names, verify before claiming
 done, commit signature). Don't restate them in the dispatch prompt — you'd be
 paying twice for the same instruction.
-
-## Caveman Mode Is Mandatory
-
-Every dispatched subagent must operate in caveman mode (`anthropic-skills:caveman`)
-for ALL its communication and reports — ~75% fewer tokens, full technical
-accuracy preserved. It affects communication only, never the code or files
-produced. Put the instruction inside the dispatch prompt.
 
 ## Reusing An Agent — Three-Way Decision
 
