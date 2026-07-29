@@ -37,7 +37,11 @@ display() {
 if [ "$EVENT" = "preview" ]; then
   [ "$(uname -s)" = "Darwin" ] || exit 0
   shift
-  lang=$(tr -d '\n\r\t' < "$CONFIG" | sed -n 's/.*"language"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+  # jq parses this correctly (the sed path mis-reads an escaped quote in a value),
+  # but jq only ships with macOS 15+, so the old extraction stays as fallback.
+  lang=$(jq -r '.language // empty' "$CONFIG" 2>/dev/null)
+  command -v jq >/dev/null 2>&1 ||
+    lang=$(tr -d '\n\r\t' < "$CONFIG" | sed -n 's/.*"language"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
   [ -n "$lang" ] || lang="es"
   # Plain-named voices first (Mónica, Paulina); the parenthesized ones are novelties.
   voice=$(say -v '?' 2>/dev/null | sed -n "s/^\([^(]*[^ (]\)  *${lang}_[A-Z]*  *#.*/\1/p" | head -1)
@@ -51,12 +55,16 @@ if [ "$EVENT" = "preview" ]; then
   exit 0
 fi
 
-# Newlines only: tone names contain spaces ("Choo Choo", "News Flash").
-block=$(tr -d '\n\r\t' < "$CONFIG" |
-  sed -n 's/.*"sounds"[[:space:]]*:[[:space:]]*{\([^}]*\)}.*/\1/p')
-[ -n "$block" ] || exit 0
-tone=$(printf '%s' "$block" |
-  sed -n "s/.*\"$EVENT\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p")
+tone=$(jq -r --arg e "$EVENT" '.sounds[$e] // empty' "$CONFIG" 2>/dev/null)
+# Only fall back where jq is absent: an empty result from jq means "no sound
+# configured for this event", which must stay authoritative.
+if [ -z "$tone" ] && ! command -v jq >/dev/null 2>&1; then
+  # Newlines only: tone names contain spaces ("Choo Choo", "News Flash").
+  block=$(tr -d '\n\r\t' < "$CONFIG" |
+    sed -n 's/.*"sounds"[[:space:]]*:[[:space:]]*{\([^}]*\)}.*/\1/p')
+  tone=$(printf '%s' "$block" |
+    sed -n "s/.*\"$EVENT\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p")
+fi
 [ -n "$tone" ] || exit 0
 
 case "$(uname -s)" in
