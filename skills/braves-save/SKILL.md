@@ -13,15 +13,63 @@ long-term memory. Recommend running it BEFORE the session reaches ~40% of its
 context window: past that point the summary quality degrades as earlier detail
 gets compacted away.
 
+The `braves-context.sh` hook watches that for you: on every Stop it estimates
+the context used and, once past the configured threshold (40% by default), it
+resumes the turn with a `BRAVES CONTEXT CHECKPOINT` instruction. When that
+fires you judge the moment — mid-operation, finish first and stay quiet; at a
+clean boundary, offer the save. It is an offer, never an automatic run: the
+user's explicit yes is still required. A save triggered this way is a
+**checkpoint**, not a close-out, so it also produces the Step 6 handoff block
+when work remains.
+
 <!-- Ported from BrainClaude: https://github.com/Carlos-Vera/BrainClaude -->
 
 **Configuration:** read `~/.claude/braves-skills.json` first. If
-`notebooklm.enabled` is `false` or the config doesn't exist, SKIP Step 0 and
+`notebooklm.enabled` is `false` or the config doesn't exist, SKIP Step 0.5 and
 Step 4 (nothing gets uploaded to NotebookLM): just save memories and the local
 summary, and mention to the user that they can enable NotebookLM with
 /braves-setup.
 
-## Step 0: Verify the AI Brain Notebook Exists
+## Step 0: Project Identity — Tag and Notebook
+
+Every log belongs to one project. Resolve which one BEFORE anything else: it
+decides both the filename prefix and the notebook that receives the upload.
+Those are the two failure modes this prevents — a log you can't attribute
+months later, and a log filed into another project's brain.
+
+1. Resolve the project root: `git rev-parse --show-toplevel` from the cwd; if
+   it isn't a repo, use the cwd itself.
+2. Look it up in the `projects` map of `~/.claude/braves-skills.json`, keyed by
+   that absolute path:
+   ```json
+   "projects": {
+     "/Users/you/Dev/some-repo": { "tag": "PRJ", "name": "Project name", "notebook": "<notebook-id>" }
+   }
+   ```
+   A path nested inside a registered root inherits its entry (a monorepo
+   package logs under the monorepo's tag).
+3. **If registered:** use its `tag` and `notebook`. Don't ask again.
+4. **If NOT registered:** ask the user once, in a single message:
+   - the short tag for this project — 2-4 characters, uppercase (`PRJ`,
+     `SHOP`, `CRM`); propose one derived from the repo or directory name
+   - which notebook its logs belong to: list the candidates with
+     `notebooklm list --json` and let them pick one, create a new one, or send
+     it to the general AI Brain
+
+   Write the answer into `projects` so no future session asks again.
+5. If `notebooklm.enabled` is `false`, still resolve the tag — the filename
+   needs it — and skip the notebook half.
+
+**Consistency check, before any upload:** the destination notebook must be the
+one registered for this project's tag. If they diverge — the project resolves
+to `PRJ` but the upload is headed for another project's brain — STOP and ask.
+Never infer the notebook from what the conversation was about; infer it from
+where the code lives.
+
+## Step 0.5: Verify the AI Brain Notebook Exists
+
+Only when Step 0 resolved to the general AI Brain (no project-specific
+notebook registered).
 
 Before doing anything, check whether the user already has a Brain notebook
 configured.
@@ -160,11 +208,21 @@ Never write session files to `/tmp` or any shared/world-writable directory.
 **The name should be identifying and memorable, NOT random.** Derive it from
 the 2-4 main topics of the session so it's easy to locate and recall in a
 future conversation (human context is unlimited but fragile → evocative
-names, not opaque ones). Format: `<Topic-1>+<Topic-2>-WH-YYYY-MM-DD.md` —
-Title-Case, hyphens within each topic and `+` between topics. Examples:
-`Beautiful-PDF-report+comparable-UI-WH-2026-06-30.md`,
-`Shared-AI+Secrets-Vault-WH-2026-06-30.md`. Keep it short (2-4 topics, < ~60
-characters) and always with an absolute date (YYYY-MM-DD). If that name
+names, not opaque ones).
+
+Format: `<TAG>-<Topic-1>+<Topic-2>-YYYY-MM-DD.md` — the Step 0 project tag
+first, then Title-Case topics with hyphens inside each one and `+` between
+them. Examples: `PRJ-Beautiful-PDF-report+comparable-UI-2026-06-30.md`,
+`SHOP-Shared-AI+Secrets-Vault-2026-06-30.md`.
+
+The tag leads so that a listing sorts by project and any loose `.md` is
+attributable at a glance — logs from different projects end up side by side in
+`~/.claude/sessions/` and in search results. Never invent the tag from the
+session topic: it comes from the `projects` entry, or from asking. Older logs
+carrying the tag in the middle stay as they are; don't rename them.
+
+Keep it short (2-4 topics, < ~60 characters) and always with an absolute date
+(YYYY-MM-DD). If that name
 already exists in `~/.claude/sessions/`, add a `-2`, `-3`, … suffix so it
 doesn't overwrite the previous one. Random suffixes are no longer used.
 
@@ -178,13 +236,19 @@ user and do NOT fall back to `/tmp`.
 
 ### 4a. Show Preview
 
-Before uploading, show the user exactly what will be sent:
+Before uploading, show the user exactly what will be sent and where:
 
+> **Project:** [name] (`[TAG]`) → notebook **[notebook title]**
+> **File:** `[TAG]-[topics]-[date].md`
+>
 > **Session summary preview (will be sent to NotebookLM):**
 >
 > [show the full markdown content of the summary]
 >
-> **Send this to your AI Brain notebook?** (yes/no/edit)
+> **Send it to that notebook?** (yes/no/edit)
+
+The project/notebook line is not decoration: it's the last chance to catch a
+log about to land in the wrong brain.
 
 ### 4b. Wait for Confirmation
 
@@ -224,17 +288,62 @@ Tell the user:
   highlighted, so they remember it and can find it quickly in a future
   conversation
 - How many memories were saved/updated
-- That the session summary was added to the Brain notebook (or skipped if
-  declined/authentication failed)
+- Which notebook it went into, by title (or skipped if declined/authentication
+  failed) — and, if this was the project's first save, that the tag and
+  notebook are now registered and won't be asked again
 - Any open thread to pick up next time
 
 Keep it brief. No need to read the full summary - just confirm it's done.
+
+## Step 6: Handoff Block (checkpoints with work left)
+
+Only when the save is a mid-session checkpoint AND tasks remain. If the work
+is finished, stop at Step 5 — a handoff block for nothing is noise.
+
+Print ONE fenced markdown block, written in the user's `language`, that they
+paste as the first message of a fresh conversation. It is the only thing that
+survives the context reset, so it carries the state, not the story:
+
+````markdown
+```markdown
+# Continuación: <session name>
+
+**Dónde quedamos:** <1-2 lines: what was just finished and what is half done>
+
+**Siguiente tarea:** <the very next concrete action, with file paths>
+
+**Pendientes:** <ordered list of the remaining tasks>
+
+**Contexto necesario:**
+- Repo/branch: <repo>, `<branch>`, <clean | uncommitted changes in X>
+- Key files: <paths that matter, with what they do>
+- Decisions already made (do not re-litigate): <the ones that constrain the work>
+- Blockers/open questions: <anything waiting on the user or a third party>
+
+**Bitácora:** `~/.claude/sessions/<log-name>.md` (also in the AI Brain notebook)
+```
+````
+
+Rules:
+- Concrete over narrative: paths, branch names, commands. No recap of the
+  conversation.
+- Carry the decisions, not the debate. The new session must not reopen what
+  was already settled.
+- Never inline secrets — Step 1.5 sanitization applies here too.
+- Tell the user in one line what to do with it: paste it into a new
+  conversation to pick up from there.
 
 ## Error Handling
 
 - If NotebookLM authentication fails: save memories locally, skip the
   notebook upload, warn the user
 - If the Brain notebook was deleted: recreate it and update the saved ID
+- If the notebook registered for the project no longer exists: say which
+  project and tag it belonged to, then offer to pick another or create it —
+  never fall back to whichever notebook is at hand
+- If the project resolves to no tag and the user can't be asked (unattended
+  run): save locally with no prefix and skip the upload; an untagged log is
+  recoverable, one in the wrong notebook is not
 - If there's nothing significant to save: just say so, don't force empty
   memories
 - If the `notebooklm` CLI isn't found: try `~/.notebooklm-venv/bin/notebooklm`,

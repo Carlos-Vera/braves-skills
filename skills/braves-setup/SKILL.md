@@ -63,6 +63,10 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
      skill (install the CLI in a venv + browser-assisted login) and once
      done verify with `notebooklm auth check`. Save `enabled: true`.
    - If NO: save `enabled: false`. braves-save will work locally only.
+   - Either way, don't ask for project tags or notebooks here: braves-save
+     registers each project in `projects` the first time it saves from it
+     (tag for the filename, notebook for the upload), so the question lands
+     when it has an obvious answer.
 8. **Copy voice** — the `humanizar` skill rewrites copy with BravesLab's
    brand voice by default. Ask if the user wants to customize it with
    their own voice.
@@ -106,7 +110,18 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
      anyway so the same config works on a Mac later.
 
    Save `"sounds": { "permission": "Illuminate", "done": "Stargaze" }`.
-10. **MCP servers** — offer to install a curated set of MCPs (multi-select,
+10. **Context checkpoint** — explain in two lines: "when the session passes a
+   percentage of the context window I'll offer to run /braves-save, and if
+   tasks are left I'll hand you a block to paste into a new conversation and
+   carry on from there." Ask whether they want it (default: yes) and at what
+   percentage (default: 40 — past that the log starts losing detail).
+   - If YES: save `"context_checkpoint": { "enabled": true, "threshold": 40 }`
+     with their percentage.
+   - If NO: save `"context_checkpoint": { "enabled": false }` — the hook stays
+     quiet.
+   It re-arms every 15 points above the threshold, so declining once doesn't
+   silence it for the rest of the session.
+11. **MCP servers** — offer to install a curated set of MCPs (multi-select,
    none pre-selected). One line each:
    - **Perplexity** — AI web search from the conversation. Needs
      `PERPLEXITY_API_KEY` (perplexity.ai → Settings → API).
@@ -151,7 +166,7 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
    of using the placeholder.
    Save the installed names in `"mcps": [...]`. Remind the user to
    restart Claude Code so the new MCPs load.
-11. **Adoption of own skills, MCPs and plugins** — same behavior for the
+12. **Adoption of own skills, MCPs and plugins** — same behavior for the
    three kinds of user assets. Always evaluate redundancy in one line,
    adopt only with explicit approval, item by item; for redundant ones,
    say what they collide with and suggest retiring (the user's decision,
@@ -162,15 +177,15 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
      braves-skills plugin and add to the `skills` array in
      `.claude-plugin/plugin.json`.
    - **MCPs**: read the user's configured servers (`claude mcp list`)
-     that are NOT in step 10's curated set. Adopt = append the server to
-     step 10's curated list in this SKILL.md (name, one-line purpose,
+     that are NOT in step 11's curated set. Adopt = append the server to
+     step 11's curated list in this SKILL.md (name, one-line purpose,
      install command with `PASTE_YOUR_KEY_HERE` for any secret) and
      record it in the config's `mcps`.
    - **Plugins**: list installed plugins (`claude plugin list` or
      `~/.claude/plugins/`) that aren't braves-skills itself. Adopt =
      record the name in the config's `plugins` so setup on another
      machine offers to install them as part of the user's standard kit.
-12. **Usage check (re-runs only)** — for each configured MCP, adopted or
+13. **Usage check (re-runs only)** — for each configured MCP, adopted or
     user skill, and installed plugin, find its last use by searching the
     session transcripts in `~/.claude/projects/*/*.jsonl` (`rg -l
     "mcp__<server>__"` for MCPs; the skill/plugin name for the rest) and
@@ -207,8 +222,10 @@ Save to `~/.claude/braves-skills.json`:
   "pr": { "create": true, "merge_strategy": "squash", "who_merges": "user", "direct_push_main": false },
   "releases": { "versioning": "patch-per-change|semver|<custom rule>", "always_ask": true, "recommend_at_key_moments": true },
   "notebooklm": { "enabled": false },
+  "projects": { "/abs/path/to/repo": { "tag": "PRJ", "name": "Project name", "notebook": "<id>" } },
   "voice": { "custom": false },
   "sounds": { "permission": "Illuminate", "done": "Stargaze" },
+  "context_checkpoint": { "enabled": true, "threshold": 40 },
   "mcps": [],
   "plugins": [],
   "adopted_skills": []

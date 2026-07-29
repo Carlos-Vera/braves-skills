@@ -13,6 +13,18 @@
         ]
       }
     ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/braves-subagent.sh\"",
+            "timeout": 5,
+            "statusMessage": "Loading braves house rules..."
+          }
+        ]
+      }
+    ],
     "Notification": [
       {
         "hooks": [
@@ -31,6 +43,11 @@
             "type": "command",
             "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/braves-sound.sh\" done",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/braves-context.sh\"",
+            "timeout": 10
           }
         ]
       }
