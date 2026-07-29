@@ -1,8 +1,5 @@
 # Humanizer Lite: BravesLab Voice (v3.0)
 
-Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
-if unset, default to Spanish.
-
 **Custom voice:** read `~/.claude/braves-skills.json` first. If
 `voice.custom` is `true`, read the style file at `voice.file` (default
 `~/.claude/braves-voice.md`) and use it as the voice profile, overriding

@@ -11,9 +11,6 @@ license: MIT
 
 # Braves Help
 
-Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
-if unset, default to Spanish.
-
 Shows the full toolbox. One-time display, no side effects.
 
 ## Output

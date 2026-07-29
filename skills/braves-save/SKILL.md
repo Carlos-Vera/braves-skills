@@ -5,9 +5,6 @@ description: Session close-out - summarizes the session, saves key memories, and
 
 # Session Close-Out
 
-Speak to the user in the `language` set in `~/.claude/braves-skills.json`; if
-unset, default to Spanish.
-
 Run this at the end of every session to capture what happened and save it to
 long-term memory. Recommend running it BEFORE the session reaches ~40% of its
 context window: past that point the summary quality degrades as earlier detail

@@ -11,9 +11,6 @@ license: MIT
 
 # Braves Update
 
-Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
-if unset, default to Spanish.
-
 Plugin root: `~/.claude/skills/braves-skills` (a git clone).
 
 ## Check

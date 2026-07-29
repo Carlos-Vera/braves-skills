@@ -12,9 +12,6 @@ license: MIT
 
 # Braves Security
 
-Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
-if unset, default to Spanish.
-
 The lock. Two-pass security audit: infrastructure and code. Single-pass
 report: one line per finding, ranked by severity. Applies nothing.
 
