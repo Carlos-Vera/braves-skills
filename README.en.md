@@ -67,6 +67,11 @@ It auto-loads on the next session as `braves-skills@skills-dir` (or run
 `/reload-plugins` to load it right away). On the first session, a hook
 detects there's no configuration yet and offers to run `/braves-setup`.
 
+**Questions?** Ask in
+[Discussions](https://github.com/Carlos-Vera/braves-skills/discussions) — the
+forum runs in Spanish, but English is answered too. Bugs go to
+[Issues](https://github.com/Carlos-Vera/braves-skills/issues).
+
 ## Configuration
 
 `/braves-setup` is a one-time configuration and onboarding flow (re-runnable

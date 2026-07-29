@@ -68,6 +68,11 @@ ejecuta `/reload-plugins` para cargarla de inmediato). En la primera sesión,
 un hook detecta que aún no hay configuración y ofrece ejecutar
 `/braves-setup`.
 
+**¿Dudas?** Pregunta en
+[Discussions](https://github.com/Carlos-Vera/braves-skills/discussions) — el
+foro es en español. Los bugs, a
+[Issues](https://github.com/Carlos-Vera/braves-skills/issues).
+
 ## Configuración
 
 `/braves-setup` es un flujo de configuración y onboarding único (re-ejecutable en cualquier
