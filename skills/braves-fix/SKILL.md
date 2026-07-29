@@ -11,9 +11,6 @@ license: MIT
 
 # Braves Fix
 
-Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
-if unset, default to Spanish.
-
 Fixes bugs and runs audit runbooks. The rule that governs everything:
 **"fixed" without evidence doesn't exist.** This skill exists because
 models declare victory too early.

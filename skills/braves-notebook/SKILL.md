@@ -2,12 +2,9 @@
 name: braves-notebook
 description: Full API for Google NotebookLM - complete programmatic access including features not available in the web interface. Create notebooks, add sources, generate every artifact type, download in multiple formats. Triggers on explicit /braves-notebook or /notebooklm, or on intent such as "crea un podcast sobre X" (create a podcast about X), "instalar notebooklm" (install notebooklm)
 ---
-<!-- notebooklm-py v0.3.4 | Ported from BrainClaude: https://github.com/Carlos-Vera/BrainClaude -->
+<!-- notebooklm-py v0.7.3 | Ported from BrainClaude: https://github.com/Carlos-Vera/BrainClaude -->
 
 # NotebookLM Automation
-
-Speak to the user in the `language` set in `~/.claude/braves-skills.json`; if
-unset, default to Spanish.
 
 Full programmatic access to Google NotebookLM, including capabilities not
 exposed in the web interface. Create notebooks, add sources (URLs, YouTube,
@@ -90,53 +87,12 @@ Tell the user:
 > navigate to notebooklm.google.com. Take your time, I'll wait for you to
 > confirm before closing it.
 
-Then write and run this login script:
+Then run the login script (`scripts/nlm_login.py` in this plugin) in the
+background:
 
 ```bash
-cat > /tmp/nlm_login.py << 'PYEOF'
-import json, os, time
-from pathlib import Path
-from playwright.sync_api import sync_playwright
-
-STORAGE_PATH = Path.home() / ".notebooklm" / "storage_state.json"
-PROFILE_PATH = Path.home() / ".notebooklm" / "browser_profile"
-SIGNAL_FILE = Path("/tmp/nlm_save_signal")
-
-SIGNAL_FILE.unlink(missing_ok=True)
-STORAGE_PATH.parent.mkdir(parents=True, exist_ok=True)
-
-print("Opening browser for Google login...")
-print("Log into Google and navigate to notebooklm.google.com")
-
-with sync_playwright() as p:
-    browser = p.chromium.launch_persistent_context(
-        user_data_dir=str(PROFILE_PATH),
-        headless=False,
-        args=["--disable-blink-features=AutomationControlled"],
-    )
-    page = browser.pages[0] if browser.pages else browser.new_page()
-    page.goto("https://notebooklm.google.com/")
-
-    print("Browser is open. Waiting for save signal...")
-    while not SIGNAL_FILE.exists():
-        time.sleep(1)
-
-    print("Save signal received! Capturing session...")
-    storage = browser.storage_state()
-    with open(STORAGE_PATH, "w") as f:
-        json.dump(storage, f)
-
-    cookie_names = [c["name"] for c in storage.get("cookies", [])]
-    print(f"Saved {len(cookie_names)} cookies: {cookie_names}")
-    browser.close()
-
-SIGNAL_FILE.unlink(missing_ok=True)
-print(f"Authentication saved to: {STORAGE_PATH}")
-PYEOF
-
-# Run the login script in the background
 source ~/.notebooklm-venv/bin/activate
-python3 /tmp/nlm_login.py > /tmp/nlm_login_output.txt 2>&1 &
+python3 "$CLAUDE_PLUGIN_ROOT/scripts/nlm_login.py" > /tmp/nlm_login_output.txt 2>&1 &
 echo "Login started (PID=$!). The browser should open in a few seconds..."
 ```
 
@@ -161,11 +117,11 @@ notebooklm list
 ```
 
 If authentication passes (SID cookie present), confirm to the user that
-NotebookLM is set up and ready. Clean up the temp script and restrict
-permissions on the credentials file:
+NotebookLM is set up and ready. Clean up temp files and restrict permissions
+on the credentials file:
 
 ```bash
-rm -f /tmp/nlm_login.py /tmp/nlm_login_output.txt /tmp/nlm_save_signal
+rm -f /tmp/nlm_login_output.txt /tmp/nlm_save_signal
 chmod 600 ~/.notebooklm/storage_state.json
 ```
 
@@ -208,14 +164,13 @@ tool by name
 - `notebooklm artifact list` - list artifacts
 - `notebooklm language list` - list supported languages
 - `notebooklm language get` - get current language
-- `notebooklm language set` - set language (global config)
 - `notebooklm artifact wait` - wait for the artifact to complete
 - `notebooklm source wait` - wait for source processing
 - `notebooklm research status` - check research status
 - `notebooklm research wait` - wait for research
 - `notebooklm use <id>` - set context
 - `notebooklm create` - create notebook
-- `notebooklm ask "..."` - chat queries (without `--save-as-note`)
+- `notebooklm ask "..."` - chat queries (without `--save-as-note` or `--new`)
 - `notebooklm history` - show conversation history (read-only)
 - `notebooklm source add` - add sources
 
@@ -224,7 +179,12 @@ tool by name
 - `notebooklm generate *` - long-running, can fail
 - `notebooklm download *` - writes to the filesystem
 - `notebooklm ask "..." --save-as-note` - writes a note
+- `notebooklm ask --new` - DESTRUCTIVE: deletes the notebook's current
+  server-side conversation irreversibly. `--json` implies `--yes`, so the
+  CLI's own confirmation prompt cannot be relied on as a safety net
 - `notebooklm history --save` - writes a note
+- `notebooklm language set` - set language (global config, affects every
+  notebook in the account)
 
 ## Quick Reference
 
@@ -252,6 +212,7 @@ tool by name
 | Get full source text | `notebooklm source fulltext <source_id>` |
 | Generate podcast | `notebooklm generate audio "instructions"` |
 | Generate video | `notebooklm generate video "instructions"` |
+| Generate cinematic video | `notebooklm generate cinematic-video "instructions"` |
 | Generate report | `notebooklm generate report --format briefing-doc` |
 | Generate quiz | `notebooklm generate quiz` |
 | Generate flashcards | `notebooklm generate flashcards` |
@@ -263,6 +224,7 @@ tool by name
 | Wait for completion | `notebooklm artifact wait <artifact_id>` |
 | Download audio | `notebooklm download audio ./output.mp3` |
 | Download video | `notebooklm download video ./output.mp4` |
+| Download cinematic video | `notebooklm download cinematic-video ./output.mp4` |
 | Download slide deck (PDF) | `notebooklm download slide-deck ./slides.pdf` |
 | Download slide deck (PPTX) | `notebooklm download slide-deck ./slides.pptx --format pptx` |
 | Download report | `notebooklm download report ./report.md` |
@@ -272,6 +234,16 @@ tool by name
 | Download flashcards | `notebooklm download flashcards flashcards.json` |
 | List languages | `notebooklm language list` |
 | Set language | `notebooklm language set zh_Hans` |
+
+Additional command groups (see `notebooklm <group> --help`):
+
+| Group | Subcommands |
+|-------|-------------|
+| `note` | create, delete, get, list, rename, save |
+| `share` | add, public, remove, status, update, view-level |
+| `profile` | create, delete, list, rename, switch |
+| `agent` | show |
+| `skill` | install, show, status, uninstall |
 
 ## Generation Types
 
@@ -284,10 +256,11 @@ All generation commands support:
 | Type | Command | Options | Download |
 |------|---------|----------|----------|
 | Podcast | `generate audio` | `--format [deep-dive\|brief\|critique\|debate]`, `--length [short\|default\|long]` | .mp3 |
-| Video | `generate video` | `--format [explainer\|brief]`, `--style [auto\|classic\|whiteboard\|kawaii\|anime\|watercolor\|retro-print\|heritage\|paper-craft]` | .mp4 |
+| Video | `generate video` | `--format [explainer\|brief\|cinematic]` (`cinematic` ignores `--style`, needs Google AI Ultra, ~30-40 min), `--style [auto\|custom\|classic\|whiteboard\|kawaii\|anime\|watercolor\|retro-print\|heritage\|paper-craft]`, `--style-prompt` (with `--style custom`) | .mp4 |
+| Cinematic Video | `generate cinematic-video` | alias for `generate video --format cinematic`; `--format` is locked to `cinematic` on this subcommand; requires Google AI Ultra | .mp4 |
 | Slide Deck | `generate slide-deck` | `--format [detailed\|presenter]`, `--length [default\|short]` | .pdf / .pptx |
 | Slide Revision | `generate revise-slide "prompt" --artifact <id> --slide N` | `--wait`, `--notebook` | *(re-download the main slide deck)* |
-| Infographic | `generate infographic` | `--orientation [landscape\|portrait\|square]`, `--detail [concise\|standard\|detailed]` | .png |
+| Infographic | `generate infographic` | `--orientation [landscape\|portrait\|square]`, `--detail [concise\|standard\|detailed]`, `--style [auto\|sketch-note\|professional\|bento-grid\|editorial\|instructional\|bricks\|clay\|anime\|kawaii\|scientific]` | .png |
 | Report | `generate report` | `--format [briefing-doc\|study-guide\|blog-post\|custom]`, `--append "extra instructions"` | .md |
 | Mind Map | `generate mind-map` | *(synchronous, instant)* | .json |
 | Data Table | `generate data-table` | description required | .csv |

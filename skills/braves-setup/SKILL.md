@@ -11,9 +11,6 @@ license: MIT
 
 # Braves Setup
 
-Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
-if unset, default to Spanish.
-
 One-time onboarding for the toolbox. Ask the questions ONE AT A TIME
 (wait for the answer before the next; in Claude Code use AskUserQuestion
 when applicable) and save the result to `~/.claude/braves-skills.json`.
@@ -59,9 +56,10 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
    searchable and one you can chat with or generate podcasts/reports
    from (braves-notebook). Uses the unofficial notebooklm-py library
    with your Google account." Ask if they want to enable it.
-   - If YES: follow "Step 0: Configuration" from the braves-notebook
-     skill (install the CLI in a venv + browser-assisted login) and once
-     done verify with `notebooklm auth check`. Save `enabled: true`.
+   - If YES: follow "Step 0: Setup (Runs Automatically on First Use)"
+     from the braves-notebook skill (install the CLI in a venv +
+     browser-assisted login) and once done verify with
+     `notebooklm auth check`. Save `enabled: true`.
    - If NO: save `enabled: false`. braves-save will work locally only.
    - Either way, don't ask for project tags or notebooks here: braves-save
      registers each project in `projects` the first time it saves from it
@@ -155,15 +153,20 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
    codebase-memory-mcp install
    # n8n (named instances, switchable without restarting Claude Code):
    # create ~/.claude/n8n-instances/<alias>.json with N8N_API_URL and
-   # N8N_API_KEY (placeholder + user pastes in editor), write the alias
-   # into ~/.claude/n8n-instances/active, then register the launcher:
+   # N8N_API_KEY (placeholder + user pastes in editor), then:
+   chmod 600 ~/.claude/n8n-instances/<alias>.json
+   # write the alias into ~/.claude/n8n-instances/active, then register
+   # the launcher:
    claude mcp add --scope user n8n-mcp -- sh ~/.claude/skills/braves-skills/scripts/n8n-launcher.sh
    claude mcp add --scope user context7 -- pnpm dlx @upstash/context7-mcp
    ```
    Exception: if a credential already lives in a local file the user
-   controls (e.g. `~/.claude/n8n-instances/<alias>.json`), read it from
-   there in the shell command directly — without printing it — instead
-   of using the placeholder.
+   controls (e.g. `~/.claude/n8n-instances/<alias>.json`), resolve it
+   with shell command substitution at run time instead of using the
+   placeholder — e.g.
+   `-e N8N_API_KEY="$(jq -r '.N8N_API_KEY' ~/.claude/n8n-instances/<alias>.json)"`.
+   Never paste the value as a literal into the command: a literal secret
+   lands in the tool call and is persisted in the session transcript.
    Save the installed names in `"mcps": [...]`. Remind the user to
    restart Claude Code so the new MCPs load.
 12. **Adoption of own skills, MCPs and plugins** — same behavior for the
@@ -205,6 +208,16 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
     removing, fix or flag any dangling reference found. Never remove
     anything without an explicit yes, and keep `mcps`, `plugins` and
     `adopted_skills` in the config in sync with the outcome.
+14. **Subagent house rules** — explain in one line: "when I delegate work
+    to a subagent it starts blind to this session's context, so a hook
+    injects a short version of the house rules (English artifacts,
+    lazy-code discipline, no client names, modern CLI tooling, your
+    commit footer if configured) into every one." Ask if they want it
+    enabled (default: yes — matches what the hook already does when the
+    key is absent).
+    - If YES (or default): save `"subagent_rules": { "enabled": true }`.
+    - If NO: save `"subagent_rules": { "enabled": false }` — subagents
+      start with no injected context.
 
 ## Writing the configuration
 
@@ -228,9 +241,17 @@ Save to `~/.claude/braves-skills.json`:
   "context_checkpoint": { "enabled": true, "threshold": 40 },
   "mcps": [],
   "plugins": [],
-  "adopted_skills": []
+  "adopted_skills": [],
+  "subagent_rules": { "enabled": true }
 }
 ```
+
+`subagent_rules.enabled` (boolean, default `true`) controls whether the
+SubagentStart hook (`hooks/braves-subagent.sh`) injects the house-rules
+block (English artifacts, lazy-code discipline, no client names, modern
+CLI tooling, commit footer if configured) into every delegated subagent.
+The hook already behaves as enabled when the key is absent, so it only
+needs to be written when the user opts out.
 
 ## Closing
 

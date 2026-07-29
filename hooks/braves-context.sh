@@ -1,7 +1,8 @@
 #!/bin/sh
-# braves-skills context checkpoint: on Stop, estimate how much of the context
-# window this session has burned and, past the configured threshold, hand Claude
-# an instruction to offer /braves-save (plus a handoff block if work remains).
+# braves-skills context checkpoint: on Stop, read how much of the context window
+# this session has burned and, past the configured threshold, hand Claude an
+# instruction to offer /braves-save (plus a handoff block if work remains).
+# The percentage is read, never computed and never assumed — see below.
 payload=$(cat)
 command -v python3 >/dev/null 2>&1 || exit 0
 BRAVES_HOOK_PAYLOAD="$payload" exec python3 - <<'PY'
@@ -24,44 +25,36 @@ if cfg.get("enabled") is False:
     raise SystemExit(0)
 
 threshold = int(cfg.get("threshold", 40))
-# ponytail: 200k is every current Claude Code model; set "window" for the 1M betas.
-window = int(cfg.get("window", 200000))
 STEP = 15  # re-arm every 15 points, so a declined save still gets nagged later
-
-transcript = os.path.expanduser(payload.get("transcript_path") or "")
-used = 0
-try:
-    with open(transcript) as f:
-        for line in f:
-            try:
-                entry = json.loads(line)
-            except ValueError:
-                continue
-            if entry.get("type") != "assistant" or entry.get("isSidechain"):
-                continue
-            usage = (entry.get("message") or {}).get("usage") or {}
-            if "input_tokens" in usage:
-                # last assistant turn: prompt + both caches is what the window holds
-                used = (usage.get("input_tokens", 0)
-                        + usage.get("cache_read_input_tokens", 0)
-                        + usage.get("cache_creation_input_tokens", 0)
-                        + usage.get("output_tokens", 0))
-except OSError:
-    raise SystemExit(0)
-
-pct = round(100 * used / window)
-if pct < threshold:
-    raise SystemExit(0)
-level = threshold + STEP * ((pct - threshold) // STEP)
 
 state_dir = os.path.expanduser("~/.claude/braves-ctx")
 os.makedirs(state_dir, mode=0o700, exist_ok=True)
+
+transcript = os.path.expanduser(payload.get("transcript_path") or "")
+session = os.path.basename(payload.get("session_id") or transcript or "unknown")
+
+# The percentage is never computed here and never assumed. Claude Code works it
+# out itself and passes it ONLY to the statusline command — hook payloads never
+# carry it — so the statusline caches it (scripts/statusline-context.sh) and we
+# read it back. Exact for any model and any window size.
+#
+# No cached value means we genuinely do not know how full the window is. Say
+# nothing: a hardcoded window is a guess, and a guess fires the checkpoint at
+# the wrong time (a 200k assumption nags a 1M session five times too early).
+try:
+    with open(os.path.join(state_dir, session + ".pct")) as f:
+        pct = round(float(f.read().strip()))
+except (OSError, ValueError):
+    raise SystemExit(0)
+
+if pct < threshold:
+    raise SystemExit(0)
+level = threshold + STEP * ((pct - threshold) // STEP)
 for name in os.listdir(state_dir):  # one file per session; drop the stale ones
     stale = os.path.join(state_dir, name)
     if os.path.getmtime(stale) < time.time() - 7 * 86400:
         os.remove(stale)
-flag = os.path.join(state_dir, os.path.basename(
-    payload.get("session_id") or transcript or "unknown"))
+flag = os.path.join(state_dir, session)
 try:
     if int(open(flag).read()) >= level:
         raise SystemExit(0)
@@ -71,9 +64,8 @@ with open(flag, "w") as f:
     f.write(str(level))
 
 print(json.dumps({"decision": "block", "reason": f"""\
-BRAVES CONTEXT CHECKPOINT — this session is at ~{pct}% of its context window \
-(~{used:,} of {window:,} tokens). This fires once per {STEP}-point step, so it \
-will not repeat at this level.
+BRAVES CONTEXT CHECKPOINT — this session is at ~{pct}% of its context window. \
+This fires once per {STEP}-point step, so it will not repeat at this level.
 
 Judge the moment yourself; do not ask the user whether to judge it:
 - Mid-operation (an edit half applied, a command still running, a plan just \

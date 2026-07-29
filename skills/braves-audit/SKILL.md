@@ -11,9 +11,6 @@ license: MIT
 
 # Braves Audit
 
-Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
-if unset, default to Spanish.
-
 Full project audit in three passes. ALWAYS ends by writing
 `braves-audit-YYYY-MM-DD.md` to the project root: a runbook a fresh
 agent can run in a brand-new conversation with no prior context

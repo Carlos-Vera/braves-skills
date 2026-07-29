@@ -5,9 +5,6 @@ description: Use when the user asks to implement, build, or fix code features ("
 
 # Desarrollo — Claude Plans, Executors Execute
 
-Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
-if unset, default to Spanish.
-
 ## Principle
 
 Claude plans, delegates execution, and reviews the result. Claude does NOT

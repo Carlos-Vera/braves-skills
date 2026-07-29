@@ -5,9 +5,6 @@ description: Use the codebase knowledge graph for structural code queries. Trigg
 
 # Codebase Memory — Knowledge Graph Tools
 
-Speak to the user in the `language` set in `~/.claude/braves-skills.json`;
-if unset, default to Spanish.
-
 Graph tools return precise structural results in ~500 tokens vs ~80K for grep.
 
 ## Quick Decision Matrix

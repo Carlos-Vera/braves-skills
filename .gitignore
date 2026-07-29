@@ -1,1 +1,12 @@
 .DS_Store
+.env
+node_modules/
+*.log
+__pycache__/
+.claude/settings.local.json
+
+# Audit runbooks stay local: they list this plugin's own weaknesses with
+# severity and file:line, and anyone still running an older installed version
+# is exposed to exactly what they document. The reasoning that outlives them
+# belongs in commit messages, not in a file at the repo root.
+braves-audit-*.md

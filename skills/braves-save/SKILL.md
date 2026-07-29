@@ -5,9 +5,6 @@ description: Session close-out - summarizes the session, saves key memories, and
 
 # Session Close-Out
 
-Speak to the user in the `language` set in `~/.claude/braves-skills.json`; if
-unset, default to Spanish.
-
 Run this at the end of every session to capture what happened and save it to
 long-term memory. Recommend running it BEFORE the session reaches ~40% of its
 context window: past that point the summary quality degrades as earlier detail
@@ -43,18 +40,20 @@ months later, and a log filed into another project's brain.
    that absolute path:
    ```json
    "projects": {
-     "/Users/you/Dev/some-repo": { "tag": "PRJ", "name": "Project name", "notebook": "<notebook-id>" }
+     "/Users/you/Dev/some-repo": { "tag": "PRJ", "name": "Project name", "notebook": "<notebook-id>", "label": "Some Repo" }
    }
    ```
    A path nested inside a registered root inherits its entry (a monorepo
    package logs under the monorepo's tag).
-3. **If registered:** use its `tag` and `notebook`. Don't ask again.
+3. **If registered:** use its `tag`, `notebook` and `label`. Don't ask again.
 4. **If NOT registered:** ask the user once, in a single message:
    - the short tag for this project — 2-4 characters, uppercase (`PRJ`,
      `SHOP`, `CRM`); propose one derived from the repo or directory name
    - which notebook its logs belong to: list the candidates with
      `notebooklm list --json` and let them pick one, create a new one, or send
      it to the general AI Brain
+   - if that notebook already has source labels (see Step 4d), which one this
+     project's logs belong to — offer the existing ones plus "none"
 
    Write the answer into `projects` so no future session asks again.
 5. If `notebooklm.enabled` is `false`, still resolve the tag — the filename
@@ -238,7 +237,7 @@ user and do NOT fall back to `/tmp`.
 
 Before uploading, show the user exactly what will be sent and where:
 
-> **Project:** [name] (`[TAG]`) → notebook **[notebook title]**
+> **Project:** [name] (`[TAG]`) → notebook **[notebook title]**, label **[label]**
 > **File:** `[TAG]-[topics]-[date].md`
 >
 > **Session summary preview (will be sent to NotebookLM):**
@@ -281,6 +280,32 @@ If the CLI isn't in the PATH, use the full path:
 If authentication fails, warn the user and skip this step - memories are
 still saved locally.
 
+### 4d. File the Source Under Its Label
+
+A notebook that already groups its sources into labels ("Brave Skills",
+"Sesiones de Trabajo", …) must keep doing so: a log dropped at the root of a
+labelled notebook is a log nobody finds again.
+
+Requires the `label` command group, added in **notebooklm-py 0.8.0** (#1474).
+Probe it once with `notebooklm label --help`; if the command doesn't exist,
+tell the user their CLI is too old to file logs under a label, skip this step,
+and continue — the upload itself already succeeded.
+
+When available:
+
+1. Read the notebook's existing labels: `notebooklm label list --notebook '<ID>'`
+2. **Project has a registered `label`:** assign it to the source just uploaded
+3. **No registered `label` but the notebook has some:** show them and ask which
+   one, then write the answer into the project's `projects` entry
+4. **Notebook has no labels at all:** skip — don't invent a taxonomy
+
+Never create a label without asking. Reusing a wrong existing label is worse
+than leaving the source unlabelled: the log lands in another project's group.
+
+Check `notebooklm label --help` for the exact subcommand syntax rather than
+guessing flags — the group covers list / create / rename / delete plus
+assigning and clearing labels on sources.
+
 ## Step 5: Confirm
 
 Tell the user:
@@ -288,9 +313,9 @@ Tell the user:
   highlighted, so they remember it and can find it quickly in a future
   conversation
 - How many memories were saved/updated
-- Which notebook it went into, by title (or skipped if declined/authentication
-  failed) — and, if this was the project's first save, that the tag and
-  notebook are now registered and won't be asked again
+- Which notebook it went into, by title, and under which label (or skipped if
+  declined/authentication failed) — and, if this was the project's first save,
+  that the tag, notebook and label are now registered and won't be asked again
 - Any open thread to pick up next time
 
 Keep it brief. No need to read the full summary - just confirm it's done.
@@ -352,6 +377,11 @@ Rules:
   to `/tmp`
 - If a stored notebook ID fails validation: warn the user it may be
   corrupted, ask them to run `notebooklm list --json` to get the correct ID
+- If the CLI has no `label` command (notebooklm-py < 0.8.0): upload without a
+  label, say so once, and suggest upgrading — never fail the save over it
+- If the label registered for the project no longer exists in the notebook:
+  say which one is missing and offer the current list; never silently pick a
+  neighbouring label
 
 ## Prerequisites
 
