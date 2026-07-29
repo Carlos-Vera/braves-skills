@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Shell syntax check (sh -n)
+        run: |
+          for f in hooks/*.sh scripts/*.sh; do
+            echo "Checking $f"
+            sh -n "$f"
+          done
+
+      - name: Ensure shellcheck is available
+        run: command -v shellcheck || (sudo apt-get update && sudo apt-get install -y shellcheck)
+
+      - name: shellcheck
+        run: shellcheck hooks/*.sh scripts/*.sh
+
+      - name: Validate JSON
+        run: |
+          jq -e . hooks/hooks.json > /dev/null
+          jq -e . .claude-plugin/plugin.json > /dev/null
+
+      - name: Skills list matches skills/ directory
+        run: |
+          diff <(ls -d skills/*/ | xargs -n1 basename | sort) \
+               <(jq -r '.skills[]' .claude-plugin/plugin.json | sed 's#^\./skills/##' | sort)
