@@ -40,7 +40,7 @@ Puedes ejecutarlo así:
 | `/braves-audit` | Auditoría Global (seguridad + sobre-ingeniería + rendimiento). Escribe un `braves-audit-DATE.md` ejecutable en la raíz del repo. |
 | `/braves-fix` | Arregla bugs con evidencia obligatoria; ejecuta el runbook `braves-audit-DATE.md` si existe uno. |
 | `/braves-ship` | Cierre profesional: chequeos previos, commit con tu firma, PR/merge según tu configuración, checklist de release. |
-| `/braves-save` | Cierre de sesión: memorias + entrada de log al notebook AI Brain (NotebookLM). |
+| `/braves-save` | Cierre de sesión: memorias + entrada de log al notebook AI Brain (NotebookLM). Se ofrece solo al pasar el umbral de contexto, con bloque de continuación si quedan tareas. Cada bitácora lleva el tag del proyecto delante (`PRJ-…`) y va al cuaderno de ese proyecto, nunca al de otro. |
 | `/braves-notebook` | Conecta la API completa de Google NotebookLM (fuentes, podcasts, reportes, quizzes, descargas) a Claude para usar como memoria y fuente de información, va de la mano con `/braves-save`: el save, al correr, crea/alimenta tu notebook AI Brain donde guarda la bitácora de tu sesión; conviene guardar antes de llegar al 40% de contexto de la sesión. |
 | `/braves-update` | Te avisa al arrancar la sesión si hay versión nueva de Braves-skills (chequeo 1 vez al día) y la verifica/actualiza cuando tú digas, mostrando qué trae de nuevo. |
 
@@ -50,7 +50,7 @@ Puedes ejecutarlo así:
 |-------|----------|
 | `/desarrollo` | Planifica una feature y constrúyela mediante agentes delegados. |
 | `codebase-memory` | Consultas estructurales de código mediante el grafo de codebase-memory-mcp. |
-| `delegate-by-default` | Modo orquestador: despacha subagentes en vez de trabajar en línea, ideal para ahorro de tokens. |
+| `delegate-by-default` | Modo orquestador: despacha subagentes en vez de trabajar en línea, ideal para ahorro de tokens. Cada subagente arranca ya con las reglas de la casa inyectadas (artefactos en inglés, solución mínima, nada de nombres de clientes, verificar antes de decir "listo", firma de commit). |
 | `humanizar` | Voz de marca para copy en español, puedes personalizarla con tu estilo de copy. |
 | `n8n-workflow-builder` | Construye/depura workflows de n8n con validación de nodos y chequeo de CVE (vulnerabilidades). |
 | `wordpress-spanish` | Traducción es_ES para plugins de WordPress, ideal si creas plugins para WordPress. |
@@ -82,9 +82,10 @@ momento para cambiar valores luego). Pregunta una cosa a la vez:
 7. Integración opcional con NotebookLM (logs de sesión enviados a un notebook "AI Brain" mediante el CLI no oficial `notebooklm-py`, login de Google asistido por navegador).
 8. Voz de copy: por defecto `humanizar` escribe con la voz de BravesLab; si quieres la tuya, el setup te hace las preguntas necesarias (marca, tono, tuteo/usted, público, palabras vetadas, ejemplos) y guarda tu estilo en `~/.claude/braves-voice.md`.
 9. Avisos sonoros: un tono cuando Claude necesita permiso y otro cuando termina la tarea, para que no tengas que vigilar la terminal. En Mac los eliges entre los ~120 tonos del sistema (sonidos de aviso, tonos de llamada y AlertTones) y el setup te los reproduce anunciando cada uno por número y nombre con voz en tu idioma; si prefieres no elegir, usa Iluminación para los permisos y Estelar para tarea terminada. En Windows suenan los sonidos estándar del sistema.
-10. MCPs opcionales, con configuración guiada: Perplexity (búsqueda web con IA), Firecrawl (rastreo/scraping de sitios), Chrome DevTools (debugging frontend), Playwright (automatización y pruebas de navegador), Codebase memory (grafo de conocimiento del código), n8n (construcción de workflows), Context7 (docs actualizadas de librerías).
-11. Adopción de tus propias skills, MCPs y plugins en la caja: las skills se copian al plugin, los MCPs extra entran al set curado, y los plugins se registran como parte de tu kit estándar para máquinas nuevas.
-12. Chequeo de uso (en re-ejecuciones): audita cada MCP, skill y plugin contra los transcripts de sesión y te dice los días sin uso — siempre con número: si algo nunca se usó, muestra cuándo se instaló y cuántos días de historial cubre el análisis. Antes de retirar algo te dice con qué choca y qué cubre el hueco; nunca desinstala sin tu sí explícito.
+10. Checkpoint de contexto: cuando la sesión pasa del porcentaje que elijas (40% por defecto) Claude te ofrece ejecutar `/braves-save` en el primer punto de corte limpio — no a mitad de una edición —, y si quedan tareas te entrega un bloque listo para pegar en una conversación nueva y seguir justo donde ibas. Nunca guarda sin tu sí, y vuelve a avisar cada 15 puntos por encima del umbral.
+11. MCPs opcionales, con configuración guiada: Perplexity (búsqueda web con IA), Firecrawl (rastreo/scraping de sitios), Chrome DevTools (debugging frontend), Playwright (automatización y pruebas de navegador), Codebase memory (grafo de conocimiento del código), n8n (construcción de workflows), Context7 (docs actualizadas de librerías).
+12. Adopción de tus propias skills, MCPs y plugins en la caja: las skills se copian al plugin, los MCPs extra entran al set curado, y los plugins se registran como parte de tu kit estándar para máquinas nuevas.
+13. Chequeo de uso (en re-ejecuciones): audita cada MCP, skill y plugin contra los transcripts de sesión y te dice los días sin uso — siempre con número: si algo nunca se usó, muestra cuándo se instaló y cuántos días de historial cubre el análisis. Antes de retirar algo te dice con qué choca y qué cubre el hueco; nunca desinstala sin tu sí explícito.
 
 La configuración vive en `~/.claude/braves-skills.json`:
 
@@ -105,8 +106,12 @@ La configuración vive en `~/.claude/braves-skills.json`:
     "direct_push_main": false
   },
   "notebooklm": { "enabled": false },
+  "projects": {
+    "/ruta/absoluta/al/repo": { "tag": "PRJ", "name": "Nombre del proyecto", "notebook": "id-del-cuaderno" }
+  },
   "voice": { "custom": false },
   "sounds": { "permission": "Illuminate", "done": "Stargaze" },
+  "context_checkpoint": { "enabled": true, "threshold": 40 },
   "releases": { "versioning": "semver", "always_ask": true, "recommend_at_key_moments": true },
   "mcps": [],
   "plugins": [],

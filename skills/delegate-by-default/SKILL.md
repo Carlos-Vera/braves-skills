@@ -52,6 +52,12 @@ Subagents never inherit session history. Construct exactly what they need: full
 task text + framing context, nothing more. Extra context is noise that inflates
 tokens.
 
+The house rules are the exception, and they are already handled: the
+`braves-subagent.sh` hook injects them into every subagent on spawn (artifacts
+in English, smallest thing that works, no client names, verify before claiming
+done, commit signature). Don't restate them in the dispatch prompt — you'd be
+paying twice for the same instruction.
+
 ## Caveman Mode Is Mandatory
 
 Every dispatched subagent must operate in caveman mode (`anthropic-skills:caveman`)
