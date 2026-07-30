@@ -122,14 +122,16 @@ on the credentials file:
 
 ```bash
 rm -f /tmp/nlm_login_output.txt /tmp/nlm_save_signal
-chmod 600 ~/.notebooklm/storage_state.json
 ```
+
+The session file is already written with mode 600 by the login script, which
+also reports the exact path it used — don't chmod a guessed path here.
 
 If authentication fails (SID cookie absent), the user may not have
 completed login. Remove the browser profile and retry:
 
 ```bash
-rm -rf ~/.notebooklm/browser_profile ~/.notebooklm/storage_state.json
+python3 -c 'import shutil; from notebooklm.paths import get_browser_profile_dir, get_storage_path; shutil.rmtree(get_browser_profile_dir(), ignore_errors=True); get_storage_path().unlink(missing_ok=True); print("cleared")'
 ```
 
 Then run the login script again from the start.
