@@ -119,6 +119,27 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
      quiet.
    It re-arms every 15 points above the threshold, so declining once doesn't
    silence it for the rest of the session.
+
+   **If YES, wire it before moving on — otherwise it can never fire.** Claude
+   Code computes `context_window.used_percentage` itself and passes it **only**
+   to the `statusLine` command; hook payloads never carry it. With nothing
+   caching that number the checkpoint stays silent by design, because the
+   alternative is guessing a window size and nagging a 1M-window session five
+   times too early. Read `statusLine` from `~/.claude/settings.json`:
+   - **Not configured:** offer to set it to
+     `sh "<plugin>/scripts/statusline-context.sh"`. It prints a minimal
+     `model · folder · N% ctx` bar and writes the cache. It replaces nothing,
+     because there is nothing there.
+   - **Already configured:** NEVER overwrite it. Read their script first, then
+     show the one line to add right after it reads stdin, and offer to add it:
+     ```sh
+     printf '%s' "$input" | sh "<plugin>/scripts/statusline-context.sh" >/dev/null
+     ```
+     Adapt `$input` to whatever variable their script keeps the payload in. If
+     it doesn't keep the payload at all, say so and leave it alone rather than
+     guessing.
+   - **Wiring declined:** say plainly that the checkpoint will never fire, and
+     that this is silence rather than a wrong number.
 11. **MCP servers** — offer to install a curated set of MCPs (multi-select,
    none pre-selected). One line each:
    - **Perplexity** — AI web search from the conversation. Needs
