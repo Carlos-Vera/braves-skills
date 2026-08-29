@@ -362,14 +362,24 @@ survives the context reset, so it carries the state, not the story:
 ```
 ````
 
+Then write that same block — the inner markdown, without the outer fence — to
+`~/.claude/sessions/.handoff-<TAG>.md` with mode 600. The `braves-handoff`
+SessionStart hook serves it to the next session opened in this project and
+renames it to `.consumed.md`, so the user stops carrying it between
+conversations by hand.
+
+Print it anyway. The hook is a convenience, not a guarantee: a session opened
+outside the project root, on another machine, or without the plugin still needs
+the copy-paste path.
+
 Rules:
 - Concrete over narrative: paths, branch names, commands. No recap of the
   conversation.
 - Carry the decisions, not the debate. The new session must not reopen what
   was already settled.
 - Never inline secrets — Step 1.5 sanitization applies here too.
-- Tell the user in one line what to do with it: paste it into a new
-  conversation to pick up from there.
+- Tell the user in one line that the next session in this project picks it up
+  on its own, and that the block above is there for any other case.
 
 ## Error Handling
 
