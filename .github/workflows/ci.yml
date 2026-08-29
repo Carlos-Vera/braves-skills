@@ -13,7 +13,7 @@ jobs:
 
       - name: Shell syntax check (sh -n)
         run: |
-          for f in hooks/*.sh scripts/*.sh; do
+          for f in hooks/*.sh scripts/*.sh tests/*.sh; do
             echo "Checking $f"
             sh -n "$f"
           done
@@ -22,7 +22,7 @@ jobs:
         run: command -v shellcheck || (sudo apt-get update && sudo apt-get install -y shellcheck)
 
       - name: shellcheck
-        run: shellcheck hooks/*.sh scripts/*.sh
+        run: shellcheck hooks/*.sh scripts/*.sh tests/*.sh
 
       - name: Validate JSON
         run: |
@@ -33,3 +33,6 @@ jobs:
         run: |
           diff <(ls -d skills/*/ | xargs -n1 basename | sort) \
                <(jq -r '.skills[]' .claude-plugin/plugin.json | sed 's#^\./skills/##' | sort)
+
+      - name: Hook behaviour tests
+        run: sh tests/hooks.sh
