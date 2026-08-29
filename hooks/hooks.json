@@ -11,6 +11,17 @@
             "statusMessage": "Checking braves-skills setup..."
           }
         ]
+      },
+      {
+        "matcher": "startup|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/braves-handoff.sh\"",
+            "timeout": 5,
+            "statusMessage": "Checking for a braves-save handoff..."
+          }
+        ]
       }
     ],
     "SubagentStart": [

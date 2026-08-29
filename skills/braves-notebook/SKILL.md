@@ -2,7 +2,7 @@
 name: braves-notebook
 description: Full API for Google NotebookLM - complete programmatic access including features not available in the web interface. Create notebooks, add sources, generate every artifact type, download in multiple formats. Triggers on explicit /braves-notebook or /notebooklm, or on intent such as "crea un podcast sobre X" (create a podcast about X), "instalar notebooklm" (install notebooklm)
 ---
-<!-- notebooklm-py v0.7.3 | Ported from BrainClaude: https://github.com/Carlos-Vera/BrainClaude -->
+<!-- notebooklm-py v0.8.1 | Ported from BrainClaude: https://github.com/Carlos-Vera/BrainClaude -->
 
 # NotebookLM Automation
 
@@ -175,6 +175,13 @@ tool by name
 - `notebooklm ask "..."` - chat queries (without `--save-as-note` or `--new`)
 - `notebooklm history` - show conversation history (read-only)
 - `notebooklm source add` - add sources
+- `notebooklm label list` / `label sources` - read the notebook's labels
+- `notebooklm collection list` / `collection notebooks` - read collections
+- `notebooklm source stale` - check whether a URL/Drive source needs a refresh
+- `notebooklm source guide` - AI summary and keywords for one source
+- `notebooklm artifact suggestions` - suggested report topics
+- `notebooklm artifact get-prompt` - show the prompt that made an artifact
+- `notebooklm doctor` - diagnose profile, auth and migration state
 
 **Ask before running:**
 - `notebooklm delete` - destructive
@@ -187,6 +194,14 @@ tool by name
 - `notebooklm history --save` - writes a note
 - `notebooklm language set` - set language (global config, affects every
   notebook in the account)
+- `notebooklm label generate` - AI-regroups every source into new topic
+  labels (the UI's "Reorganize"). It rewrites the notebook's taxonomy, so a
+  log filed under a known label can end up somewhere else
+- `notebooklm label delete` / `collection delete` - destructive
+- `notebooklm source clean` - bulk-deletes duplicate, error and
+  access-blocked sources in one pass
+- `notebooklm source delete-by-title` - destructive, and matches on the exact
+  title
 
 ## Quick Reference
 
@@ -212,6 +227,12 @@ tool by name
 | Show conversation history | `notebooklm history` |
 | Save entire history as note | `notebooklm history --save` |
 | Get full source text | `notebooklm source fulltext <source_id>` |
+| List labels | `notebooklm label list` |
+| List a label's sources | `notebooklm label sources <label>` |
+| File sources under a label | `notebooklm label add <label> <source_id>...` |
+| Create a label | `notebooklm label create "Name"` |
+| List collections | `notebooklm collection list` |
+| Add notebooks to a collection | `notebooklm collection add <collection> <notebook>...` |
 | Generate podcast | `notebooklm generate audio "instructions"` |
 | Generate video | `notebooklm generate video "instructions"` |
 | Generate cinematic video | `notebooklm generate cinematic-video "instructions"` |
@@ -234,6 +255,14 @@ tool by name
 | Download data table | `notebooklm download data-table ./data.csv` |
 | Download quiz | `notebooklm download quiz quiz.json` |
 | Download flashcards | `notebooklm download flashcards flashcards.json` |
+| Add a Drive file (epub/docx/pptx/…) | `notebooklm source add-drive-file <document_id>` |
+| Check if a source is stale | `notebooklm source stale <source_id>` |
+| Source summary + keywords | `notebooklm source guide <source_id>` |
+| Drop duplicate/error sources | `notebooklm source clean` |
+| Delete a source by exact title | `notebooklm source delete-by-title "Title"` |
+| Suggested report topics | `notebooklm artifact suggestions` |
+| Prompt that made an artifact | `notebooklm artifact get-prompt <artifact_id>` |
+| Diagnose setup and auth | `notebooklm doctor` |
 | List languages | `notebooklm language list` |
 | Set language | `notebooklm language set zh_Hans` |
 
@@ -242,10 +271,35 @@ Additional command groups (see `notebooklm <group> --help`):
 | Group | Subcommands |
 |-------|-------------|
 | `note` | create, delete, get, list, rename, save |
+| `label` | add, create, delete, emoji, generate, list, remove, rename, sources |
+| `collection` | add, create, delete, list, notebooks, remove, rename |
 | `share` | add, public, remove, status, update, view-level |
 | `profile` | create, delete, list, rename, switch |
 | `agent` | show |
-| `skill` | install, show, status, uninstall |
+| `skill` | install, package, show, status, uninstall |
+
+## Source Labels
+
+Labels are the groups NotebookLM shows above a notebook's source list. The
+`label` command group exists from notebooklm-py **0.8.0** on.
+
+```bash
+notebooklm label list                       # ids, names, member ids
+notebooklm label sources "Brave Skills"     # expand one label to its sources
+notebooklm label add "Brave Skills" abc123  # file source(s) under a label
+notebooklm label create "New group"         # empty, manually named
+```
+
+`LABEL_REF` takes a label id, a partial id prefix, or the exact name.
+
+`label add` accepts many source ids, but the server honours only the first id
+per `UPDATE_LABEL` call, so the CLI issues **one call per source**. Filing a
+long list is not one round-trip — pace it and expect the rate limit on large
+moves.
+
+Never reach for `label generate` to tidy a notebook up. It is the web UI's
+"Reorganize": it regroups **every** source into AI-chosen topic labels, so a
+log filed under a known label can land somewhere else. Ask the user first.
 
 ## Generation Types
 
@@ -264,8 +318,8 @@ All generation commands support:
 | Slide Revision | `generate revise-slide "prompt" --artifact <id> --slide N` | `--wait`, `--notebook` | *(re-download the main slide deck)* |
 | Infographic | `generate infographic` | `--orientation [landscape\|portrait\|square]`, `--detail [concise\|standard\|detailed]`, `--style [auto\|sketch-note\|professional\|bento-grid\|editorial\|instructional\|bricks\|clay\|anime\|kawaii\|scientific]` | .png |
 | Report | `generate report` | `--format [briefing-doc\|study-guide\|blog-post\|custom]`, `--append "extra instructions"` | .md |
-| Mind Map | `generate mind-map` | *(synchronous, instant)* | .json |
-| Data Table | `generate data-table` | description required | .csv |
+| Mind Map | `generate mind-map` | `--kind [interactive\|note-backed]` (default `interactive` as of 0.8.1: a studio artifact polled to completion; `note-backed` returns the JSON tree synchronously), `--instructions` (honored reliably only by `interactive`) | .json |
+| Data Table | `generate data-table` | `[DESCRIPTION]` is optional (verified against 0.8.1); `--prompt-file` reads it from a file | .csv |
 | Quiz | `generate quiz` | `--difficulty [easy\|medium\|hard]`, `--quantity [fewer\|standard\|more]` | .json/.md/.html |
 | Flashcards | `generate flashcards` | `--difficulty [easy\|medium\|hard]`, `--quantity [fewer\|standard\|more]` | .json/.md/.html |
 
