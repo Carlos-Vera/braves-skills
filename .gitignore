@@ -10,3 +10,9 @@ __pycache__/
 # is exposed to exactly what they document. The reasoning that outlives them
 # belongs in commit messages, not in a file at the repo root.
 braves-audit-*.md
+
+# The handoff braves-save leaves for the next session. It sits in the root so
+# it stays visible and travels with the project, but it carries the state of
+# the work — local paths, settled decisions, third parties — and this repo is
+# public.
+CONTEXTO.md

@@ -46,8 +46,20 @@ expect_silent() {
 
 # --- braves-handoff -------------------------------------------------------
 
+# CONTEXTO.md is written by braves-save into the project root, not into
+# ~/.claude — a test that writes it anywhere else proves nothing.
+write_contexto() {
+  # write_contexto <text> — always lands newer than the served stamp, so the
+  # re-arm case does not depend on the clock ticking over a whole second.
+  printf '%s' "$1" > "$PROJECT/CONTEXTO.md"
+  python3 -c 'import os,sys,time; os.utime(sys.argv[1], (time.time()+2,)*2)' "$PROJECT/CONTEXTO.md"
+}
+
 setup_home
-printf '# Continuación\n\n**Dónde quedamos:** a medias.\n' > "$HOME/.claude/sessions/.handoff-TEST.md"
+write_contexto '# Continuación
+
+**Dónde quedamos:** a medias.
+'
 
 out=$(run_hook braves-handoff.sh "{\"cwd\":\"$PROJECT\"}")
 case "$out" in
@@ -55,28 +67,66 @@ case "$out" in
   *) fail "handoff: serves the block in a registered project" "got: $out" ;;
 esac
 
-if [ -f "$HOME/.claude/sessions/.handoff-TEST.consumed.md" ] &&
-   [ ! -f "$HOME/.claude/sessions/.handoff-TEST.md" ]; then
-  pass "handoff: marks the block consumed"
+# The whole point of moving it into the repo: the user keeps seeing it. A hook
+# that consumes the file would look identical on the first start and be wrong.
+if [ -f "$PROJECT/CONTEXTO.md" ] && [ -f "$HOME/.claude/sessions/.contexto-served-TEST" ]; then
+  pass "handoff: stamps it served and leaves CONTEXTO.md in place"
 else
-  fail "handoff: marks the block consumed" "the .md was not renamed to .consumed.md"
+  fail "handoff: stamps it served and leaves CONTEXTO.md in place" \
+    "CONTEXTO.md was removed, or no stamp was written"
 fi
 
 out=$(run_hook braves-handoff.sh "{\"cwd\":\"$PROJECT\"}")
 expect_silent "handoff: stays silent on the second start" "$out"
 
-# A package inside a registered root inherits its entry (braves-save Step 0).
-printf 'nested\n' > "$HOME/.claude/sessions/.handoff-TEST.md"
+# The next /braves-save rewrites the file, which must re-arm it — otherwise the
+# stamp silences every handoff after the first one, forever.
+write_contexto 'rewritten by the next save
+'
+out=$(run_hook braves-handoff.sh "{\"cwd\":\"$PROJECT\"}")
+case "$out" in
+  *"rewritten by the next save"*) pass "handoff: a rewrite re-arms it" ;;
+  *) fail "handoff: a rewrite re-arms it" "got: $out" ;;
+esac
+
+# A package inside a registered root inherits its entry (braves-save Step 0),
+# and reads the root's CONTEXTO.md, not one of its own.
+setup_home
+write_contexto 'nested
+'
 out=$(run_hook braves-handoff.sh "{\"cwd\":\"$PROJECT/pkg\"}")
 case "$out" in
-  *"BRAVES HANDOFF (TEST)"*) pass "handoff: a nested path inherits the project" ;;
+  *"BRAVES HANDOFF (TEST)"*"nested"*) pass "handoff: a nested path inherits the project" ;;
   *) fail "handoff: a nested path inherits the project" "got: $out" ;;
 esac
 
 # An unregistered directory must never receive another project's handoff.
-printf 'unrelated\n' > "$HOME/.claude/sessions/.handoff-TEST.md"
+setup_home
+write_contexto 'unrelated
+'
 out=$(run_hook braves-handoff.sh "{\"cwd\":\"$HOME\"}")
 expect_silent "handoff: stays silent outside a registered project" "$out"
+
+# A moved repo: the file came along, the registry still points at the old path.
+# The hook must point at it without ever printing what is inside — an
+# unregistered repo could have arrived as a clone, handoff included.
+setup_home
+MOVED="$HOME/moved-repo"
+mkdir -p "$MOVED/.git"
+printf 'secreto que no debe volcarse\n' > "$MOVED/CONTEXTO.md"
+out=$(run_hook braves-handoff.sh "{\"cwd\":\"$MOVED\"}")
+case "$out" in
+  *"secreto que no debe volcarse"*)
+    fail "handoff: an unregistered repo is flagged, never printed" "it printed the block" ;;
+  *"not registered in braves-skills.json"*)
+    pass "handoff: an unregistered repo is flagged, never printed" ;;
+  *) fail "handoff: an unregistered repo is flagged, never printed" "got: $out" ;;
+esac
+
+# Same repo, no handoff in it: nothing to flag, so nothing to say.
+rm -f "$MOVED/CONTEXTO.md"
+out=$(run_hook braves-handoff.sh "{\"cwd\":\"$MOVED\"}")
+expect_silent "handoff: an unregistered repo with no handoff stays silent" "$out"
 
 # --- braves-context -------------------------------------------------------
 
