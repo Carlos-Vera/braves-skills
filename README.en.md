@@ -153,3 +153,10 @@ not just the maintainer:
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+---
+
+<p align="center">
+  Author: Carlos Vera &lt;carlos@braveslab.com&gt;<br>
+  <em>“I can do all things through Christ who strengthens me.” Phil 4:13</em>
+</p>
