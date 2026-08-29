@@ -154,3 +154,10 @@ mantenedor:
 ## Licencia
 
 MIT — ver [LICENSE](LICENSE).
+
+---
+
+<p align="center">
+  Autor: Carlos Vera &lt;carlos@braveslab.com&gt;<br>
+  <em>“Todo lo puedo en Cristo que me fortalece.” fil 4:13</em>
+</p>
