@@ -45,6 +45,9 @@ months later, and a log filed into another project's brain.
    ```
    A path nested inside a registered root inherits its entry (a monorepo
    package logs under the monorepo's tag).
+   A project whose label changes per session carries `label_scheme` instead of
+   `label` — a sentence saying how to choose (e.g. "by milestone: H1..H8").
+   Step 4d reads it and proposes, it never picks silently.
 3. **If registered:** use its `tag`, `notebook` and `label`. Don't ask again.
 4. **If NOT registered:** ask the user once, in a single message:
    - the short tag for this project — 2-4 characters, uppercase (`PRJ`,
@@ -261,11 +264,15 @@ Never upload without explicit consent in the current session.
 ### 4c. Upload with Safe CLI Invocation
 
 ```bash
-~/.notebooklm-venv/bin/notebooklm source add '<SESSION_FILE_PATH>' --notebook '<BRAIN_NOTEBOOK_ID>'
+notebooklm source add '<SESSION_FILE_PATH>' --notebook '<BRAIN_NOTEBOOK_ID>' --json
 ```
 
 Always use single quotes around both the file path and the notebook ID to
 prevent the shell from interpreting special characters.
+
+`--json` returns `{"source": {"id", "title", "type", "url"}}`. **Keep that
+`id`:** Step 4d needs it, and recovering it afterwards costs a full
+`source list` over the notebook.
 
 **To rename an already-uploaded log: RENAME in place, NEVER delete and
 recreate.**
@@ -287,24 +294,30 @@ A notebook that already groups its sources into labels ("Brave Skills",
 labelled notebook is a log nobody finds again.
 
 Requires the `label` command group, added in **notebooklm-py 0.8.0** (#1474).
-Probe it once with `notebooklm label --help`; if the command doesn't exist,
-tell the user their CLI is too old to file logs under a label, skip this step,
-and continue — the upload itself already succeeded.
+An older CLI exits non-zero on `notebooklm label list`: say the CLI is too old
+to file logs under a label, skip this step, and continue — the upload itself
+already succeeded.
 
-When available:
-
-1. Read the notebook's existing labels: `notebooklm label list --notebook '<ID>'`
-2. **Project has a registered `label`:** assign it to the source just uploaded
-3. **No registered `label` but the notebook has some:** show them and ask which
+1. Read the notebook's labels:
+   `notebooklm label list --notebook '<ID>' --json`
+2. **Project has a registered `label`:** file the uploaded source under it.
+   ```bash
+   notebooklm label add '<LABEL>' '<SOURCE_ID>' --notebook '<ID>'
+   ```
+   `<LABEL>` takes the exact label name, a label id, or an id prefix.
+3. **Project has a `label_scheme` instead of a fixed `label`:** the scheme says
+   how to choose per save (e.g. by milestone). Read it, propose the label it
+   points to, and confirm before assigning.
+4. **No registered `label` but the notebook has some:** show them and ask which
    one, then write the answer into the project's `projects` entry
-4. **Notebook has no labels at all:** skip — don't invent a taxonomy
+5. **Notebook has no labels at all:** skip — don't invent a taxonomy
 
 Never create a label without asking. Reusing a wrong existing label is worse
 than leaving the source unlabelled: the log lands in another project's group.
 
-Check `notebooklm label --help` for the exact subcommand syntax rather than
-guessing flags — the group covers list / create / rename / delete plus
-assigning and clearing labels on sources.
+**Never run `notebooklm label generate` here.** It is the web UI's
+"Reorganize": it regroups *every* source in the notebook into AI-chosen topic
+labels, so it can move logs that were already filed correctly.
 
 ## Step 5: Confirm
 
