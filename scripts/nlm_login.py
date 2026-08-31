@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Interactive Google login helper for NotebookLM.
+"""Interactive Google login helper for Gemini Notebook.
 
 Opens a visible (non-headless) browser so the user can log into Google and
-navigate to NotebookLM. Waits for a signal file (/tmp/nlm_save_signal) before
+navigate to Gemini Notebook. Waits for a signal file (/tmp/nlm_save_signal) before
 capturing the authenticated session to wherever the CLI expects it.
 
 Invoked by the braves-notebook skill (skills/braves-notebook/SKILL.md) during

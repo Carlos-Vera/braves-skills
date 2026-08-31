@@ -51,8 +51,8 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
      moments (feature complete, security fix, breaking change) and waits
      for an explicit yes. Ask if the user wants those recommendations
      (default: yes).
-7. **NotebookLM** — explain in 2-3 lines: "braves-save can upload a log
-   of each session to an 'AI Brain' notebook in Google NotebookLM,
+7. **Gemini Notebook** — explain in 2-3 lines: "braves-save can upload a log
+   of each session to an 'AI Brain' notebook in Gemini Notebook,
    searchable and one you can chat with or generate podcasts/reports
    from (braves-notebook). Uses the unofficial notebooklm-py library
    with your Google account." Ask if they want to enable it.

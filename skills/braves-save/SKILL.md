@@ -1,6 +1,6 @@
 ---
 name: braves-save
-description: Session close-out - summarizes the session, saves key memories, and uploads a log to the user's AI Brain notebook in NotebookLM. Triggers on "/braves-save" or "/wrapup" or when the user says "wrap up", "guardar sesion" (save session), "fin de sesion" (end of session), "resumen de sesion" (session summary).
+description: Session close-out - summarizes the session, saves key memories, and uploads a log to the user's AI Brain notebook in Gemini Notebook (formerly NotebookLM). Triggers on "/braves-save" or "/wrapup" or when the user says "wrap up", "guardar sesion" (save session), "fin de sesion" (end of session), "resumen de sesion" (session summary).
 ---
 
 # Session Close-Out
@@ -23,8 +23,8 @@ when work remains.
 
 **Configuration:** read `~/.claude/braves-skills.json` first. If
 `notebooklm.enabled` is `false` or the config doesn't exist, SKIP Step 0.5 and
-Step 4 (nothing gets uploaded to NotebookLM): just save memories and the local
-summary, and mention to the user that they can enable NotebookLM with
+Step 4 (nothing gets uploaded to Gemini Notebook): just save memories and the local
+summary, and mention to the user that they can enable Gemini Notebook with
 /braves-setup.
 
 ## Step 0: Project Identity — Tag and Notebook
@@ -228,13 +228,13 @@ Keep it short (2-4 topics, < ~60 characters) and always with an absolute date
 already exists in `~/.claude/sessions/`, add a `-2`, `-3`, … suffix so it
 doesn't overwrite the previous one. Random suffixes are no longer used.
 
-This same name travels to NotebookLM (the source takes the filename), so a
+This same name travels to Gemini Notebook (the source takes the filename), so a
 good name = fast search in both places.
 
 If directory creation or file writing fails due to permissions, warn the
 user and do NOT fall back to `/tmp`.
 
-## Step 4: Upload to the NotebookLM Brain (with confirmation)
+## Step 4: Upload to the Gemini Notebook Brain (with confirmation)
 
 ### 4a. Show Preview
 
@@ -243,7 +243,7 @@ Before uploading, show the user exactly what will be sent and where:
 > **Project:** [name] (`[TAG]`) → notebook **[notebook title]**, label **[label]**
 > **File:** `[TAG]-[topics]-[date].md`
 >
-> **Session summary preview (will be sent to NotebookLM):**
+> **Session summary preview (will be sent to Gemini Notebook):**
 >
 > [show the full markdown content of the summary]
 >
@@ -276,7 +276,7 @@ prevent the shell from interpreting special characters.
 
 **To rename an already-uploaded log: RENAME in place, NEVER delete and
 recreate.**
-Local file with `mv`, and the NotebookLM source with
+Local file with `mv`, and the Gemini Notebook source with
 `notebooklm source rename '<SOURCE_ID>' '<new-name>' --notebook '<ID>'`.
 (Since the name is already generated correctly BEFORE uploading, this is
 almost never needed — only for old logs.)
@@ -391,7 +391,7 @@ Rules:
 
 ## Error Handling
 
-- If NotebookLM authentication fails: save memories locally, skip the
+- If Gemini Notebook authentication fails: save memories locally, skip the
   notebook upload, warn the user
 - If the Brain notebook was deleted: recreate it and update the saved ID
 - If the notebook registered for the project no longer exists: say which
@@ -416,7 +416,7 @@ Rules:
 
 ## Prerequisites
 
-This skill requires the NotebookLM CLI (only if `notebooklm.enabled` is
+This skill requires the `notebooklm-py` CLI (only if `notebooklm.enabled` is
 `true`). See the braves-notebook skill for setup instructions:
 1. Install: `pip install "notebooklm-py[browser]"` and
    `playwright install chromium`
