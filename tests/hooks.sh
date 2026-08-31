@@ -153,10 +153,35 @@ esac
 out=$(run_hook braves-context.sh '{"session_id":"sid"}')
 expect_silent "context: does not repeat at the same level" "$out"
 
-# A Stop hook that already resumed the session must never chain into another.
+# It runs on UserPromptSubmit, where plain stdout reaches Claude and the user
+# sees nothing. On Stop the only way to reach Claude was to block, which Claude
+# Code shows the user as "Stop hook error" with the instruction dumped raw. So
+# the output must stay plain text: a decision/reason envelope means it regressed
+# to the shape that leaked onto the user's screen.
 printf '95' > "$HOME/.claude/braves-ctx/sid2.pct"
-out=$(run_hook braves-context.sh '{"session_id":"sid2","stop_hook_active":true}')
-expect_silent "context: never chains when a Stop hook is already active" "$out"
+out=$(run_hook braves-context.sh '{"session_id":"sid2"}')
+case "$out" in
+  *'"decision"'*|*'"reason"'*|*'"hookSpecificOutput"'*)
+    fail "context: speaks to Claude as plain text, not as a block decision" "got JSON: $out" ;;
+  *"BRAVES CONTEXT CHECKPOINT"*)
+    pass "context: speaks to Claude as plain text, not as a block decision" ;;
+  *) fail "context: speaks to Claude as plain text, not as a block decision" "got: $out" ;;
+esac
+
+# The checkpoint now rides on the user's own message, so it must never tell
+# Claude to drop what they asked for.
+case "$out" in
+  *"Answer what the user actually asked"*) pass "context: tells Claude to answer the user first" ;;
+  *) fail "context: tells Claude to answer the user first" "got: $out" ;;
+esac
+
+# It is wired to UserPromptSubmit, and the Stop lane keeps only the sound.
+if jq -e '.hooks.UserPromptSubmit[0].hooks[0].command | contains("braves-context.sh")' "$ROOT/hooks/hooks.json" >/dev/null &&
+   ! jq -e '[.hooks.Stop[].hooks[].command] | join(" ") | contains("braves-context.sh")' "$ROOT/hooks/hooks.json" >/dev/null; then
+  pass "context: wired to UserPromptSubmit, not to Stop"
+else
+  fail "context: wired to UserPromptSubmit, not to Stop" "hooks.json still runs the checkpoint on Stop"
+fi
 
 printf '\n%s passed, %s failed\n' "$PASSED" "$FAILED"
 [ "$FAILED" -eq 0 ]

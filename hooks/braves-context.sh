@@ -1,8 +1,15 @@
 #!/bin/sh
-# braves-skills context checkpoint: on Stop, read how much of the context window
-# this session has burned and, past the configured threshold, hand Claude an
-# instruction to offer /braves-save (plus a handoff block if work remains).
+# braves-skills context checkpoint: on UserPromptSubmit, read how much of the
+# context window this session has burned and, past the configured threshold,
+# hand Claude an instruction to offer /braves-save.
 # The percentage is read, never computed and never assumed — see below.
+#
+# It runs on UserPromptSubmit, not on Stop, because of where the output lands.
+# A Stop hook can only reach Claude by blocking, and Claude Code renders that
+# reason to the user as "Stop hook error" with the whole instruction dumped
+# underneath — an internal note, shown raw, labelled as a failure. On
+# UserPromptSubmit plain stdout is added to Claude's context and the user sees
+# nothing, which is what this was always meant to be.
 payload=$(cat)
 command -v python3 >/dev/null 2>&1 || exit 0
 BRAVES_HOOK_PAYLOAD="$payload" exec python3 - <<'PY'
@@ -11,8 +18,6 @@ import json, os, time
 try:
     payload = json.loads(os.environ.get("BRAVES_HOOK_PAYLOAD") or "{}")
 except ValueError:
-    raise SystemExit(0)
-if payload.get("stop_hook_active"):  # already resumed by a Stop hook: never chain
     raise SystemExit(0)
 
 cfg = {}
@@ -63,20 +68,23 @@ except (OSError, ValueError):
 with open(flag, "w") as f:
     f.write(str(level))
 
-print(json.dumps({"decision": "block", "reason": f"""\
+print(f"""\
 BRAVES CONTEXT CHECKPOINT — this session is at ~{pct}% of its context window. \
 This fires once per {STEP}-point step, so it will not repeat at this level.
 
-Judge the moment yourself; do not ask the user whether to judge it:
+This is a system notice riding along with the user's message. They did not \
+write it and cannot see it. Judge the moment yourself; do not ask them to \
+judge it:
+- Answer what the user actually asked, first and in full.
 - Mid-operation (an edit half applied, a command still running, a plan just \
-approved and not yet started): say nothing about this, finish the operation. \
-The checkpoint fires again at the next step.
-- Otherwise: stop here and tell the user in one or two lines, in the `language` \
-from ~/.claude/braves-skills.json, that this is a good point to run \
-/braves-save, and why — past this point the earlier detail starts getting \
+approved and not yet started): say nothing about this. The checkpoint fires \
+again at the next step.
+- Otherwise, at the next clean boundary, tell the user in one or two lines, in \
+the `language` from ~/.claude/braves-skills.json, that this is a good point to \
+run /braves-save, and why — past this point the earlier detail starts getting \
 compacted away and the log loses fidelity.
 - Never run /braves-save without the user's explicit consent.
 - If tasks remain after the save, follow the braves-save skill's "Step 6: \
-Handoff block" and give the user the copy-paste block that resumes the work in \
-a fresh conversation."""}))
+Handoff block", which leaves CONTEXTO.md in the project root for the next \
+session to pick up.""")
 PY
