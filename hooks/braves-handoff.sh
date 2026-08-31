@@ -106,11 +106,17 @@ when = "just now" if age < 60 else "%d minutes ago" % (age / 60) if hours < 1 el
 
 print(
     "BRAVES HANDOFF (%s) — the previous session closed with /braves-save and left "
-    "this for you in CONTEXTO.md, written %s. Read it as the user's own opening "
-    "message and pick the work up from there; do not ask them to repeat it. It "
-    "will not be served again until the next /braves-save rewrites it.\n\nJudge "
-    "the age yourself: if it is old enough that the repo has likely moved on, "
-    "verify the state before acting on it, and say so in one line.\n\n%s"
-    % (tag, when, block)
+    "this for you in CONTEXTO.md, written %s. It will not be served again until "
+    "the next /braves-save rewrites it.\n\n"
+    "Do all three BEFORE you answer the user's first message, whatever it is — a "
+    "greeting counts. The user must never have to ask you to catch up:\n"
+    "1. Read the bitacora file named at the end of the block below, and the "
+    "memory notes MEMORY.md points to.\n"
+    "2. Verify what the block claims is still true — branch, HEAD, open PRs and "
+    "issues — because it was written %s and the repo may have moved on.\n"
+    "3. Open your reply with where the work stands and what changed since, then "
+    "ask which thread to pick up first. Never ask them to repeat what is "
+    "already below.\n\n%s"
+    % (tag, when, when, block)
 )
 PY
