@@ -27,7 +27,7 @@ BRAVES SKILLS — BravesLab toolbox (full lifecycle)
  Skill            When to use it
  ─────────────    ─────────────────────────────────────────────────────────
  /braves-setup    First time or onboarding: git identity, commit
-                  signature, PR/merge policy, NotebookLM, adoption of
+                  signature, PR/merge policy, Gemini Notebook, adoption of
                   custom skills.
  /braves-start    Kick off a project: generates PRD, TRD, UI/UX, Flow,
                   Backend, and Plan BEFORE touching code.
@@ -48,9 +48,9 @@ BRAVES SKILLS — BravesLab toolbox (full lifecycle)
  /braves-ship     Professional close-out: pre-flight, commit with your
                   signature, PR/merge per your configuration, release
                   checklist.
- /braves-save     Session close: memories + log to the NotebookLM Brain
+ /braves-save     Session close: memories + log to the Gemini Notebook Brain
                   notebook.
- /braves-notebook Full NotebookLM API (podcasts, reports, quizzes,
+ /braves-notebook Full Gemini Notebook API (podcasts, reports, quizzes,
                   sources, downloads).
  /braves-help     This table.
 ```

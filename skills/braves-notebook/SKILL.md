@@ -1,12 +1,16 @@
 ---
 name: braves-notebook
-description: Full API for Google NotebookLM - complete programmatic access including features not available in the web interface. Create notebooks, add sources, generate every artifact type, download in multiple formats. Triggers on explicit /braves-notebook or /notebooklm, or on intent such as "crea un podcast sobre X" (create a podcast about X), "instalar notebooklm" (install notebooklm)
+description: Full API for Gemini Notebook (formerly NotebookLM) - complete programmatic access including features not available in the web interface. Create notebooks, add sources, generate every artifact type, download in multiple formats. Triggers on explicit /braves-notebook or /notebooklm, or on intent such as "crea un podcast sobre X" (create a podcast about X), "instalar notebooklm" (install notebooklm)
 ---
 <!-- notebooklm-py v0.8.1 | Ported from BrainClaude: https://github.com/Carlos-Vera/BrainClaude -->
 
-# NotebookLM Automation
+# Gemini Notebook Automation
 
-Full programmatic access to Google NotebookLM, including capabilities not
+Google renamed NotebookLM to **Gemini Notebook** on 2026-07-16. Same product,
+same notebooks, same links. The package and the command did not follow: it is
+still `notebooklm-py` on PyPI and still `notebooklm` on the command line.
+
+Full programmatic access to Gemini Notebook, including capabilities not
 exposed in the web interface. Create notebooks, add sources (URLs, YouTube,
 PDFs, audio, video, images), chat with the content, generate every artifact
 type, and download results in multiple formats.
@@ -99,7 +103,7 @@ echo "Login started (PID=$!). The browser should open in a few seconds..."
 Wait ~10 seconds for the browser to open, then ask the user if they can see
 the browser and have logged in.
 
-Once the user confirms they're on the NotebookLM home page, save the
+Once the user confirms they're on the Gemini Notebook home page, save the
 session:
 
 ```bash
@@ -117,7 +121,7 @@ notebooklm list
 ```
 
 If authentication passes (SID cookie present), confirm to the user that
-NotebookLM is set up and ready. Clean up temp files and restrict permissions
+Gemini Notebook is set up and ready. Clean up temp files and restrict permissions
 on the credentials file:
 
 ```bash
@@ -154,7 +158,7 @@ tool by name
 - "Haz una infografia" (Make an infographic)
 - "Crea un mapa mental de los conceptos" (Create a mind map of the concepts)
 - "Descarga el quiz en markdown" (Download the quiz in markdown)
-- "Anade estas fuentes a NotebookLM" (Add these sources to NotebookLM)
+- "Anade estas fuentes a Gemini Notebook" (Add these sources to Gemini Notebook)
 
 ## Autonomy Rules
 
@@ -280,7 +284,7 @@ Additional command groups (see `notebooklm <group> --help`):
 
 ## Source Labels
 
-Labels are the groups NotebookLM shows above a notebook's source list. The
+Labels are the groups Gemini Notebook shows above a notebook's source list. The
 `label` command group exists from notebooklm-py **0.8.0** on.
 
 ```bash

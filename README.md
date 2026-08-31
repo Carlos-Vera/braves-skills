@@ -31,7 +31,7 @@ Puedes ejecutarlo así:
 
 | Skill | Qué hace |
 |-------|----------|
-| `/braves-setup` | Te permite configurar tu entorno de trabajo para que Claude pueda trabajar contigo profesionalmente. Configura: identidad git, firma de commits (coautoría de IA OFF por defecto), política de PR/merge, NotebookLM opcional, adopción de tus propias skills/MCPs/plugins y chequeo de uso de lo instalado. |
+| `/braves-setup` | Te permite configurar tu entorno de trabajo para que Claude pueda trabajar contigo profesionalmente. Configura: identidad git, firma de commits (coautoría de IA OFF por defecto), política de PR/merge, Gemini Notebook opcional, adopción de tus propias skills/MCPs/plugins y chequeo de uso de lo instalado. |
 | `/braves-help` | Muestra esta caja de ayuda para saber que skill usar para cada tarea. |
 | `/braves-start` | Arranque de proyecto: te ayuda a crear: PRD, TRD, UI/UX, Flujo, Backend y Plan antes de tocar código. |
 | `/fable-plan` | Te hace las preguntas que un arquitecto senior hace antes de construir → un plan por fases con verificación. |
@@ -40,8 +40,8 @@ Puedes ejecutarlo así:
 | `/braves-audit` | Auditoría Global (seguridad + sobre-ingeniería + rendimiento). Escribe un `braves-audit-DATE.md` ejecutable en la raíz del repo. |
 | `/braves-fix` | Arregla bugs con evidencia obligatoria; ejecuta el runbook `braves-audit-DATE.md` si existe uno. |
 | `/braves-ship` | Cierre profesional: chequeos previos, commit con tu firma, PR/merge según tu configuración, checklist de release. |
-| `/braves-save` | Cierre de sesión: memorias + entrada de log al notebook AI Brain (NotebookLM). Se ofrece solo al pasar el umbral de contexto, y si quedan tareas le deja el traspaso preparado a la siguiente sesión que abras en ese proyecto, sin que copies nada. Cada bitácora lleva el tag del proyecto delante (`PRJ-…`) y va al cuaderno de ese proyecto, nunca al de otro. |
-| `/braves-notebook` | Conecta la API completa de Google NotebookLM (fuentes, podcasts, reportes, quizzes, descargas) a Claude para usar como memoria y fuente de información, va de la mano con `/braves-save`: el save, al correr, crea/alimenta tu notebook AI Brain donde guarda la bitácora de tu sesión; conviene guardar antes de llegar al 40% de contexto de la sesión. |
+| `/braves-save` | Cierre de sesión: memorias + entrada de log al notebook AI Brain (Gemini Notebook). Se ofrece solo al pasar el umbral de contexto, y si quedan tareas le deja el traspaso preparado a la siguiente sesión que abras en ese proyecto, sin que copies nada. Cada bitácora lleva el tag del proyecto delante (`PRJ-…`) y va al cuaderno de ese proyecto, nunca al de otro. |
+| `/braves-notebook` | Conecta la API completa de Gemini Notebook (fuentes, podcasts, reportes, quizzes, descargas) a Claude para usar como memoria y fuente de información, va de la mano con `/braves-save`: el save, al correr, crea/alimenta tu notebook AI Brain donde guarda la bitácora de tu sesión; conviene guardar antes de llegar al 40% de contexto de la sesión. |
 | `/braves-update` | Te avisa al arrancar la sesión si hay versión nueva de Braves-skills (chequeo 1 vez al día) y la verifica/actualiza cuando tú digas, mostrando qué trae de nuevo. |
 
 ### Skills de soporte (adoptadas)
@@ -84,7 +84,7 @@ momento para cambiar valores luego). Pregunta una cosa a la vez:
 4. Firma de commit (pie de texto libre).
 5. Coautoría de IA en los commits — OFF por defecto.
 6. Política de PR y merge (¿crear PRs?, estrategia de merge, quién mergea, push directo a main — no por defecto) y política de releases (convención de versionado — patch por cambio, semver o la tuya propia; los releases nunca se publican sin preguntar, con recomendaciones en momentos clave).
-7. Integración opcional con NotebookLM (logs de sesión enviados a un notebook "AI Brain" mediante el CLI no oficial `notebooklm-py`, login de Google asistido por navegador).
+7. Integración opcional con Gemini Notebook (logs de sesión enviados a un notebook "AI Brain" mediante el CLI no oficial `notebooklm-py`, login de Google asistido por navegador).
 8. Voz de copy: por defecto `humanizar` escribe con la voz de BravesLab; si quieres la tuya, el setup te hace las preguntas necesarias (marca, tono, tuteo/usted, público, palabras vetadas, ejemplos) y guarda tu estilo en `~/.claude/braves-voice.md`.
 9. Avisos sonoros: un tono cuando Claude necesita permiso y otro cuando termina la tarea, para que no tengas que vigilar la terminal. En Mac los eliges entre los ~120 tonos del sistema (sonidos de aviso, tonos de llamada y AlertTones) y el setup te los reproduce anunciando cada uno por número y nombre con voz en tu idioma; si prefieres no elegir, usa Iluminación para los permisos y Estelar para tarea terminada. En Windows suenan los sonidos estándar del sistema.
 10. Checkpoint de contexto: cuando la sesión pasa del porcentaje que elijas (40% por defecto) Claude te ofrece ejecutar `/braves-save` en el primer punto de corte limpio — no a mitad de una edición —, y si quedan tareas prepara el traspaso para que no tengas que copiar nada: la siguiente sesión que abras en ese proyecto lo recibe sola y sigue justo donde ibas. El traspaso queda en un `CONTEXTO.md` en la raíz del repo, para que lo veas y viaje con el proyecto si lo mueves de sitio; `braves-save` lo añade al `.gitignore` la primera vez, porque lleva dentro el estado de tu trabajo. El bloque igual se te muestra en pantalla, por si retomas desde otra máquina o desde fuera del proyecto. Nunca guarda sin tu sí, y vuelve a avisar cada 15 puntos por encima del umbral.
