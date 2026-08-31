@@ -67,6 +67,16 @@ case "$out" in
   *) fail "handoff: serves the block in a registered project" "got: $out" ;;
 esac
 
+# Handing over the text is only half the job. Without a standing order to catch
+# up and open with the state, the session sits on the block until the user asks
+# "where were we" — which is exactly the chore the handoff exists to remove.
+case "$out" in
+  *"BEFORE you answer the user's first message"*"bitacora"*)
+    pass "handoff: orders the session to catch up and open with the state" ;;
+  *) fail "handoff: orders the session to catch up and open with the state" \
+    "the block was served without the startup order" ;;
+esac
+
 # The whole point of moving it into the repo: the user keeps seeing it. A hook
 # that consumes the file would look identical on the first start and be wrong.
 if [ -f "$PROJECT/CONTEXTO.md" ] && [ -f "$HOME/.claude/sessions/.contexto-served-TEST" ]; then
