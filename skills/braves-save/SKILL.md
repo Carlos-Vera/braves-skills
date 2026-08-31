@@ -363,10 +363,18 @@ survives the context reset, so it carries the state, not the story:
 ````
 
 Then write that same block — the inner markdown, without the outer fence — to
-`~/.claude/sessions/.handoff-<TAG>.md` with mode 600. The `braves-handoff`
-SessionStart hook serves it to the next session opened in this project and
-renames it to `.consumed.md`, so the user stops carrying it between
-conversations by hand.
+`CONTEXTO.md` in the project root (the root registered in Step 0, not the cwd),
+with mode 600, and make sure the `.gitignore` there lists `CONTEXTO.md` —
+append the line if it is missing and tell the user you did. The block carries
+the state of the work: paths on the user's disk, settled decisions, third
+parties. The root of a repo is exactly where an unignored file gets committed
+by accident, and in a public repo that commit is the leak.
+
+The `braves-handoff` SessionStart hook serves it to the next session opened in
+this project and stamps it as served, so the user stops carrying it between
+conversations by hand. The file itself stays put: the user sees it between
+sessions, misses it when it is gone, and it travels with the project instead of
+being orphaned the moment the folder changes path.
 
 Print it anyway. The hook is a convenience, not a guarantee: a session opened
 outside the project root, on another machine, or without the plugin still needs
