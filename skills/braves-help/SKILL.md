@@ -62,6 +62,8 @@ BRAVES SKILLS — BravesLab toolbox (full lifecycle)
  ──────────────────────  ──────────────────────────────────────────────────
  /desarrollo             Plans a feature and builds it via delegated
                          agents.
+ /braves-gemini          Delegate work to the Gemini CLI (agy): dispatch,
+                         iterate, verify the diff.
  codebase-memory         Structural code queries via the
                          codebase-memory-mcp graph.
  delegate-by-default     Orchestrator mode: dispatch subagents instead of

@@ -16,8 +16,8 @@
 
 # braves-skills
 
-The all-in-one toolbox I use in my work with Claude Code. It has 18 skills
-covering a project's full lifecycle (12 lifecycle skills + 6 support
+The all-in-one toolbox I use in my work with Claude Code. It has 19 skills
+covering a project's full lifecycle (12 lifecycle skills + 7 support
 skills), because I was going crazy remembering 40 loose skills without
 knowing whether they collided or not — braves-skills solves that.
 
@@ -49,6 +49,7 @@ You can run it like this:
 | Skill | What it does |
 |-------|----------|
 | `/desarrollo` | Plan a feature and build it via delegated agents. |
+| `/braves-gemini` | Delegate work to the Gemini CLI (`agy`): dispatch a task, iterate on the same conversation, verify the real diff. Frontend and UI go here by default. |
 | `codebase-memory` | Structural code queries via the codebase-memory-mcp graph. |
 | `delegate-by-default` | Orchestrator mode: dispatch subagents instead of working inline, ideal for saving tokens. Every subagent spawns with the house rules already injected (artifacts in English, smallest thing that works, no client names, verify before claiming done, commit signature). |
 | `humanizar` | Brand voice for Spanish copy — you can customize it with your own copy style. |
