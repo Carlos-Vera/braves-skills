@@ -320,7 +320,7 @@ printf '{"event":"step_update","step_update":{"step_index":4,"state":"ACTIVE","s
 OUT=$(AGY="$STUB" GEMINI_STATE="$STATE" sh "$SCRIPT" --status "$PROJECT16" 2>&1)
 
 if [ "$(printf '%s' "$OUT" | cut -f1)" = "run" ] &&
-   case "$(printf '%s' "$OUT" | cut -f2)" in "#4 · replace_file_content Header.tsx "*s) true ;; *) false ;; esac; then
+   case "$(printf '%s' "$OUT" | cut -f3)" in "#4 · replace_file_content Header.tsx "*s) true ;; *) false ;; esac; then
   pass "--status: one line naming the step, the live tool and how long it has been on it"
 else
   fail "--status: one line naming the step, the live tool and how long it has been on it" "got: $OUT"
@@ -422,10 +422,10 @@ STREAM22="$STATE/$(state_key "$PROJECT22").stream"
 } > "$STREAM22"
 echo "$(( $(date +%s) - 252 ))" > "$STREAM22.start"
 OUT=$(AGY="$STUB" GEMINI_STATE="$STATE" sh "$SCRIPT" --status "$PROJECT22" 2>&1)
-TEXT=$(printf '%s' "$OUT" | cut -f2)
+TEXT=$(printf '%s' "$OUT" | cut -f3)
 
 MISSING=""
-for want in "3.7-flash-high" "-y" "#34" "acting-banner.tsx" "4m12s" "48.2k tok"; do
+for want in "3.7-flash-high" "-y" "#34" "acting-banner.tsx" "4m12s" "tok:▰▰▱▱▱▱▱▱▱▱ 48.2k / 200k"; do
   case "$TEXT" in *"$want"*) ;; *) MISSING="$MISSING [$want]" ;; esac
 done
 
@@ -441,10 +441,25 @@ fi
 sed 's/always-proceed/request-review/' "$STREAM22" > "$STREAM22.tmp" && mv "$STREAM22.tmp" "$STREAM22"
 OUT=$(AGY="$STUB" GEMINI_STATE="$STATE" sh "$SCRIPT" --status "$PROJECT22" 2>&1)
 
-case "$(printf '%s' "$OUT" | cut -f2)" in
+case "$(printf '%s' "$OUT" | cut -f3)" in
   *"-y"*) fail "--status: no -y mark when only edits were approved" "got: $OUT" ;;
   *) pass "--status: no -y mark when only edits were approved" ;;
 esac
+
+# --- 24: the spend percentage rides in its own field, and a zero budget drops the bar
+
+PCT=$(printf '%s' "$OUT" | cut -f2)
+OUT_NOBAR=$(AGY="$STUB" GEMINI_STATE="$STATE" GEMINI_BUDGET=0 sh "$SCRIPT" --status "$PROJECT22" 2>&1)
+TEXT_NOBAR=$(printf '%s' "$OUT_NOBAR" | cut -f3)
+
+if [ "$PCT" = "24" ] &&
+   case "$TEXT_NOBAR" in *"48.2k tok"*) true ;; *) false ;; esac &&
+   case "$TEXT_NOBAR" in *"tok:▰"*) false ;; *) true ;; esac; then
+  pass "--status: the percentage is its own field and GEMINI_BUDGET=0 drops the bar"
+else
+  fail "--status: the percentage is its own field and GEMINI_BUDGET=0 drops the bar" \
+    "pct=$PCT nobar: $TEXT_NOBAR"
+fi
 
 printf '\n%s passed, %s failed\n' "$PASSED" "$FAILED"
 [ "$FAILED" -eq 0 ]

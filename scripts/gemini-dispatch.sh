@@ -41,6 +41,14 @@ case "$GEMINI_IDLE" in
   ''|*[!0-9]*) echo "ERROR: GEMINI_IDLE is whole seconds (got: $GEMINI_IDLE)" >&2; exit 2 ;;
 esac
 
+# What a dispatch is expected to cost. Nothing is enforced against it — it is
+# the scale the statusline bar fills towards, so "is this one getting
+# expensive?" has an answer at a glance. 0 drops the bar entirely.
+GEMINI_BUDGET=${GEMINI_BUDGET:-200000}
+case "$GEMINI_BUDGET" in
+  ''|*[!0-9]*) echo "ERROR: GEMINI_BUDGET is whole tokens (got: $GEMINI_BUDGET)" >&2; exit 2 ;;
+esac
+
 if [ "$GEMINI_TIMEOUT" -gt 15 ]; then
   AGY_TIMEOUT=$(( GEMINI_TIMEOUT - 10 ))
 else
@@ -48,6 +56,19 @@ else
 fi
 GEMINI_STATE=${GEMINI_STATE:-$HOME/.cache/braves-gemini}
 GEMINI_HOME=${GEMINI_HOME:-$HOME/.gemini/antigravity-cli}
+
+# 48200 -> 48.2k. Whole thousands lose the decimal: 200k, not 200.0k.
+fmt_k() {
+  if [ "$1" -ge 1000 ]; then
+    if [ "$(( $1 / 100 % 10 ))" -eq 0 ]; then
+      printf '%sk' "$(( $1 / 1000 ))"
+    else
+      printf '%s.%sk' "$(( $1 / 1000 ))" "$(( $1 / 100 % 10 ))"
+    fi
+  else
+    printf '%s' "$1"
+  fi
+}
 
 usage() {
   cat <<'EOF'
@@ -61,7 +82,11 @@ Usage:
 
 GEMINI_TIMEOUT (default 900) is the hard ceiling in whole seconds; GEMINI_IDLE
 (default 300) cuts a dispatch that has stopped taking steps — the shape a stall
-has from outside. Both are enforced here, in whole seconds.
+has from outside. Both are enforced here, in whole seconds. GEMINI_BUDGET
+(default 200000 tokens) is not enforced at all: it is the scale --status fills
+its spend bar towards.
+
+--status prints "<state><TAB><spend percentage><TAB><text>".
 
 -c and -y combine in either order. Without -y only file edits are approved:
 a task that needs shell commands (npm, mkdir, tests) dies half-done with
@@ -211,18 +236,32 @@ if [ "$MODE" = "status" ]; then
     fi
   fi
 
-  if [ "${TOKENS:-0}" -ge 1000 ] 2>/dev/null; then
-    TEXT="$TEXT · $(( TOKENS / 100 / 10 )).$(( TOKENS / 100 % 10 ))k tok"
-  elif [ "${TOKENS:-0}" -gt 0 ] 2>/dev/null; then
-    TEXT="$TEXT · $TOKENS tok"
+  # Spend against the budget, drawn in the same cells the rest of the bar uses.
+  # The percentage rides in its own field so the caller can colour it the way it
+  # colours its other gauges, instead of parsing the text back apart.
+  PCT=""
+  if [ "${TOKENS:-0}" -gt 0 ] && [ "$GEMINI_BUDGET" -gt 0 ]; then
+    PCT=$(( TOKENS * 100 / GEMINI_BUDGET ))
+    if [ "$PCT" -gt 100 ]; then PCT=100; fi
+    FILLED=$(( (PCT + 5) / 10 ))
+    if [ "$FILLED" -gt 10 ]; then FILLED=10; fi
+    BAR=""
+    I=0
+    # Braces are load-bearing: "$BAR▰" swallows the first byte of the glyph
+    # into the variable name and the expansion fails under set -u.
+    while [ "$I" -lt "$FILLED" ]; do BAR="${BAR}▰"; I=$(( I + 1 )); done
+    while [ "$I" -lt 10 ];        do BAR="${BAR}▱"; I=$(( I + 1 )); done
+    TEXT="$TEXT · tok:$BAR $(fmt_k "$TOKENS") / $(fmt_k "$GEMINI_BUDGET")"
+  elif [ "${TOKENS:-0}" -gt 0 ]; then
+    TEXT="$TEXT · $(fmt_k "$TOKENS") tok"
   fi
 
   # Tab-separated so the caller colours it without parsing: a run that has been
   # silent this long is stuck, not busy.
   if [ "$QUIET" -ge 90 ]; then
-    printf 'slow\t%s\n' "$TEXT"
+    printf 'slow\t%s\t%s\n' "$PCT" "$TEXT"
   else
-    printf 'run\t%s\n' "$TEXT"
+    printf 'run\t%s\t%s\n' "$PCT" "$TEXT"
   fi
   exit 0
 fi
