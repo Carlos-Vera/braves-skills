@@ -216,9 +216,20 @@ Three things keep it from happening:
 - Keep the dispatch to the edit. Screenshots, servers and gates are yours,
   afterwards, where you can see them hang.
 
-`--print-timeout` is not the safety net it looks like: a run asking for
-15m was killed at 45m, "timed out after 13445 polls". Treat the ceiling as
-advisory and stop a stuck dispatch yourself.
+Two ceilings now do that automatically, both enforced by the wrapper
+rather than by agy:
+
+- `GEMINI_TIMEOUT` (default 900s) — the hard ceiling on the whole dispatch.
+- `GEMINI_IDLE` (default 300s) — cuts a dispatch that has stopped taking
+  steps, which is what a stall looks like from outside.
+
+They are enforced here because agy's own `--print-timeout` does not hold:
+that 45-minute run had asked for 15m and was killed by agy at 45m, "timed
+out after 13445 polls". Its budget is counted in poll iterations rather
+than seconds, and short dispatches honour it exactly — a 10s ceiling ended
+at 10s of polling — so the drift only shows on long conversations. Either
+way, a killed dispatch leaves its stream on disk: `--watch` still names the
+step it died on.
 
 ## Watching a run
 

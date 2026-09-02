@@ -21,7 +21,30 @@ command -v jq >/dev/null 2>&1 || {
 
 AGY=${AGY:-$HOME/.local/bin/agy}
 GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.7-flash-medium}
-GEMINI_TIMEOUT=${GEMINI_TIMEOUT:-15m}
+# Whole seconds. This is a hard ceiling the wrapper enforces itself, because
+# agy's --print-timeout does not hold: a real dispatch asking for 15m was
+# killed by agy at 45m ("timed out after 13445 polls"). Its budget is counted
+# in poll iterations, not seconds, so the longer the conversation the further
+# the wall clock drifts past what was asked. agy gets a slightly shorter
+# deadline so its own graceful shutdown normally lands first.
+GEMINI_TIMEOUT=${GEMINI_TIMEOUT:-900}
+case "$GEMINI_TIMEOUT" in
+  ''|*[!0-9]*) echo "ERROR: GEMINI_TIMEOUT is whole seconds (got: $GEMINI_TIMEOUT)" >&2; exit 2 ;;
+esac
+# A dispatch that has not taken a step in this long is not thinking, it is
+# waiting on something that will not come back — a dev server, a watch-mode
+# test, a command with no output. Cutting it here costs minutes instead of
+# the whole ceiling.
+GEMINI_IDLE=${GEMINI_IDLE:-300}
+case "$GEMINI_IDLE" in
+  ''|*[!0-9]*) echo "ERROR: GEMINI_IDLE is whole seconds (got: $GEMINI_IDLE)" >&2; exit 2 ;;
+esac
+
+if [ "$GEMINI_TIMEOUT" -gt 15 ]; then
+  AGY_TIMEOUT=$(( GEMINI_TIMEOUT - 10 ))
+else
+  AGY_TIMEOUT=5
+fi
 GEMINI_STATE=${GEMINI_STATE:-$HOME/.cache/braves-gemini}
 GEMINI_HOME=${GEMINI_HOME:-$HOME/.gemini/antigravity-cli}
 
@@ -34,6 +57,10 @@ Usage:
   gemini-dispatch.sh --id <project-dir>           # print the stored conversation id and exit
   gemini-dispatch.sh --watch <project-dir>        # print step by step what the current (or last) run did
   gemini-dispatch.sh --status <project-dir>       # one line for a statusline, or nothing at all
+
+GEMINI_TIMEOUT (default 900) is the hard ceiling in whole seconds; GEMINI_IDLE
+(default 300) cuts a dispatch that has stopped taking steps. Both are enforced
+here, not by agy: its own --print-timeout has overshot 3x on a long run.
 
 -c and -y combine in either order. Without -y only file edits are approved:
 a task that needs shell commands (npm, mkdir, tests) dies half-done with
@@ -158,15 +185,18 @@ if [ "$MODE" = "status" ]; then
   exit 0
 fi
 
+# agy's stderr goes to its own log rather than to the caller. It is mostly
+# glog noise, and more importantly a child that outlives a killed dispatch
+# would otherwise hold the caller's pipe open long after the ceiling fired.
 # "$@" carries the mode-specific flags; the permission flag is chosen here so
 # it stays a single decision, and -y is only ever set from the command line.
 run_agy() {
   if [ "$YOLO" = 1 ]; then
     "$AGY" "$@" --dangerously-skip-permissions --output-format stream-json \
-      --log-file "$LOG" -p "$PROMPT" --print-timeout "$GEMINI_TIMEOUT"
+      --log-file "$LOG" -p "$PROMPT" --print-timeout "${AGY_TIMEOUT}s"
   else
     "$AGY" "$@" --mode accept-edits --output-format stream-json \
-      --log-file "$LOG" -p "$PROMPT" --print-timeout "$GEMINI_TIMEOUT"
+      --log-file "$LOG" -p "$PROMPT" --print-timeout "${AGY_TIMEOUT}s"
   fi
 }
 
@@ -181,10 +211,31 @@ if [ "$MODE" = "continue" ]; then
     exit 1
   }
   ID=$(cat "$IDFILE")
-  run_agy --conversation "$ID" --add-dir "$ABS_DIR" --model "$GEMINI_MODEL" > "$STREAM" || STATUS=$?
+  run_agy --conversation "$ID" --add-dir "$ABS_DIR" --model "$GEMINI_MODEL" > "$STREAM" 2>>"$LOG" &
 else
-  run_agy --add-dir "$ABS_DIR" --model "$GEMINI_MODEL" > "$STREAM" || STATUS=$?
+  run_agy --add-dir "$ABS_DIR" --model "$GEMINI_MODEL" > "$STREAM" 2>>"$LOG" &
 fi
+AGY_PID=$!
+
+# The ceiling, enforced here rather than trusted to agy. Watching from the
+# foreground rather than from a background timer: a backgrounded watchdog holds
+# the caller's stdout pipe open and its orphaned sleep keeps `$(...)` blocked
+# long after agy is done.
+DEADLINE=$(( $(date +%s) + GEMINI_TIMEOUT ))
+while kill -0 "$AGY_PID" 2>/dev/null; do
+  NOW=$(date +%s)
+  # The stream grows with every step, so its mtime is the last sign of life.
+  QUIET_SINCE=$(stat -f %m "$STREAM" 2>/dev/null || stat -c %Y "$STREAM" 2>/dev/null || echo "$NOW")
+  if [ "$NOW" -ge "$DEADLINE" ] || [ "$(( NOW - QUIET_SINCE ))" -ge "$GEMINI_IDLE" ]; then
+    # Killed, not abandoned: the stream stays on disk, so --watch still shows
+    # which step it died on.
+    kill "$AGY_PID" 2>/dev/null || true
+    pkill -P "$AGY_PID" 2>/dev/null || true
+    break
+  fi
+  sleep 1
+done
+wait "$AGY_PID" || STATUS=$?
 
 # stdout stays what it was before the stream existed: Gemini's reply, nothing
 # else. Callers read the diff, not the event log.

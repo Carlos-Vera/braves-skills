@@ -30,10 +30,15 @@ cat > "$STUB" <<'EOF'
 #!/bin/sh
 : > "$STUB_ARGS_FILE"
 want_fail=0
+want_hang=0
+want_idle=0
 for a in "$@"; do
   printf '%s\n' "$a" >> "$STUB_ARGS_FILE"
   [ "$a" = "MAGIC_FAIL" ] && want_fail=1
+  [ "$a" = "MAGIC_HANG" ] && want_hang=1
+  [ "$a" = "MAGIC_IDLE" ] && want_idle=1
 done
+[ "$want_hang" -eq 1 ] && sleep 60
 # Shapes copied verbatim from a real agy run — conversation_id sits at the top
 # level of init, not inside it. Invent them and the tests pass while the script
 # reads the wrong field.
@@ -41,6 +46,7 @@ printf '{"event":"init","conversation_id":"%s","init":{"model":"stub"}}\n' "$STU
 printf '{"event":"step_update","step_update":{"step_index":2,"state":"ACTIVE","step_type":"tool","tool_name":"view_file","tool_info":{"parameters":{"AbsolutePath":"/tmp/stub.txt"}}}}\n'
 printf '{"event":"step_update","step_update":{"step_index":2,"state":"DONE","step_type":"tool","tool_name":"view_file","duration_seconds":0.25,"tool_info":{"parameters":{"AbsolutePath":"/tmp/stub.txt"}}}}\n'
 printf '{"event":"result","result":{"status":"SUCCESS","response":"stub reply"}}\n'
+[ "$want_idle" -eq 1 ] && sleep 60
 [ "$want_fail" -eq 1 ] && exit 3
 exit 0
 EOF
@@ -346,6 +352,59 @@ if [ -z "$OUT_DONE" ] && [ "$STATUS_DONE" -eq 0 ] &&
 else
   fail "--status: silent and successful for a finished run and for no run at all" \
     "done=[$OUT_DONE] ($STATUS_DONE) none=[$OUT_NONE] ($STATUS_NONE)"
+fi
+
+# --- 19: the wrapper enforces its own ceiling when agy will not stop
+
+PROJECT19="$TMP/proj-hang"
+mkdir -p "$PROJECT19"
+STATE="$TMP/state-hang"
+ARGS_FILE="$TMP/args-hang"
+UUID="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+HANG_START=$(date +%s)
+OUT=$(AGY="$STUB" GEMINI_STATE="$STATE" GEMINI_TIMEOUT=2 STUB_ARGS_FILE="$ARGS_FILE" STUB_UUID="$UUID" \
+  sh "$SCRIPT" "$PROJECT19" "MAGIC_HANG" 2>/dev/null)
+STATUS=$?
+HANG_WALL=$(( $(date +%s) - HANG_START ))
+
+if [ "$STATUS" -ne 0 ] && [ "$HANG_WALL" -lt 15 ]; then
+  pass "a dispatch that will not stop is killed at the wrapper's own ceiling"
+else
+  fail "a dispatch that will not stop is killed at the wrapper's own ceiling" \
+    "status=$STATUS wall=${HANG_WALL}s out: $OUT"
+fi
+
+# --- 20: a timeout in anything but whole seconds is refused, not misread
+
+OUT=$(AGY="$STUB" GEMINI_STATE="$STATE" GEMINI_TIMEOUT=15m STUB_ARGS_FILE="$ARGS_FILE" STUB_UUID="$UUID" \
+  sh "$SCRIPT" "$PROJECT19" "hello" 2>&1)
+STATUS=$?
+
+if [ "$STATUS" -ne 0 ] && [ "${OUT#*GEMINI_TIMEOUT}" != "$OUT" ]; then
+  pass "GEMINI_TIMEOUT in anything but whole seconds is refused loudly"
+else
+  fail "GEMINI_TIMEOUT in anything but whole seconds is refused loudly" "status=$STATUS out: $OUT"
+fi
+
+# --- 21: a dispatch that stops taking steps is cut without waiting for the ceiling
+
+PROJECT21="$TMP/proj-idle"
+mkdir -p "$PROJECT21"
+STATE="$TMP/state-idle"
+ARGS_FILE="$TMP/args-idle"
+UUID="cccccccc-cccc-cccc-cccc-cccccccccccc"
+IDLE_START=$(date +%s)
+OUT=$(AGY="$STUB" GEMINI_STATE="$STATE" GEMINI_TIMEOUT=600 GEMINI_IDLE=2 \
+  STUB_ARGS_FILE="$ARGS_FILE" STUB_UUID="$UUID" \
+  sh "$SCRIPT" "$PROJECT21" "MAGIC_IDLE" 2>/dev/null)
+STATUS=$?
+IDLE_WALL=$(( $(date +%s) - IDLE_START ))
+
+if [ "$STATUS" -ne 0 ] && [ "$IDLE_WALL" -lt 15 ]; then
+  pass "a dispatch that stops taking steps is cut long before the ceiling"
+else
+  fail "a dispatch that stops taking steps is cut long before the ceiling" \
+    "status=$STATUS wall=${IDLE_WALL}s (ceiling was 600s) out: $OUT"
 fi
 
 printf '\n%s passed, %s failed\n' "$PASSED" "$FAILED"
