@@ -166,22 +166,63 @@ if [ "$MODE" = "status" ]; then
   [ "$QUIET" -gt 600 ] && exit 0
   if tail -3 "$STREAM" | grep -q '"event":"result"'; then exit 0; fi
 
-  LABEL=$(jq -Rrs --arg dir "$ABS_DIR/" '
-          split("\n") | map(fromjson? // empty)
-          | map(select(.event == "step_update") | .step_update | select(.step_type == "tool"))
-          | last // empty
-          | [ .tool_name,
-              ((.tool_info.parameters // {}) | to_entries | map(.value | tostring)
-               | join(" ") | split("/") | last | .[0:32]) ]
-          | join(" ")' "$STREAM" 2>/dev/null || true)
+  # One pass over the stream for everything the line shows: the model actually
+  # running, whether it was dispatched with full tool approval, the step it is
+  # on, what that step is doing, and the tokens spent so far.
+  FIELDS=$(jq -Rrs '
+    (split("\n") | map(fromjson? // empty)) as $e
+    | ($e | map(select(.event == "init")) | last) as $i
+    | ($e | map(select(.event == "step_update") | .step_update)) as $s
+    | ($s | map(select(.step_type == "tool")) | last) as $t
+    | [ (($i.init.model // "") | ltrimstr("gemini-")),
+        (if $i.init.permission_mode == "always-proceed" then "-y" else "" end),
+        (($t.step_index // "") | tostring),
+        (($s | map(.usage.total_tokens // empty) | add // 0) | tostring),
+        (if $t == null then "" else
+           ($t.tool_name + " "
+            + (($t.tool_info.parameters // {}) | to_entries | map(.value | tostring)
+               | join(" ") | split("/") | last | .[0:32]))
+         end) ]
+    | @tsv' "$STREAM" 2>/dev/null || true)
+
+  MODEL=$(printf '%s' "$FIELDS" | cut -f1)
+  PERM=$(printf '%s' "$FIELDS" | cut -f2)
+  STEP=$(printf '%s' "$FIELDS" | cut -f3)
+  TOKENS=$(printf '%s' "$FIELDS" | cut -f4)
+  LABEL=$(printf '%s' "$FIELDS" | cut -f5)
   [ -n "$LABEL" ] || LABEL="thinking"
+
+  TEXT="$LABEL ${QUIET}s"
+  [ -n "$STEP" ] && TEXT="#$STEP · $TEXT"
+  [ -n "$PERM" ] && TEXT="$PERM · $TEXT"
+  [ -n "$MODEL" ] && TEXT="$MODEL $TEXT"
+
+  # Elapsed since the dispatch began, which is the number that says whether to
+  # worry — the per-step seconds above only say how long this one step has run.
+  STARTED=$(cat "$STREAM.start" 2>/dev/null || echo "")
+  if [ -n "$STARTED" ]; then
+    ELAPSED=$(( NOW - STARTED ))
+    if [ "$ELAPSED" -ge 3600 ]; then
+      TEXT="$TEXT · $(( ELAPSED / 3600 ))h$(( (ELAPSED % 3600) / 60 ))m"
+    elif [ "$ELAPSED" -ge 60 ]; then
+      TEXT="$TEXT · $(( ELAPSED / 60 ))m$(( ELAPSED % 60 ))s"
+    else
+      TEXT="$TEXT · ${ELAPSED}s"
+    fi
+  fi
+
+  if [ "${TOKENS:-0}" -ge 1000 ] 2>/dev/null; then
+    TEXT="$TEXT · $(( TOKENS / 100 / 10 )).$(( TOKENS / 100 % 10 ))k tok"
+  elif [ "${TOKENS:-0}" -gt 0 ] 2>/dev/null; then
+    TEXT="$TEXT · $TOKENS tok"
+  fi
 
   # Tab-separated so the caller colours it without parsing: a run that has been
   # silent this long is stuck, not busy.
   if [ "$QUIET" -ge 90 ]; then
-    printf 'slow\t%s %ss\n' "$LABEL" "$QUIET"
+    printf 'slow\t%s\n' "$TEXT"
   else
-    printf 'run\t%s %ss\n' "$LABEL" "$QUIET"
+    printf 'run\t%s\n' "$TEXT"
   fi
   exit 0
 fi
@@ -202,8 +243,11 @@ run_agy() {
 }
 
 # One stream per project: the record is of the run in progress, not a pile of
-# every run this directory ever had.
+# every run this directory ever had. The start time goes beside it, because the
+# stream itself carries no clock and --status wants to say how long this has
+# been going.
 : > "$STREAM"
+date +%s > "$STREAM.start"
 
 STATUS=0
 if [ "$MODE" = "continue" ]; then

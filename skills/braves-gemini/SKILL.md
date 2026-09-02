@@ -240,11 +240,18 @@ project, the wrapper's `--status` feeds one segment that refreshes on its
 own:
 
 ```
-✦ gemini  replace_file_content Header.tsx 6s
+✦ gemini  3.7-flash-high -y · #34 · replace_file_content Header.tsx 6s · 4m12s · 48.2k tok
 ```
 
-The tool it is on, the file, and how long it has been there. It turns
-yellow past ninety seconds of silence and disappears when the run ends.
+The model actually running, a `-y` mark when the dispatch was given full
+tool approval, the step number, the tool it is on with the seconds it has
+spent there, how long the whole dispatch has been going, and the tokens
+spent so far. It turns yellow past ninety seconds of silence and
+disappears when the run ends.
+
+Read the two clocks together: the step seconds say how long *this* step
+has run, the elapsed says whether the dispatch as a whole is out of hand.
+A step number frozen while both clocks climb is a run going in circles.
 Nobody spends a tool call on it — so don't poll `--watch` just to narrate
 progress the user can already see.
 

@@ -320,10 +320,10 @@ printf '{"event":"step_update","step_update":{"step_index":4,"state":"ACTIVE","s
 OUT=$(AGY="$STUB" GEMINI_STATE="$STATE" sh "$SCRIPT" --status "$PROJECT16" 2>&1)
 
 if [ "$(printf '%s' "$OUT" | cut -f1)" = "run" ] &&
-   case "$(printf '%s' "$OUT" | cut -f2)" in "replace_file_content Header.tsx "*s) true ;; *) false ;; esac; then
-  pass "--status: one line naming the live tool and how long it has been on it"
+   case "$(printf '%s' "$OUT" | cut -f2)" in "#4 · replace_file_content Header.tsx "*s) true ;; *) false ;; esac; then
+  pass "--status: one line naming the step, the live tool and how long it has been on it"
 else
-  fail "--status: one line naming the live tool and how long it has been on it" "got: $OUT"
+  fail "--status: one line naming the step, the live tool and how long it has been on it" "got: $OUT"
 fi
 
 # --- 17: a run that has gone quiet is flagged slow, not busy
@@ -406,6 +406,45 @@ else
   fail "a dispatch that stops taking steps is cut long before the ceiling" \
     "status=$STATUS wall=${IDLE_WALL}s (ceiling was 600s) out: $OUT"
 fi
+
+# --- 22: --status carries the model, the -y mark, the elapsed time and the tokens
+
+PROJECT22="$TMP/proj-fields"
+mkdir -p "$PROJECT22"
+STATE="$TMP/state-fields"
+mkdir -p "$STATE"
+STREAM22="$STATE/$(state_key "$PROJECT22").stream"
+{
+  printf '{"event":"init","init":{"model":"gemini-3.7-flash-high","permission_mode":"always-proceed"}}\n'
+  printf '{"event":"step_update","step_update":{"step_index":33,"state":"DONE","step_type":"agent_response","usage":{"total_tokens":41200}}}\n'
+  printf '{"event":"step_update","step_update":{"step_index":34,"state":"ACTIVE","step_type":"tool","tool_name":"replace_file_content","tool_info":{"parameters":{"TargetFile":"/x/src/acting-banner.tsx"}}}}\n'
+  printf '{"event":"step_update","step_update":{"step_index":35,"state":"DONE","step_type":"agent_response","usage":{"total_tokens":7000}}}\n'
+} > "$STREAM22"
+echo "$(( $(date +%s) - 252 ))" > "$STREAM22.start"
+OUT=$(AGY="$STUB" GEMINI_STATE="$STATE" sh "$SCRIPT" --status "$PROJECT22" 2>&1)
+TEXT=$(printf '%s' "$OUT" | cut -f2)
+
+MISSING=""
+for want in "3.7-flash-high" "-y" "#34" "acting-banner.tsx" "4m12s" "48.2k tok"; do
+  case "$TEXT" in *"$want"*) ;; *) MISSING="$MISSING [$want]" ;; esac
+done
+
+if [ -z "$MISSING" ]; then
+  pass "--status: model, -y mark, step, elapsed and tokens all ride on the line"
+else
+  fail "--status: model, -y mark, step, elapsed and tokens all ride on the line" \
+    "missing:$MISSING got: $TEXT"
+fi
+
+# --- 23: a dispatch approved only for edits carries no -y mark
+
+sed 's/always-proceed/request-review/' "$STREAM22" > "$STREAM22.tmp" && mv "$STREAM22.tmp" "$STREAM22"
+OUT=$(AGY="$STUB" GEMINI_STATE="$STATE" sh "$SCRIPT" --status "$PROJECT22" 2>&1)
+
+case "$(printf '%s' "$OUT" | cut -f2)" in
+  *"-y"*) fail "--status: no -y mark when only edits were approved" "got: $OUT" ;;
+  *) pass "--status: no -y mark when only edits were approved" ;;
+esac
 
 printf '\n%s passed, %s failed\n' "$PASSED" "$FAILED"
 [ "$FAILED" -eq 0 ]
