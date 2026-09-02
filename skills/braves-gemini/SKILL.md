@@ -256,6 +256,10 @@ gem=$(sh <path>/scripts/gemini-dispatch.sh --status "$cwd" 2>/dev/null)
 # quiet, and nothing at all the rest of the time.
 ```
 
+Give it a line of its own rather than a slot among the other segments. It
+appears and disappears on its own schedule, and threading it inline
+rearranges the whole bar every time a dispatch starts.
+
 `--watch` is the other half: the full step history, for when you need to
 diagnose rather than glance.
 
