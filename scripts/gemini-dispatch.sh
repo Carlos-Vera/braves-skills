@@ -21,12 +21,13 @@ command -v jq >/dev/null 2>&1 || {
 
 AGY=${AGY:-$HOME/.local/bin/agy}
 GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.7-flash-medium}
-# Whole seconds. This is a hard ceiling the wrapper enforces itself, because
-# agy's --print-timeout does not hold: a real dispatch asking for 15m was
-# killed by agy at 45m ("timed out after 13445 polls"). Its budget is counted
-# in poll iterations, not seconds, so the longer the conversation the further
-# the wall clock drifts past what was asked. agy gets a slightly shorter
-# deadline so its own graceful shutdown normally lands first.
+# Whole seconds. agy honours its own --print-timeout — measured at a steady
+# 5 poll iterations per second, with 60s and 1m both ending at exactly 300
+# polls — so this is not here to compensate for it. It is here because the
+# ceiling belongs in one place, in one unit, and because the idle cut below
+# needs the same clock. Whole seconds only: a stray "45m" would otherwise
+# read as 45 milliseconds. agy gets a slightly shorter deadline so its own
+# graceful shutdown normally lands first, which keeps the result event.
 GEMINI_TIMEOUT=${GEMINI_TIMEOUT:-900}
 case "$GEMINI_TIMEOUT" in
   ''|*[!0-9]*) echo "ERROR: GEMINI_TIMEOUT is whole seconds (got: $GEMINI_TIMEOUT)" >&2; exit 2 ;;
@@ -59,8 +60,8 @@ Usage:
   gemini-dispatch.sh --status <project-dir>       # one line for a statusline, or nothing at all
 
 GEMINI_TIMEOUT (default 900) is the hard ceiling in whole seconds; GEMINI_IDLE
-(default 300) cuts a dispatch that has stopped taking steps. Both are enforced
-here, not by agy: its own --print-timeout has overshot 3x on a long run.
+(default 300) cuts a dispatch that has stopped taking steps — the shape a stall
+has from outside. Both are enforced here, in whole seconds.
 
 -c and -y combine in either order. Without -y only file edits are approved:
 a task that needs shell commands (npm, mkdir, tests) dies half-done with

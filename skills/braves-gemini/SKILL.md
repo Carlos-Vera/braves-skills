@@ -223,13 +223,15 @@ rather than by agy:
 - `GEMINI_IDLE` (default 300s) — cuts a dispatch that has stopped taking
   steps, which is what a stall looks like from outside.
 
-They are enforced here because agy's own `--print-timeout` does not hold:
-that 45-minute run had asked for 15m and was killed by agy at 45m, "timed
-out after 13445 polls". Its budget is counted in poll iterations rather
-than seconds, and short dispatches honour it exactly — a 10s ceiling ended
-at 10s of polling — so the drift only shows on long conversations. Either
-way, a killed dispatch leaves its stream on disk: `--watch` still names the
-step it died on.
+The idle cut is the one that matters. That 45-minute run was not agy
+overrunning anything: the dispatch had been given `GEMINI_TIMEOUT=45m` on
+purpose for a big job, and agy honoured it to the second — its poll budget
+is a steady 5 iterations a second, and 13445 polls is exactly 45 minutes.
+The whole 45 minutes went to a stall nobody was watching. With the idle cut
+that run dies after five quiet minutes instead.
+
+A killed dispatch leaves its stream on disk either way: `--watch` still
+names the step it died on.
 
 ## Watching a run
 
