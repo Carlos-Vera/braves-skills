@@ -3,9 +3,9 @@
 #
 # Never call the real agy or the network: every case points AGY at a stub
 # written into a throwaway temp dir, and GEMINI_STATE at a throwaway state
-# dir. The stub records its own argv, fakes a "conversation update stream"
-# log line with a known UUID, and prints a canned reply — enough to exercise
-# the dispatch/continue/id logic without ever touching Gemini.
+# dir. The stub records its own argv and prints agy's stream-json — an init
+# event carrying a known UUID, one tool step and a result — enough to
+# exercise the dispatch/continue/id/watch logic without ever touching Gemini.
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 SCRIPT="$ROOT/scripts/gemini-dispatch.sh"
@@ -22,28 +22,25 @@ trap 'rm -rf "$TMP"' EXIT
 # .log/.id files a dispatch will touch.
 state_key() { printf '%s' "$1" | tr '/ ' '__'; }
 
-# Stub for agy. Records argv (one per line) to $STUB_ARGS_FILE, appends a fake
-# "conversation update stream" log line (carrying $STUB_UUID) to whatever path
-# follows --log-file, prints a canned reply, and exits 3 if MAGIC_FAIL is
-# anywhere in its argv — the hook the failure-exit-code test uses.
+# Stub for agy. Records argv (one per line) to $STUB_ARGS_FILE, prints a
+# stream-json run carrying $STUB_UUID and one tool step, and exits 3 if
+# MAGIC_FAIL is anywhere in its argv — the hook the failure-exit-code test uses.
 STUB="$TMP/agy-stub.sh"
 cat > "$STUB" <<'EOF'
 #!/bin/sh
 : > "$STUB_ARGS_FILE"
-logfile=""
-prev=""
 want_fail=0
 for a in "$@"; do
   printf '%s\n' "$a" >> "$STUB_ARGS_FILE"
-  [ "$prev" = "--log-file" ] && logfile=$a
   [ "$a" = "MAGIC_FAIL" ] && want_fail=1
-  prev=$a
 done
-if [ -n "$logfile" ]; then
-  printf 'I0101 00:00:00.000000  123 server.go:1151] Starting conversation update stream for %s\n' \
-    "$STUB_UUID" >> "$logfile"
-fi
-echo "stub reply"
+# Shapes copied verbatim from a real agy run — conversation_id sits at the top
+# level of init, not inside it. Invent them and the tests pass while the script
+# reads the wrong field.
+printf '{"event":"init","conversation_id":"%s","init":{"model":"stub"}}\n' "$STUB_UUID"
+printf '{"event":"step_update","step_update":{"step_index":2,"state":"ACTIVE","step_type":"tool","tool_name":"view_file","tool_info":{"parameters":{"AbsolutePath":"/tmp/stub.txt"}}}}\n'
+printf '{"event":"step_update","step_update":{"step_index":2,"state":"DONE","step_type":"tool","tool_name":"view_file","duration_seconds":0.25,"tool_info":{"parameters":{"AbsolutePath":"/tmp/stub.txt"}}}}\n'
+printf '{"event":"result","result":{"status":"SUCCESS","response":"stub reply"}}\n'
 [ "$want_fail" -eq 1 ] && exit 3
 exit 0
 EOF
@@ -77,13 +74,13 @@ else
   fail "new dispatch: --add-dir (absolute), model slug and --mode accept-edits" "status=$STATUS out: $OUT"
 fi
 
-# --- 2: the conversation id is captured from the log into <key>.id
+# --- 2: the conversation id is captured from the stream into <key>.id
 
 IDFILE="$STATE/$(state_key "$PROJECT").id"
 if [ -f "$IDFILE" ] && [ "$(cat "$IDFILE")" = "$UUID" ]; then
-  pass "conversation id is captured from the log into <key>.id"
+  pass "conversation id is captured from the stream into <key>.id"
 else
-  fail "conversation id is captured from the log into <key>.id" \
+  fail "conversation id is captured from the stream into <key>.id" \
     "expected $UUID in $IDFILE, got: $(cat "$IDFILE" 2>/dev/null)"
 fi
 
@@ -243,6 +240,66 @@ if [ "$OUT" = "$UUID" ]; then
   pass "--id: falls back to the bare id with no annotation"
 else
   fail "--id: falls back to the bare id with no annotation" "got: $OUT"
+fi
+
+# --- 12: stdout is Gemini's reply, not the event stream
+
+PROJECT12="$TMP/proj-reply"
+mkdir -p "$PROJECT12"
+STATE="$TMP/state-reply"
+ARGS_FILE="$TMP/args-reply"
+UUID="99999999-9999-9999-9999-999999999999"
+run_dispatch "$PROJECT12" "say something"
+
+if [ "$OUT" = "stub reply" ]; then
+  pass "stdout is the reply alone, with the event stream kept out of it"
+else
+  fail "stdout is the reply alone, with the event stream kept out of it" "got: $OUT"
+fi
+
+# --- 13: --watch lists each tool step once, with its duration and arguments
+
+OUT=$(AGY="$STUB" GEMINI_STATE="$STATE" sh "$SCRIPT" --watch "$PROJECT12" 2>&1)
+STEPS=$(printf '%s\n' "$OUT" | grep -c 'view_file' || true)
+
+if [ "$STEPS" -eq 1 ] &&
+   printf '%s' "$OUT" | grep -q '0.3s' &&
+   printf '%s' "$OUT" | grep -q '/tmp/stub.txt' &&
+   printf '%s' "$OUT" | grep -q -- '-- finished: SUCCESS'; then
+  pass "--watch: one line per tool step, with duration, arguments and the result"
+else
+  fail "--watch: one line per tool step, with duration, arguments and the result" "got: $OUT"
+fi
+
+# --- 14: --watch on a run still going reports it as running, not finished
+
+STREAM14="$STATE/$(state_key "$PROJECT12").stream"
+printf '{"event":"init","conversation_id":"%s"}\n' "$UUID" > "$STREAM14"
+printf '{"event":"step_update","step_update":{"step_index":4,"state":"ACTIVE","step_type":"tool","tool_name":"grep_search","tool_info":{"parameters":{"Query":"Button"}}}}\n' >> "$STREAM14"
+OUT=$(AGY="$STUB" GEMINI_STATE="$STATE" sh "$SCRIPT" --watch "$PROJECT12" 2>&1)
+
+if printf '%s' "$OUT" | grep -q 'RUNNING' &&
+   printf '%s' "$OUT" | grep -q 'grep_search' &&
+   printf '%s' "$OUT" | grep -q -- '-- still running'; then
+  pass "--watch: an unfinished run reports the live step as RUNNING"
+else
+  fail "--watch: an unfinished run reports the live step as RUNNING" "got: $OUT"
+fi
+
+# --- 15: --watch with nothing recorded fails, naming the directory
+
+PROJECT15="$TMP/proj-nowatch"
+mkdir -p "$PROJECT15"
+OUT=$(AGY="$STUB" GEMINI_STATE="$TMP/state-nowatch" sh "$SCRIPT" --watch "$PROJECT15" 2>&1)
+STATUS=$?
+
+if [ "$STATUS" -ne 0 ]; then
+  case "$OUT" in
+    *"$PROJECT15"*) pass "--watch: nothing recorded fails, naming the directory" ;;
+    *) fail "--watch: nothing recorded fails, naming the directory" "got: $OUT" ;;
+  esac
+else
+  fail "--watch: nothing recorded fails, naming the directory" "expected non-zero exit, got 0"
 fi
 
 printf '\n%s passed, %s failed\n' "$PASSED" "$FAILED"

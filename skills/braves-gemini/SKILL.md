@@ -34,9 +34,12 @@ already shown you:
    matches — two buttons with the same label is the normal case, and the
    prompt has to name which one dies and which one stays.
 3. **Commit the checkpoint** (below) before Gemini touches anything.
-4. **Write the prompt** with absolute paths, acceptance criteria, what must
+4. **Prepare the ground** — install, scaffold, wire up. Everything that
+   needs a shell is yours, not Gemini's.
+5. **Write the prompt** with absolute paths, acceptance criteria, what must
    not be touched, and the house rules.
-5. **Review the result and report** — the diff, not the command you ran.
+6. **Review the result and report** — what changed and what you verified,
+   not the command you ran.
 
 A screenshot with an arrow on it is a complete brief. Turn it into the
 prompt yourself.
@@ -60,6 +63,29 @@ instead of reconstructing what was there.
 
 Tell Gemini in the prompt: **do not commit, do not push, leave the changes
 in the working tree.** Its job ends at the edit.
+
+## Prepare the ground before dispatching
+
+Gemini is good at editing code and bad at everything around it. It stalls
+the moment the environment isn't ready: a package that isn't installed, a
+file that doesn't exist yet, a route nobody wired, a build it has to run to
+see what it broke. It doesn't fail cleanly there — it grinds, retries, and
+burns the clock.
+
+So hand it a job that is pure editing. Before dispatching, you do:
+
+- Install what the task needs (`pnpm add`, the missing types, the icon
+  package).
+- Create the files that don't exist yet — empty, or with the imports,
+  export and route already wired. Gemini fills them in.
+- Run the migration, the codegen, the scaffold command.
+- Check the build and the linter run clean, so the floor is known-good
+  before Gemini stands on it.
+
+Then the dispatch is: edit these existing files, in place. Nothing else.
+
+That is also why the default carries no `-y`. Reaching for `-y` is the
+signal that a shell step is in the prompt that should have been yours.
 
 ## House rules that ride along
 
@@ -92,17 +118,21 @@ sh "$CLAUDE_PLUGIN_ROOT/scripts/gemini-dispatch.sh" \
 Run it through Bash with `dangerouslyDisableSandbox: true` (it needs the
 keyring and the network) and a tool timeout above 15m.
 
-Add `-y` when the task needs shell commands — installing, building,
-running tests, anything beyond editing files:
+Run it in the background (`run_in_background: true`) so you can watch it
+and tell the user how it's going instead of sitting blind for fifteen
+minutes.
+
+`-y` is the exception, not a flag you reach for by default. Without it only
+file edits are approved: the moment Gemini reaches for a shell, headless
+mode auto-denies it and the run dies with no output and exit 1, `a tool
+required the "command" permission that headless mode cannot prompt for`.
+The fix is almost always to run that shell step yourself beforehand — see
+"Prepare the ground". `-y` is for the rare task that genuinely has to drive
+a shell of its own.
 
 ```bash
 sh "$CLAUDE_PLUGIN_ROOT/scripts/gemini-dispatch.sh" -y "<dir>" "<task>"
 ```
-
-Without `-y` only file edits are approved. The moment Gemini reaches for a
-shell, headless mode auto-denies it and the run dies with no output and
-exit 1: `a tool required the "command" permission that headless mode
-cannot prompt for`. Editing a file is fine; `npm install` is not.
 
 `-y` approves every tool the model decides to call, so never point it at
 content you did not write — a third party's PR diff, a scraped page, an
@@ -149,6 +179,39 @@ against Google — nothing observed so far routes through the Antigravity
 app. Opening the project in the IDE lets you watch a conversation; it is
 not what makes one work.
 
+## Watching a run
+
+You can see what Gemini is doing while it does it. The wrapper records
+every step of the run, and `--watch` prints them:
+
+```bash
+sh "$CLAUDE_PLUGIN_ROOT/scripts/gemini-dispatch.sh" --watch "<dir>"
+```
+
+```
+0.2s	view_file	/abs/path/Header.tsx
+0.1s	grep_search	Button
+RUNNING	replace_file_content	/abs/path/Header.tsx
+-- still running, last step 12s ago
+```
+
+One line per tool: how long it took, what it called, the arguments it got.
+The last line is the verdict — `finished: SUCCESS`, or how long the stream
+has been quiet. Read it that way:
+
+- Steps still appearing, seconds apart → it's working. Leave it alone.
+- `RUNNING` on the same step, or nothing new, for minutes → it's stuck.
+- The same file read four times, a search repeated with the same query →
+  it's circling, and it will keep circling.
+
+Stuck is not something you wait out. Stop the background dispatch, then
+re-dispatch with `-c` and the thing it was missing: the exact path, the
+name of the component, the fact that the file it wants doesn't exist yet.
+That last one usually means the ground wasn't ready, so fix that first.
+
+Poll it while a dispatch is in flight and report progress to the user in
+their own words — "va por el tercer archivo" — rather than making them ask.
+
 ## Models
 
 `agy models` prints slug and label. Pass the slug to `--model`; the
@@ -189,8 +252,11 @@ report is the deliverable, not Gemini's "DONE".
    `console.log`, scope it invented, a second occurrence it hit by mistake.
 3. Run the project's lint/tests/build.
 4. Report to the user: what changed, what you verified with what result,
-   and any concern. If it went wrong, say so plainly and offer the
-   `git reset --hard <checkpoint>`.
+   and any concern. Summarise — the files touched, the lines added and
+   removed, what it actually did. Paste the diff only when it is short
+   enough to read in the chat (a handful of lines) or when the user asks
+   for it; a wall of diff is not a report. If it went wrong, say so plainly
+   and offer the `git reset --hard <checkpoint>`.
 5. Broken or off-scope? Feed it back with `-c`, don't fix it by hand — that
    defeats the delegation.
 
@@ -215,11 +281,14 @@ changing a skill.
   installed binary was newer.
 - Relative paths in the prompt → the diff is empty and the files are in the
   scratch dir.
-- A dispatch that returns nothing and exits 1 → the task needed a shell and
-  you forgot `-y`. Read the diff before re-running it: that message means
-  *a* tool was denied, not that nothing happened. Gemini often finishes the
-  edits and only dies at the end, when it reaches for a shell to verify its
-  own work. Re-dispatching blind then does the job twice.
+- A dispatch that returns nothing and exits 1 → the task needed a shell you
+  should have run for it. `--watch` names the step it died on. Read the diff
+  before re-running: that message means *a* tool was denied, not that
+  nothing happened. Gemini often finishes the edits and only dies at the
+  end, reaching for a shell to verify its own work. Re-dispatching blind
+  then does the job twice.
+- Dispatching into an environment that isn't ready → it grinds instead of
+  failing. Install and scaffold first.
 - Calling `agy -c` directly → you may be resuming another project's
   conversation. Go through the wrapper.
 - Dispatching without the checkpoint → when the diff comes out wrong you
