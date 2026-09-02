@@ -110,6 +110,9 @@ context:
 - Create the files the task needs, but never run commands: if something
   has to be installed or generated, stop and name it instead of working
   around it.
+- Never start anything that does not exit on its own: no dev server, no
+  `next start`, no watch mode, no browser or screenshot pipeline. Verifying
+  the result is Claude's job after the dispatch, not part of it.
 
 Add whatever the project itself mandates (its CLAUDE.md, AGENTS.md, lint
 config). Gemini cannot read the user's setup; if it is not in the prompt,
@@ -143,6 +146,10 @@ drive a shell of its own.
 ```bash
 sh "$CLAUDE_PLUGIN_ROOT/scripts/gemini-dispatch.sh" -y "<dir>" "<task>"
 ```
+
+`-y` is also what lets it start a server or a watch-mode test and park
+there — with `-y`, spell out in the prompt that no long-running command is
+allowed.
 
 `-y` approves every tool the model decides to call, so never point it at
 content you did not write — a third party's PR diff, a scraped page, an
@@ -188,6 +195,30 @@ language server, opens its own conversation and authenticates on its own
 against Google — nothing observed so far routes through the Antigravity
 app. Opening the project in the IDE lets you watch a conversation; it is
 not what makes one work.
+
+## Why it stalls
+
+Every long stall observed so far has the same shape: a `run_command` step
+waiting on a command that never returns. One real 45-minute dispatch ended
+on `pnpm lint && pnpm exec tsc --noEmit && pnpm test` — `pnpm test` is
+vitest in watch mode, so the tool result never arrived and the model was
+never called again. The same run had already started four standalone
+servers and written a screenshot harness of its own.
+
+The tell is in the numbers: no model calls at all for minutes, while the
+step stays ACTIVE. That is not thinking. Thinking still calls the model.
+
+Three things keep it from happening:
+
+- The house rule above, in every prompt: nothing that doesn't exit.
+- Test commands that terminate — `vitest run`, `pnpm test --run`,
+  `playwright test --reporter=line`. Never a bare `pnpm test`.
+- Keep the dispatch to the edit. Screenshots, servers and gates are yours,
+  afterwards, where you can see them hang.
+
+`--print-timeout` is not the safety net it looks like: a run asking for
+15m was killed at 45m, "timed out after 13445 polls". Treat the ceiling as
+advisory and stop a stuck dispatch yourself.
 
 ## Watching a run
 
@@ -321,6 +352,11 @@ changing a skill.
   then does the job twice.
 - Dispatching a task whose shadcn components aren't installed → it stalls
   trying to add them. `pnpm dlx shadcn@latest add <them>` first.
+- A dispatch that goes quiet for minutes → a `run_command` waiting on
+  something that never exits. `--watch` names it. See "Why it stalls".
+- Asking one dispatch to build the feature *and* verify it → that is where
+  the servers and watch-mode tests come from. Split it: Gemini edits, you
+  verify.
 - Calling `agy -c` directly → you may be resuming another project's
   conversation. Go through the wrapper.
 - Dispatching without the checkpoint → when the diff comes out wrong you
