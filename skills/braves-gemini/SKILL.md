@@ -191,23 +191,44 @@ not what makes one work.
 
 ## Watching a run
 
-You can see what Gemini is doing while it does it. The wrapper records
-every step of the run, and `--watch` prints them:
+The statusline carries it. While a dispatch is running in the current
+project, the wrapper's `--status` feeds one segment that refreshes on its
+own:
+
+```
+✦ gemini  replace_file_content Header.tsx 6s
+```
+
+The tool it is on, the file, and how long it has been there. It turns
+yellow past ninety seconds of silence and disappears when the run ends.
+Nobody spends a tool call on it — so don't poll `--watch` just to narrate
+progress the user can already see.
+
+Wiring it into a statusline is three lines, and any statusline can do it:
+
+```bash
+gem=$(sh <path>/scripts/gemini-dispatch.sh --status "$cwd" 2>/dev/null)
+# "run<TAB>text" while a dispatch is live, "slow<TAB>text" once it has gone
+# quiet, and nothing at all the rest of the time.
+```
+
+`--watch` is the other half: the full step history, for when you need to
+diagnose rather than glance.
 
 ```bash
 sh "$CLAUDE_PLUGIN_ROOT/scripts/gemini-dispatch.sh" --watch "<dir>"
 ```
 
 ```
-0.2s	view_file	/abs/path/Header.tsx
+0.2s	view_file	src/components/Header.tsx
 0.1s	grep_search	Button
-RUNNING	replace_file_content	/abs/path/Header.tsx
+RUNNING	replace_file_content	src/components/Header.tsx
 -- still running, last step 12s ago
 ```
 
 One line per tool: how long it took, what it called, the arguments it got.
 The last line is the verdict — `finished: SUCCESS`, or how long the stream
-has been quiet. Read it that way:
+has been quiet. Read it when the statusline says something is wrong:
 
 - Steps still appearing, seconds apart → it's working. Leave it alone.
 - `RUNNING` on the same step, or nothing new, for minutes → it's stuck.
@@ -220,8 +241,8 @@ name of the component, the package you have just installed for it. A run
 that stalls on a `run_command` step is almost always a missing shadcn
 component — add it, then continue the same conversation.
 
-Poll it while a dispatch is in flight and report progress to the user in
-their own words — "va por el tercer archivo" — rather than making them ask.
+So: dispatch in the background, let the statusline do the narrating, and
+read `--watch` when it goes yellow or when the run ends.
 
 ## Models
 

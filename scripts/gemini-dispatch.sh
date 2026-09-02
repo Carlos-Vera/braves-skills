@@ -33,6 +33,7 @@ Usage:
   gemini-dispatch.sh -y <project-dir> <prompt>    # same, auto-approving every tool
   gemini-dispatch.sh --id <project-dir>           # print the stored conversation id and exit
   gemini-dispatch.sh --watch <project-dir>        # print step by step what the current (or last) run did
+  gemini-dispatch.sh --status <project-dir>       # one line for a statusline, or nothing at all
 
 -c and -y combine in either order. Without -y only file edits are approved:
 a task that needs shell commands (npm, mkdir, tests) dies half-done with
@@ -45,16 +46,17 @@ YOLO=0
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
-    -c) MODE=continue; shift ;;
+    -c) MODE="continue"; shift ;;
     -y|--yolo) YOLO=1; shift ;;
     --id) MODE=id; shift ;;
     --watch) MODE=watch; shift ;;
+    --status) MODE=status; shift ;;
     *) break ;;
   esac
 done
 
 case "$MODE" in
-  id|watch) [ $# -eq 1 ] || { usage >&2; exit 2; }; DIR=$1 ;;
+  id|watch|status) [ $# -eq 1 ] || { usage >&2; exit 2; }; DIR=$1 ;;
   *)        [ $# -eq 2 ] || { usage >&2; exit 2; }; DIR=$1; PROMPT=$2 ;;
 esac
 
@@ -89,8 +91,9 @@ if [ "$MODE" = "watch" ]; then
   # Every tool step of the run: what it called, with which arguments, and how
   # long it took. Each step is streamed twice (ACTIVE, then DONE), so keep the
   # last event per step_index — a step still showing RUNNING is the live one.
-  jq -rs --arg dir "$ABS_DIR/" '
-          map(select(.event == "step_update") | .step_update | select(.step_type == "tool"))
+  jq -Rrs --arg dir "$ABS_DIR/" '
+          split("\n") | map(fromjson? // empty)
+          | map(select(.event == "step_update") | .step_update | select(.step_type == "tool"))
           | group_by(.step_index) | map(.[-1]) | .[]
           | [ (if .state == "DONE"
                then (((.duration_seconds // 0) * 10 | round) / 10 | tostring) + "s"
@@ -111,6 +114,46 @@ if [ "$MODE" = "watch" ]; then
     NOW=$(date +%s)
     LAST=$(stat -f %m "$STREAM" 2>/dev/null || stat -c %Y "$STREAM" 2>/dev/null || echo "$NOW")
     printf -- '-- still running, last step %ss ago\n' "$((NOW - LAST))"
+  fi
+  exit 0
+fi
+
+if [ "$MODE" = "status" ]; then
+  # One line for a statusline: what the live dispatch is doing right now, or
+  # nothing at all. It runs on every terminal repaint, so it stays quiet and
+  # cheap — no errors, no output once the run is over.
+  if [ ! -f "$STREAM" ]; then
+    # Dispatches target the repo root; the terminal is often in a subdirectory.
+    ROOT=$(git -C "$ABS_DIR" rev-parse --show-toplevel 2>/dev/null || true)
+    [ -n "$ROOT" ] && STREAM="$GEMINI_STATE/$(printf '%s' "$ROOT" | tr '/ ' '__').stream"
+  fi
+  [ -f "$STREAM" ] || exit 0
+
+  NOW=$(date +%s)
+  LAST=$(stat -f %m "$STREAM" 2>/dev/null || stat -c %Y "$STREAM" 2>/dev/null || echo 0)
+  QUIET=$((NOW - LAST))
+
+  # A finished run is not news, and neither is one whose process died without
+  # writing a result. The statusline only carries what is happening now.
+  [ "$QUIET" -gt 600 ] && exit 0
+  if tail -3 "$STREAM" | grep -q '"event":"result"'; then exit 0; fi
+
+  LABEL=$(jq -Rrs --arg dir "$ABS_DIR/" '
+          split("\n") | map(fromjson? // empty)
+          | map(select(.event == "step_update") | .step_update | select(.step_type == "tool"))
+          | last // empty
+          | [ .tool_name,
+              ((.tool_info.parameters // {}) | to_entries | map(.value | tostring)
+               | join(" ") | split("/") | last | .[0:32]) ]
+          | join(" ")' "$STREAM" 2>/dev/null || true)
+  [ -n "$LABEL" ] || LABEL="thinking"
+
+  # Tab-separated so the caller colours it without parsing: a run that has been
+  # silent this long is stuck, not busy.
+  if [ "$QUIET" -ge 90 ]; then
+    printf 'slow\t%s %ss\n' "$LABEL" "$QUIET"
+  else
+    printf 'run\t%s %ss\n' "$LABEL" "$QUIET"
   fi
   exit 0
 fi

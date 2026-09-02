@@ -123,13 +123,13 @@ fi
 
 ORIG_PWD=$(pwd)
 mkdir -p "$TMP/proj-rel/nested"
-cd "$TMP/proj-rel"
+cd "$TMP/proj-rel" || exit 1
 EXPECTED_ABS=$(cd nested && pwd)
 STATE="$TMP/state-rel"
 ARGS_FILE="$TMP/args-rel"
 UUID="33333333-3333-3333-3333-333333333333"
 run_dispatch "nested" "relative prompt"
-cd "$ORIG_PWD"
+cd "$ORIG_PWD" || exit 1
 
 if [ "$STATUS" -eq 0 ] && grep -Fxq -- "$EXPECTED_ABS" "$ARGS_FILE"; then
   pass "a relative project dir resolves to an absolute path in the args"
@@ -300,6 +300,52 @@ if [ "$STATUS" -ne 0 ]; then
   esac
 else
   fail "--watch: nothing recorded fails, naming the directory" "expected non-zero exit, got 0"
+fi
+
+# --- 16: --status prints one statusline line while a run is still going
+
+PROJECT16="$TMP/proj-status"
+mkdir -p "$PROJECT16"
+STATE="$TMP/state-status"
+mkdir -p "$STATE"
+STREAM16="$STATE/$(state_key "$PROJECT16").stream"
+printf '{"event":"init","conversation_id":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"}\n' > "$STREAM16"
+printf '{"event":"step_update","step_update":{"step_index":4,"state":"ACTIVE","step_type":"tool","tool_name":"replace_file_content","tool_info":{"parameters":{"TargetFile":"/abs/src/Header.tsx"}}}}\n' >> "$STREAM16"
+OUT=$(AGY="$STUB" GEMINI_STATE="$STATE" sh "$SCRIPT" --status "$PROJECT16" 2>&1)
+
+if [ "$(printf '%s' "$OUT" | cut -f1)" = "run" ] &&
+   case "$(printf '%s' "$OUT" | cut -f2)" in "replace_file_content Header.tsx "*s) true ;; *) false ;; esac; then
+  pass "--status: one line naming the live tool and how long it has been on it"
+else
+  fail "--status: one line naming the live tool and how long it has been on it" "got: $OUT"
+fi
+
+# --- 17: a run that has gone quiet is flagged slow, not busy
+
+touch -t "$(date -v-2M +%Y%m%d%H%M 2>/dev/null || date -d '2 minutes ago' +%Y%m%d%H%M)" "$STREAM16"
+OUT=$(AGY="$STUB" GEMINI_STATE="$STATE" sh "$SCRIPT" --status "$PROJECT16" 2>&1)
+
+if [ "$(printf '%s' "$OUT" | cut -f1)" = "slow" ]; then
+  pass "--status: a run silent past the threshold is flagged slow"
+else
+  fail "--status: a run silent past the threshold is flagged slow" "got: $OUT"
+fi
+
+# --- 18: a finished run, or none at all, says nothing
+
+printf '{"event":"result","result":{"status":"SUCCESS","response":"done"}}\n' >> "$STREAM16"
+touch "$STREAM16"
+OUT_DONE=$(AGY="$STUB" GEMINI_STATE="$STATE" sh "$SCRIPT" --status "$PROJECT16" 2>&1)
+STATUS_DONE=$?
+OUT_NONE=$(AGY="$STUB" GEMINI_STATE="$TMP/state-nostatus" sh "$SCRIPT" --status "$TMP" 2>&1)
+STATUS_NONE=$?
+
+if [ -z "$OUT_DONE" ] && [ "$STATUS_DONE" -eq 0 ] &&
+   [ -z "$OUT_NONE" ] && [ "$STATUS_NONE" -eq 0 ]; then
+  pass "--status: silent and successful for a finished run and for no run at all"
+else
+  fail "--status: silent and successful for a finished run and for no run at all" \
+    "done=[$OUT_DONE] ($STATUS_DONE) none=[$OUT_NONE] ($STATUS_NONE)"
 fi
 
 printf '\n%s passed, %s failed\n' "$PASSED" "$FAILED"

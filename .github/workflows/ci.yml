@@ -36,3 +36,6 @@ jobs:
 
       - name: Hook behaviour tests
         run: sh tests/hooks.sh
+
+      - name: Gemini dispatch behaviour tests
+        run: sh tests/gemini-dispatch.sh
