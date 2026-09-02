@@ -15,7 +15,9 @@ license: MIT
 Claude dispatches, Gemini executes, Claude verifies. Gemini's "done" is a
 claim; `git diff` is the evidence.
 
-The binary is `agy` (Antigravity CLI) at `~/.local/bin/agy`.
+The binary is `agy` (Antigravity CLI) at `~/.local/bin/agy`. The wrapper is
+a POSIX shell script and needs `jq` — so macOS, Linux, or WSL/Git Bash on
+Windows.
 
 ## The user never types any of this
 
@@ -34,8 +36,8 @@ already shown you:
    matches — two buttons with the same label is the normal case, and the
    prompt has to name which one dies and which one stays.
 3. **Commit the checkpoint** (below) before Gemini touches anything.
-4. **Prepare the ground** — install, scaffold, wire up. Everything that
-   needs a shell is yours, not Gemini's.
+4. **Clear the shell work** — install the packages and components the task
+   will need. Gemini writes files; it cannot run commands.
 5. **Write the prompt** with absolute paths, acceptance criteria, what must
    not be touched, and the house rules.
 6. **Review the result and report** — what changed and what you verified,
@@ -64,28 +66,33 @@ instead of reconstructing what was there.
 Tell Gemini in the prompt: **do not commit, do not push, leave the changes
 in the working tree.** Its job ends at the edit.
 
-## Prepare the ground before dispatching
+## Clear the shell work before dispatching
 
-Gemini is good at editing code and bad at everything around it. It stalls
-the moment the environment isn't ready: a package that isn't installed, a
-file that doesn't exist yet, a route nobody wired, a build it has to run to
-see what it broke. It doesn't fail cleanly there — it grinds, retries, and
-burns the clock.
+Gemini creates files, edits them and refactors across them — that is its
+job and nothing here narrows it. What it cannot do is run a command: in
+headless mode every shell call is auto-denied, and it does not fail
+cleanly there. It retries, invents workarounds, and burns the clock.
 
-So hand it a job that is pure editing. Before dispatching, you do:
+So the rule is about commands, not about files. Before dispatching, run
+whatever the task will need a terminal for:
 
-- Install what the task needs (`pnpm add`, the missing types, the icon
-  package).
-- Create the files that don't exist yet — empty, or with the imports,
-  export and route already wired. Gemini fills them in.
-- Run the migration, the codegen, the scaffold command.
-- Check the build and the linter run clean, so the floor is known-good
-  before Gemini stands on it.
+- **shadcn/ui components.** Read the task, work out which components the
+  markup will use, and add the ones the project doesn't have:
+  `pnpm dlx shadcn@latest add dialog select`. This is the single most
+  common place a dispatch grinds to a halt — the component isn't there,
+  Gemini tries to install it, headless denies the command.
+- Dependencies the work assumes: the package, its types, the icon set.
+- Migrations, codegen, scaffolding commands.
+- A clean build and linter, so the floor is known-good before Gemini
+  stands on it.
 
-Then the dispatch is: edit these existing files, in place. Nothing else.
+Then the prompt says: create whatever files the task needs, but if you
+need a command run — a package installed, a component added — stop and
+say which one instead of working around it. You install it and re-dispatch
+with `-c`.
 
 That is also why the default carries no `-y`. Reaching for `-y` is the
-signal that a shell step is in the prompt that should have been yours.
+signal that a shell step belongs to you, not to the prompt.
 
 ## House rules that ride along
 
@@ -100,6 +107,9 @@ context:
 - Write code that reads like the code around it: same naming, same comment
   density, same idiom.
 - Never real client names in examples or fixtures — neutral placeholders.
+- Create the files the task needs, but never run commands: if something
+  has to be installed or generated, stop and name it instead of working
+  around it.
 
 Add whatever the project itself mandates (its CLAUDE.md, AGENTS.md, lint
 config). Gemini cannot read the user's setup; if it is not in the prompt,
@@ -127,8 +137,8 @@ file edits are approved: the moment Gemini reaches for a shell, headless
 mode auto-denies it and the run dies with no output and exit 1, `a tool
 required the "command" permission that headless mode cannot prompt for`.
 The fix is almost always to run that shell step yourself beforehand — see
-"Prepare the ground". `-y` is for the rare task that genuinely has to drive
-a shell of its own.
+"Clear the shell work". `-y` is for the rare task that genuinely has to
+drive a shell of its own.
 
 ```bash
 sh "$CLAUDE_PLUGIN_ROOT/scripts/gemini-dispatch.sh" -y "<dir>" "<task>"
@@ -206,8 +216,9 @@ has been quiet. Read it that way:
 
 Stuck is not something you wait out. Stop the background dispatch, then
 re-dispatch with `-c` and the thing it was missing: the exact path, the
-name of the component, the fact that the file it wants doesn't exist yet.
-That last one usually means the ground wasn't ready, so fix that first.
+name of the component, the package you have just installed for it. A run
+that stalls on a `run_command` step is almost always a missing shadcn
+component — add it, then continue the same conversation.
 
 Poll it while a dispatch is in flight and report progress to the user in
 their own words — "va por el tercer archivo" — rather than making them ask.
@@ -287,8 +298,8 @@ changing a skill.
   nothing happened. Gemini often finishes the edits and only dies at the
   end, reaching for a shell to verify its own work. Re-dispatching blind
   then does the job twice.
-- Dispatching into an environment that isn't ready → it grinds instead of
-  failing. Install and scaffold first.
+- Dispatching a task whose shadcn components aren't installed → it stalls
+  trying to add them. `pnpm dlx shadcn@latest add <them>` first.
 - Calling `agy -c` directly → you may be resuming another project's
   conversation. Go through the wrapper.
 - Dispatching without the checkpoint → when the diff comes out wrong you

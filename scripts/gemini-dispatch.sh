@@ -14,7 +14,10 @@ set -eu
 
 # jq parses agy's stream-json: the reply, the conversation id and the step log
 # all come out of it.
-command -v jq >/dev/null 2>&1 || { echo "ERROR: jq is required (brew install jq)" >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || {
+  echo "ERROR: jq is required — macOS: brew install jq | Debian/WSL: apt install jq | Windows: winget install jqlang.jq" >&2
+  exit 1
+}
 
 AGY=${AGY:-$HOME/.local/bin/agy}
 GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.7-flash-medium}
