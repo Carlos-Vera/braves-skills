@@ -193,7 +193,7 @@ if [ "$MODE" = "watch" ]; then
     printf -- '-- finished: %s\n' "$RESULT"
   else
     NOW=$(date +%s)
-    LAST=$(stat -f %m "$STREAM" 2>/dev/null || stat -c %Y "$STREAM" 2>/dev/null || echo "$NOW")
+    LAST=$(stat -c %Y "$STREAM" 2>/dev/null || stat -f %m "$STREAM" 2>/dev/null || echo "$NOW")
     printf -- '-- still running, last step %ss ago\n' "$((NOW - LAST))"
   fi
   exit 0
@@ -211,7 +211,7 @@ if [ "$MODE" = "status" ]; then
   [ -f "$STREAM" ] || exit 0
 
   NOW=$(date +%s)
-  LAST=$(stat -f %m "$STREAM" 2>/dev/null || stat -c %Y "$STREAM" 2>/dev/null || echo 0)
+  LAST=$(stat -c %Y "$STREAM" 2>/dev/null || stat -f %m "$STREAM" 2>/dev/null || echo 0)
   QUIET=$((NOW - LAST))
 
   # A finished run is not news, and neither is one whose process died without
@@ -349,7 +349,7 @@ DEADLINE=$(( $(date +%s) + GEMINI_TIMEOUT ))
 while kill -0 "$AGY_PID" 2>/dev/null; do
   NOW=$(date +%s)
   # The stream grows with every step, so its mtime is the last sign of life.
-  QUIET_SINCE=$(stat -f %m "$STREAM" 2>/dev/null || stat -c %Y "$STREAM" 2>/dev/null || echo "$NOW")
+  QUIET_SINCE=$(stat -c %Y "$STREAM" 2>/dev/null || stat -f %m "$STREAM" 2>/dev/null || echo "$NOW")
   if [ "$NOW" -ge "$DEADLINE" ] || [ "$(( NOW - QUIET_SINCE ))" -ge "$GEMINI_IDLE" ]; then
     # Killed, not abandoned: the stream stays on disk, so --watch still shows
     # which step it died on.
