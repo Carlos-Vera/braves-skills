@@ -240,17 +240,19 @@ project, the wrapper's `--status` feeds one segment that refreshes on its
 own:
 
 ```
-✦ gemini  3.7-flash-high -y · #34 · replace_file_content Header.tsx 6s · 4m12s · tok:▰▰▱▱▱▱▱▱▱▱ 48.2k / 200k
+✦ gemini  3.7-flash-high -y · #34 · replace_file_content Header.tsx 6s · 4m12s · tok:▰▰▱▱▱▱▱▱▱▱ 206.7k / 1M
 ```
 
 The model actually running, a `-y` mark when the dispatch was given full
 tool approval, the step number, the tool it is on with the seconds it has
-spent there, how long the whole dispatch has been going, and what it has
-spent against `GEMINI_BUDGET` (200k by default, `0` to drop the bar).
-Nothing is enforced against that budget — it is only the scale the bar
-fills towards, so "is this one getting expensive?" has an answer at a
-glance. It turns yellow past ninety seconds of silence and
-disappears when the run ends.
+spent there, how long the whole dispatch has been going, and how full its
+context window is right now — the last step's input plus cache-read
+tokens, scaled against the running model's own window (`gemini-3.x`: 1M,
+`claude-*`: 200k, `gpt-oss-*`: 131072; an unrecognised model gets no bar at
+all rather than an invented scale). `GEMINI_BUDGET` overrides that scale —
+set it to pin a different one, or to `0` to drop the bar entirely. It
+turns yellow past ninety seconds of silence and disappears when the run
+ends.
 
 Read the two clocks together: the step seconds say how long *this* step
 has run, the elapsed says whether the dispatch as a whole is out of hand.
@@ -262,14 +264,16 @@ Wiring it into a statusline is three lines, and any statusline can do it:
 
 ```bash
 gem=$(sh <path>/scripts/gemini-dispatch.sh --status "$cwd" 2>/dev/null)
-# "<state><TAB><spend %><TAB><text>" while a dispatch is live, and nothing at
-# all the rest of the time. state is "run", or "slow" once it has gone quiet.
+# "<state><TAB><occupancy %><TAB><text>" while a dispatch is live, and nothing
+# at all the rest of the time. state is "run", or "slow" once it has gone quiet.
 ```
 
 The percentage comes in its own field so the line can be coloured the way
 the rest of the bar colours its gauges, without parsing the text back
-apart. Colour it by the worse of the two signals — a stalled run, or spend
-past its budget.
+apart, though bravesline.sh doesn't use it for colour: the line is always
+Gemini's own brand colour, and turns yellow only for `slow` — the token
+bar already shows the spend, so that signal doesn't need to repaint the
+whole line too.
 
 Give it a line of its own rather than a slot among the other segments. It
 appears and disappears on its own schedule, and threading it inline

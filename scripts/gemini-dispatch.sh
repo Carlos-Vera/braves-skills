@@ -41,13 +41,16 @@ case "$GEMINI_IDLE" in
   ''|*[!0-9]*) echo "ERROR: GEMINI_IDLE is whole seconds (got: $GEMINI_IDLE)" >&2; exit 2 ;;
 esac
 
-# What a dispatch is expected to cost. Nothing is enforced against it — it is
-# the scale the statusline bar fills towards, so "is this one getting
-# expensive?" has an answer at a glance. 0 drops the bar entirely.
-GEMINI_BUDGET=${GEMINI_BUDGET:-200000}
-case "$GEMINI_BUDGET" in
-  ''|*[!0-9]*) echo "ERROR: GEMINI_BUDGET is whole tokens (got: $GEMINI_BUDGET)" >&2; exit 2 ;;
-esac
+# The scale the statusline bar fills towards. Nothing is enforced against it.
+# Left unset (the default), --status derives it from the running model's own
+# context window; set it to pin a different scale, or to 0 to drop the bar
+# entirely — that override still applies even when the model is recognised.
+GEMINI_BUDGET=${GEMINI_BUDGET:-}
+if [ -n "$GEMINI_BUDGET" ]; then
+  case "$GEMINI_BUDGET" in
+    *[!0-9]*) echo "ERROR: GEMINI_BUDGET is whole tokens (got: $GEMINI_BUDGET)" >&2; exit 2 ;;
+  esac
+fi
 
 if [ "$GEMINI_TIMEOUT" -gt 15 ]; then
   AGY_TIMEOUT=$(( GEMINI_TIMEOUT - 10 ))
@@ -57,9 +60,17 @@ fi
 GEMINI_STATE=${GEMINI_STATE:-$HOME/.cache/braves-gemini}
 GEMINI_HOME=${GEMINI_HOME:-$HOME/.gemini/antigravity-cli}
 
-# 48200 -> 48.2k. Whole thousands lose the decimal: 200k, not 200.0k.
+# 48200 -> 48.2k. Whole thousands lose the decimal: 200k, not 200.0k. A million
+# and up reads as M instead — a context window is only readable as 1M, not
+# 1000k.
 fmt_k() {
-  if [ "$1" -ge 1000 ]; then
+  if [ "$1" -ge 1000000 ]; then
+    if [ "$(( $1 / 100000 % 10 ))" -eq 0 ]; then
+      printf '%sM' "$(( $1 / 1000000 ))"
+    else
+      printf '%s.%sM' "$(( $1 / 1000000 ))" "$(( $1 / 100000 % 10 ))"
+    fi
+  elif [ "$1" -ge 1000 ]; then
     if [ "$(( $1 / 100 % 10 ))" -eq 0 ]; then
       printf '%sk' "$(( $1 / 1000 ))"
     else
@@ -68,6 +79,20 @@ fmt_k() {
   else
     printf '%s' "$1"
   fi
+}
+
+# The context window for the model actually running, derived from its name
+# family. agy's stream publishes neither the window nor how full it is — no
+# event carries either number — so the window has to come from the model
+# family instead of from agy. A model outside these families gets no bar at
+# all (0) rather than a made-up scale.
+window_for_model() {
+  case "$1" in
+    gemini-3*) printf '%s' 1000000 ;;
+    claude-*)  printf '%s' 200000 ;;
+    gpt-oss-*) printf '%s' 131072 ;;
+    *)         printf '%s' 0 ;;
+  esac
 }
 
 usage() {
@@ -82,11 +107,14 @@ Usage:
 
 GEMINI_TIMEOUT (default 900) is the hard ceiling in whole seconds; GEMINI_IDLE
 (default 300) cuts a dispatch that has stopped taking steps — the shape a stall
-has from outside. Both are enforced here, in whole seconds. GEMINI_BUDGET
-(default 200000 tokens) is not enforced at all: it is the scale --status fills
-its spend bar towards.
+has from outside. Both are enforced here, in whole seconds. GEMINI_BUDGET is
+not enforced at all: it is the scale --status fills its context-occupancy bar
+towards. Left unset, that scale is the running model's own context window
+(gemini-3.x: 1M, claude-*: 200k, gpt-oss-*: 131072 — any other model gets no
+bar). Set it to a whole number of tokens to pin a different scale, or to 0 to
+drop the bar entirely.
 
---status prints "<state><TAB><spend percentage><TAB><text>".
+--status prints "<state><TAB><occupancy percentage><TAB><text>".
 
 -c and -y combine in either order. Without -y only file edits are approved:
 a task that needs shell commands (npm, mkdir, tests) dies half-done with
@@ -192,17 +220,22 @@ if [ "$MODE" = "status" ]; then
   if tail -3 "$STREAM" | grep -q '"event":"result"'; then exit 0; fi
 
   # One pass over the stream for everything the line shows: the model actually
-  # running, whether it was dispatched with full tool approval, the step it is
-  # on, what that step is doing, and the tokens spent so far.
+  # running (raw — window_for_model needs the family prefix the display text
+  # strips), whether it was dispatched with full tool approval, the step it is
+  # on, what that step is doing, and live context occupancy: input + cache-read
+  # tokens of the LAST step that reported usage. Not a sum across steps — that
+  # would be cumulative billable spend, which keeps climbing after tokens have
+  # already fallen out of context, not what is actually sitting in context now.
   FIELDS=$(jq -Rrs '
     (split("\n") | map(fromjson? // empty)) as $e
     | ($e | map(select(.event == "init")) | last) as $i
     | ($e | map(select(.event == "step_update") | .step_update)) as $s
     | ($s | map(select(.step_type == "tool")) | last) as $t
-    | [ (($i.init.model // "") | ltrimstr("gemini-")),
+    | ($s | map(select(.usage != null)) | last) as $u
+    | [ ($i.init.model // ""),
         (if $i.init.permission_mode == "always-proceed" then "-y" else "" end),
         (($t.step_index // "") | tostring),
-        (($s | map(.usage.total_tokens // empty) | add // 0) | tostring),
+        ((($u.usage.input_tokens // 0) + ($u.usage.cache_read_tokens // 0)) | tostring),
         (if $t == null then "" else
            ($t.tool_name + " "
             + (($t.tool_info.parameters // {}) | to_entries | map(.value | tostring)
@@ -210,7 +243,8 @@ if [ "$MODE" = "status" ]; then
          end) ]
     | @tsv' "$STREAM" 2>/dev/null || true)
 
-  MODEL=$(printf '%s' "$FIELDS" | cut -f1)
+  MODEL_RAW=$(printf '%s' "$FIELDS" | cut -f1)
+  MODEL="${MODEL_RAW#gemini-}"
   PERM=$(printf '%s' "$FIELDS" | cut -f2)
   STEP=$(printf '%s' "$FIELDS" | cut -f3)
   TOKENS=$(printf '%s' "$FIELDS" | cut -f4)
@@ -236,12 +270,18 @@ if [ "$MODE" = "status" ]; then
     fi
   fi
 
-  # Spend against the budget, drawn in the same cells the rest of the bar uses.
-  # The percentage rides in its own field so the caller can colour it the way it
+  # Occupancy against the window, drawn in the same cells the rest of the bar
+  # uses. GEMINI_BUDGET, when set, overrides the model's own window (0 drops
+  # the bar even for a recognised model). Left unset, an unrecognised model
+  # resolves to 0 too, so it gets no bar rather than a made-up scale. The
+  # percentage rides in its own field so the caller can colour it the way it
   # colours its other gauges, instead of parsing the text back apart.
+  BUDGET="$GEMINI_BUDGET"
+  [ -n "$BUDGET" ] || BUDGET=$(window_for_model "$MODEL_RAW")
+
   PCT=""
-  if [ "${TOKENS:-0}" -gt 0 ] && [ "$GEMINI_BUDGET" -gt 0 ]; then
-    PCT=$(( TOKENS * 100 / GEMINI_BUDGET ))
+  if [ "${TOKENS:-0}" -gt 0 ] && [ "$BUDGET" -gt 0 ]; then
+    PCT=$(( TOKENS * 100 / BUDGET ))
     if [ "$PCT" -gt 100 ]; then PCT=100; fi
     FILLED=$(( (PCT + 5) / 10 ))
     if [ "$FILLED" -gt 10 ]; then FILLED=10; fi
@@ -251,7 +291,7 @@ if [ "$MODE" = "status" ]; then
     # into the variable name and the expansion fails under set -u.
     while [ "$I" -lt "$FILLED" ]; do BAR="${BAR}▰"; I=$(( I + 1 )); done
     while [ "$I" -lt 10 ];        do BAR="${BAR}▱"; I=$(( I + 1 )); done
-    TEXT="$TEXT · tok:$BAR $(fmt_k "$TOKENS") / $(fmt_k "$GEMINI_BUDGET")"
+    TEXT="$TEXT · tok:$BAR $(fmt_k "$TOKENS") / $(fmt_k "$BUDGET")"
   elif [ "${TOKENS:-0}" -gt 0 ]; then
     TEXT="$TEXT · $(fmt_k "$TOKENS") tok"
   fi

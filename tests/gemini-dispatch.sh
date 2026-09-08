@@ -407,7 +407,12 @@ else
     "status=$STATUS wall=${IDLE_WALL}s (ceiling was 600s) out: $OUT"
 fi
 
-# --- 22: --status carries the model, the -y mark, the elapsed time and the tokens
+# --- 22: --status carries the model, the -y mark, the elapsed time and the
+#         tokens — the bar scaled to the model's own window (gemini-3.x: 1M),
+#         and filled from the LAST usage step's input+cache_read (step 35:
+#         3331+203465=206796 -> "206.7k"), not a sum across steps (step 33's
+#         41200 must not leak in). Numbers for step 35 are the real sample
+#         from a live agy stream, not invented.
 
 PROJECT22="$TMP/proj-fields"
 mkdir -p "$PROJECT22"
@@ -416,23 +421,23 @@ mkdir -p "$STATE"
 STREAM22="$STATE/$(state_key "$PROJECT22").stream"
 {
   printf '{"event":"init","init":{"model":"gemini-3.7-flash-high","permission_mode":"always-proceed"}}\n'
-  printf '{"event":"step_update","step_update":{"step_index":33,"state":"DONE","step_type":"agent_response","usage":{"total_tokens":41200}}}\n'
+  printf '{"event":"step_update","step_update":{"step_index":33,"state":"DONE","step_type":"agent_response","usage":{"input_tokens":20000,"cache_read_tokens":21200,"total_tokens":41200}}}\n'
   printf '{"event":"step_update","step_update":{"step_index":34,"state":"ACTIVE","step_type":"tool","tool_name":"replace_file_content","tool_info":{"parameters":{"TargetFile":"/x/src/acting-banner.tsx"}}}}\n'
-  printf '{"event":"step_update","step_update":{"step_index":35,"state":"DONE","step_type":"agent_response","usage":{"total_tokens":7000}}}\n'
+  printf '{"event":"step_update","step_update":{"step_index":35,"state":"DONE","step_type":"agent_response","usage":{"input_tokens":3331,"cache_read_tokens":203465,"total_tokens":5064}}}\n'
 } > "$STREAM22"
 echo "$(( $(date +%s) - 252 ))" > "$STREAM22.start"
 OUT=$(AGY="$STUB" GEMINI_STATE="$STATE" sh "$SCRIPT" --status "$PROJECT22" 2>&1)
 TEXT=$(printf '%s' "$OUT" | cut -f3)
 
 MISSING=""
-for want in "3.7-flash-high" "-y" "#34" "acting-banner.tsx" "4m12s" "tok:▰▰▱▱▱▱▱▱▱▱ 48.2k / 200k"; do
+for want in "3.7-flash-high" "-y" "#34" "acting-banner.tsx" "4m12s" "tok:▰▰▱▱▱▱▱▱▱▱ 206.7k / 1M"; do
   case "$TEXT" in *"$want"*) ;; *) MISSING="$MISSING [$want]" ;; esac
 done
 
 if [ -z "$MISSING" ]; then
-  pass "--status: model, -y mark, step, elapsed and tokens all ride on the line"
+  pass "--status: model, -y mark, step, elapsed and windowed occupancy bar all ride on the line"
 else
-  fail "--status: model, -y mark, step, elapsed and tokens all ride on the line" \
+  fail "--status: model, -y mark, step, elapsed and windowed occupancy bar all ride on the line" \
     "missing:$MISSING got: $TEXT"
 fi
 
@@ -446,19 +451,68 @@ case "$(printf '%s' "$OUT" | cut -f3)" in
   *) pass "--status: no -y mark when only edits were approved" ;;
 esac
 
-# --- 24: the spend percentage rides in its own field, and a zero budget drops the bar
+# --- 24: the spend percentage rides in its own field (206796/1000000 -> 20),
+#         and a zero GEMINI_BUDGET drops the bar even for a recognised model
 
 PCT=$(printf '%s' "$OUT" | cut -f2)
 OUT_NOBAR=$(AGY="$STUB" GEMINI_STATE="$STATE" GEMINI_BUDGET=0 sh "$SCRIPT" --status "$PROJECT22" 2>&1)
 TEXT_NOBAR=$(printf '%s' "$OUT_NOBAR" | cut -f3)
 
-if [ "$PCT" = "24" ] &&
-   case "$TEXT_NOBAR" in *"48.2k tok"*) true ;; *) false ;; esac &&
+if [ "$PCT" = "20" ] &&
+   case "$TEXT_NOBAR" in *"206.7k tok"*) true ;; *) false ;; esac &&
    case "$TEXT_NOBAR" in *"tok:▰"*) false ;; *) true ;; esac; then
   pass "--status: the percentage is its own field and GEMINI_BUDGET=0 drops the bar"
 else
   fail "--status: the percentage is its own field and GEMINI_BUDGET=0 drops the bar" \
     "pct=$PCT nobar: $TEXT_NOBAR"
+fi
+
+# --- 25: the occupancy bar is the LAST usage step's input+cache_read, never a
+#         sum across steps — a first, much bigger step must not leak into it
+
+PROJECT25="$TMP/proj-occupancy"
+mkdir -p "$PROJECT25"
+STATE="$TMP/state-occupancy"
+mkdir -p "$STATE"
+STREAM25="$STATE/$(state_key "$PROJECT25").stream"
+{
+  printf '{"event":"init","init":{"model":"gemini-3.7-flash-high"}}\n'
+  printf '{"event":"step_update","step_update":{"step_index":1,"state":"DONE","step_type":"agent_response","usage":{"input_tokens":50000,"cache_read_tokens":50000,"total_tokens":100000}}}\n'
+  printf '{"event":"step_update","step_update":{"step_index":2,"state":"DONE","step_type":"agent_response","usage":{"input_tokens":1000,"cache_read_tokens":2000,"total_tokens":1500}}}\n'
+} > "$STREAM25"
+OUT25=$(AGY="$STUB" GEMINI_STATE="$STATE" sh "$SCRIPT" --status "$PROJECT25" 2>&1)
+TEXT25=$(printf '%s' "$OUT25" | cut -f3)
+
+if case "$TEXT25" in *"tok:▱▱▱▱▱▱▱▱▱▱ 3k / 1M"*) true ;; *) false ;; esac; then
+  pass "--status: occupancy is the last usage step's input+cache_read, not a sum across steps"
+else
+  fail "--status: occupancy is the last usage step's input+cache_read, not a sum across steps" \
+    "got: $TEXT25"
+fi
+
+# --- 26: a model outside the known families gets no bar at all, not an
+#         invented scale — even though it still has usage to show as plain tokens
+
+PROJECT26="$TMP/proj-unknown-model"
+mkdir -p "$PROJECT26"
+STATE="$TMP/state-unknown-model"
+mkdir -p "$STATE"
+STREAM26="$STATE/$(state_key "$PROJECT26").stream"
+{
+  printf '{"event":"init","init":{"model":"mystery-model-9000"}}\n'
+  printf '{"event":"step_update","step_update":{"step_index":1,"state":"DONE","step_type":"agent_response","usage":{"input_tokens":5000,"cache_read_tokens":1000,"total_tokens":6000}}}\n'
+} > "$STREAM26"
+OUT26=$(AGY="$STUB" GEMINI_STATE="$STATE" sh "$SCRIPT" --status "$PROJECT26" 2>&1)
+PCT26=$(printf '%s' "$OUT26" | cut -f2)
+TEXT26=$(printf '%s' "$OUT26" | cut -f3)
+
+if [ -z "$PCT26" ] &&
+   case "$TEXT26" in *"tok:▰"*) false ;; *) true ;; esac &&
+   case "$TEXT26" in *"6k tok"*) true ;; *) false ;; esac; then
+  pass "--status: an unrecognised model family gets no bar, not an invented scale"
+else
+  fail "--status: an unrecognised model family gets no bar, not an invented scale" \
+    "pct=$PCT26 text=$TEXT26"
 fi
 
 printf '\n%s passed, %s failed\n' "$PASSED" "$FAILED"
