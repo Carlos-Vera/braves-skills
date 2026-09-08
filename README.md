@@ -16,9 +16,9 @@
 
 # braves-skills
 
-La caja de herramientas todo-en-uno que uso en mi trabajo con Claude Code, posee 18 skills
+La caja de herramientas todo-en-uno que uso en mi trabajo con Claude Code, posee 19 skills
 que cubren el ciclo de vida completo de un proyecto (12 skills de ciclo de
-vida + 6 skills de soporte), porque me volvia loco recordar 40 skills
+vida + 7 skills de soporte), porque me volvia loco recordar 40 skills
 sueltas y sin saber si chocaban o no, braves skills resuelve esto.
 
 ## Mi ciclo de trabajo con Claude Code
@@ -49,6 +49,7 @@ Puedes ejecutarlo así:
 | Skill | Qué hace |
 |-------|----------|
 | `/desarrollo` | Planifica una feature y constrúyela mediante agentes delegados. |
+| `/braves-gemini` | Delega trabajo al CLI de Gemini (`agy`): despacha una tarea, itera sobre la misma conversación y verifica el diff real. El frontend y la UI van aquí por defecto. |
 | `codebase-memory` | Consultas estructurales de código mediante el grafo de codebase-memory-mcp. |
 | `delegate-by-default` | Modo orquestador: despacha subagentes en vez de trabajar en línea, ideal para ahorro de tokens. Cada subagente arranca ya con las reglas de la casa inyectadas (artefactos en inglés, solución mínima, nada de nombres de clientes, verificar antes de decir "listo", firma de commit). |
 | `humanizar` | Voz de marca para copy en español, puedes personalizarla con tu estilo de copy. |

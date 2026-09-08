@@ -28,7 +28,7 @@ exception: trivial few-line changes in 1 file.
 
 | Task | Executor | How |
 |---|---|---|
-| Frontend — UI, views, HTML, CSS, interface JS, components. ALWAYS, no exception | Gemini (best available model; today 3.5 Flash) | `agy` (command below) |
+| Frontend — UI, views, HTML, CSS, interface JS, components. ALWAYS, no exception | Gemini (gemini-3.7-flash-medium) | `agy` (command below) |
 | Simple backend — CRUD, targeted fix, mechanical refactor, tests | Sonnet 5 | Agent tool with `model: "sonnet"` |
 | Complex backend — architecture, critical business logic, migrations, security | Opus 4.8 | Agent tool with `model: "opus"` |
 
@@ -37,24 +37,16 @@ Mixed task → split it: the frontend part still goes to Gemini.
 ## Dispatch to Gemini (agy)
 
 ```bash
-~/.local/bin/agy --add-dir "/absolute/path/to/project" \
-  -p "<task with absolute paths and acceptance criteria>" \
-  --dangerously-skip-permissions --print-timeout 15m
+sh "$CLAUDE_PLUGIN_ROOT/scripts/gemini-dispatch.sh" \
+  "/absolute/path/to/project" "<task with absolute paths and acceptance criteria>"
 ```
 
-- Run Bash with `dangerouslyDisableSandbox: true` (needs keyring and
-  network) and a generous timeout.
-- ALWAYS absolute paths, in `--add-dir` and inside the prompt; with
-  relative paths Gemini writes to `~/.gemini/antigravity-cli/scratch/`.
-- **Model**: check available ones with `agy models`. The flag is
-  `--model "<name>"`, but WATCH OUT (as of 2026-07-09): custom IDs don't
-  resolve and agy silently falls back to default — check
-  `~/.gemini/antigravity-cli/cli.log` for the line `not in local config` /
-  `Propagating selected model override`. Today the default is already
-  Gemini 3.5 Flash (Google's best); if the default changes tomorrow or the
-  flag gets fixed, adjust here.
-- Iterating on the same task: `agy --continue -p "<feedback>"
-  --dangerously-skip-permissions`.
+Run it with `dangerouslyDisableSandbox: true` and a generous timeout. Add
+`-y` if the task needs a shell (install, build, tests), `-c` to iterate on
+the same project's conversation. Never call `agy` directly: its `-c` is
+global and will resume another project's conversation. Models, the
+permission modes and the failure cases live in the `braves-gemini` skill —
+read it before dispatching anything non-obvious.
 
 ## Common mistakes
 
