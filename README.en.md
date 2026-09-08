@@ -17,9 +17,12 @@
 # braves-skills
 
 The all-in-one toolbox I use in my work with Claude Code. It has 19 skills
-covering a project's full lifecycle (12 lifecycle skills + 7 support
+covering a project's full lifecycle (13 lifecycle skills + 6 support
 skills), because I was going crazy remembering 40 loose skills without
 knowing whether they collided or not — braves-skills solves that.
+
+Claude also hands work to Gemini and gives it back done. You need both
+subscriptions.
 
 ## My work cycle with Claude Code
 You can run it like this:
@@ -36,6 +39,7 @@ You can run it like this:
 | `/braves-start` | Project kickoff: helps you create PRD, TRD, UI/UX, Flow, Backend and Plan before touching code. |
 | `/fable-plan` | Asks you the questions a senior architect asks before building → a phased plan with verification. |
 | `/braves-opinion` | Tenth Man: constructive criticism without flattery. Verdict SHIP / SHIP WITH CHANGES / RETHINK / KILL. |
+| `/braves-gemini` | Hand a task to Gemini and it gets solved elsewhere, without spending your session's context. The statusline shows what it is doing while it does it. Frontend and UI go here by default. Needs a Gemini subscription on top of your Claude one. |
 | `/braves-security` | The Padlock: runs an infrastructure audit (secrets, API proxying, RLS, pooling, cache, rate limits, load testing with k6/Artillery) + code (OWASP). |
 | `/braves-audit` | Global Audit (security + over-engineering + performance). Writes an executable `braves-audit-DATE.md` at the repo root. |
 | `/braves-fix` | Fixes bugs with mandatory evidence; runs the `braves-audit-DATE.md` runbook if one exists. |
@@ -49,7 +53,6 @@ You can run it like this:
 | Skill | What it does |
 |-------|----------|
 | `/desarrollo` | Plan a feature and build it via delegated agents. |
-| `/braves-gemini` | Delegate work to the Gemini CLI (`agy`): dispatch a task, iterate on the same conversation, verify the real diff. Frontend and UI go here by default. |
 | `codebase-memory` | Structural code queries via the codebase-memory-mcp graph. |
 | `delegate-by-default` | Orchestrator mode: dispatch subagents instead of working inline, ideal for saving tokens. Every subagent spawns with the house rules already injected (artifacts in English, smallest thing that works, no client names, verify before claiming done, commit signature). |
 | `humanizar` | Brand voice for Spanish copy — you can customize it with your own copy style. |

@@ -36,6 +36,9 @@ BRAVES SKILLS — BravesLab toolbox (full lifecycle)
  /braves-opinion  Devil's advocate: constructive criticism without
                   flattery. Verdict SHIP / SHIP WITH CHANGES / RETHINK /
                   KILL.
+ /braves-gemini   Hands a task to Gemini and gets it back done, without
+                  spending your session's context. Frontend and UI go
+                  here. Needs both subscriptions.
  /braves-security The lock: infra security audit (secrets, proxy, RLS,
                   pooling, cache, rate limits, load) + code (OWASP).
                   Report only.
@@ -62,8 +65,6 @@ BRAVES SKILLS — BravesLab toolbox (full lifecycle)
  ──────────────────────  ──────────────────────────────────────────────────
  /desarrollo             Plans a feature and builds it via delegated
                          agents.
- /braves-gemini          Delegate work to the Gemini CLI (agy): dispatch,
-                         iterate, verify the diff.
  codebase-memory         Structural code queries via the
                          codebase-memory-mcp graph.
  delegate-by-default     Orchestrator mode: dispatch subagents instead of

@@ -9,6 +9,10 @@
 # Every case runs against a throwaway HOME, so a test can never read or write
 # the real ~/.claude.
 
+# The hooks skip themselves when python3 is missing, so without it these cases
+# would report nine empty failures instead of the one thing that is wrong.
+command -v python3 >/dev/null 2>&1 || { echo "tests/hooks.sh needs python3" >&2; exit 2; }
+
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 PASSED=0
 FAILED=0
