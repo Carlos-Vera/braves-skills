@@ -361,7 +361,7 @@ report is the deliverable, not Gemini's "DONE".
 
 ## This toolbox runs inside agy too
 
-`agy plugin install <path to this repo>` imports all 19 skills, and Gemini
+`agy plugin install <path to this repo>` imports all 20 skills, and Gemini
 then calls them by name. That is what the `plugin.json` symlink at the repo
 root is for — agy looks for the manifest there, Claude Code looks in
 `.claude-plugin/`, and the symlink lets one file serve both. Don't delete

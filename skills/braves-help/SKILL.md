@@ -58,7 +58,7 @@ BRAVES SKILLS — BravesLab toolbox (full lifecycle)
  /braves-help     This table.
 ```
 
-## Support skills (adopted)
+## Support skills
 
 ```
  Skill                   What it does
@@ -69,6 +69,8 @@ BRAVES SKILLS — BravesLab toolbox (full lifecycle)
                          codebase-memory-mcp graph.
  delegate-by-default     Orchestrator mode: dispatch subagents instead of
                          working inline.
+ caveman                 Ultra-compressed replies: strips filler, keeps
+                         every technical detail, spends far fewer tokens.
  humanizar               BravesLab brand voice for Spanish copy.
  n8n-workflow-builder    Build/debug n8n workflows with validation and CVE
                          check.

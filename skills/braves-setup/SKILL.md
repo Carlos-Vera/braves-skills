@@ -239,6 +239,13 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
     - If YES (or default): save `"subagent_rules": { "enabled": true }`.
     - If NO: save `"subagent_rules": { "enabled": false }` — subagents
       start with no injected context.
+15. **Caveman mode for subagents** — explain in one line: "caveman mode
+    (`braves-skills:caveman`) makes a dispatched subagent report back
+    compressed — far fewer tokens spent, full technical accuracy kept;
+    it never touches the code or files it produces." Ask if they want it
+    on for every dispatched subagent (default: yes).
+    - If YES (or default): save `"caveman": true` inside `subagent_rules`.
+    - If NO: save `"caveman": false` — subagents report in normal prose.
 
 ## Writing the configuration
 
@@ -263,7 +270,7 @@ Save to `~/.claude/braves-skills.json`:
   "mcps": [],
   "plugins": [],
   "adopted_skills": [],
-  "subagent_rules": { "enabled": true }
+  "subagent_rules": { "enabled": true, "caveman": true }
 }
 ```
 
@@ -273,6 +280,11 @@ block (English artifacts, lazy-code discipline, no client names, modern
 CLI tooling, commit footer if configured) into every delegated subagent.
 The hook already behaves as enabled when the key is absent, so it only
 needs to be written when the user opts out.
+
+`subagent_rules.caveman` (boolean, default `true`) tells the
+`delegate-by-default` flow whether to instruct each dispatched subagent to
+report in caveman mode (`braves-skills:caveman`). Treated as on when the
+key is absent, so it only needs writing on opt-out.
 
 ## Closing
 
