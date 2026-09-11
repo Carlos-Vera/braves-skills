@@ -16,9 +16,9 @@
 
 # braves-skills
 
-La caja de herramientas todo-en-uno que uso en mi trabajo con Claude Code, posee 19 skills
+La caja de herramientas todo-en-uno que uso en mi trabajo con Claude Code, posee 20 skills
 que cubren el ciclo de vida completo de un proyecto (13 skills de ciclo de
-vida + 6 skills de soporte), porque me volvia loco recordar 40 skills
+vida + 7 skills de soporte), porque me volvia loco recordar 40 skills
 sueltas y sin saber si chocaban o no, braves skills resuelve esto.
 
 Claude también le pasa trabajo a Gemini y te lo devuelve hecho. Necesitas
@@ -48,13 +48,14 @@ Puedes ejecutarlo así:
 | `/braves-notebook` | Conecta la API completa de Gemini Notebook (fuentes, podcasts, reportes, quizzes, descargas) a Claude para usar como memoria y fuente de información, va de la mano con `/braves-save`: el save, al correr, crea/alimenta tu notebook AI Brain donde guarda la bitácora de tu sesión; conviene guardar antes de llegar al 40% de contexto de la sesión. |
 | `/braves-update` | Te avisa al arrancar la sesión si hay versión nueva de Braves-skills (chequeo 1 vez al día) y la verifica/actualiza cuando tú digas, mostrando qué trae de nuevo. |
 
-### Skills de soporte (adoptadas)
+### Skills de soporte
 
 | Skill | Qué hace |
 |-------|----------|
 | `/desarrollo` | Planifica una feature y constrúyela mediante agentes delegados. |
 | `codebase-memory` | Consultas estructurales de código mediante el grafo de codebase-memory-mcp. |
 | `delegate-by-default` | Modo orquestador: despacha subagentes en vez de trabajar en línea, ideal para ahorro de tokens. Cada subagente arranca ya con las reglas de la casa inyectadas (artefactos en inglés, solución mínima, nada de nombres de clientes, verificar antes de decir "listo", firma de commit). |
+| `caveman` | Respuestas ultracomprimidas: quita la paja, conserva cada detalle técnico. Gasta muchos menos tokens — tú y los subagentes que despachas. |
 | `humanizar` | Voz de marca para copy en español, puedes personalizarla con tu estilo de copy. |
 | `n8n-workflow-builder` | Construye/depura workflows de n8n con validación de nodos y chequeo de CVE (vulnerabilidades). |
 | `wordpress-spanish` | Traducción es_ES para plugins de WordPress, ideal si creas plugins para WordPress. |
@@ -152,6 +153,12 @@ mantenedor:
 - Las skills de auditoría heredan la filosofía y el formato de
   [ponytail](https://github.com/DietrichGebert/ponytail) (MIT, Dietrich
   Gebert), del cual este proyecto es un fork conceptual.
+- `caveman` es una adaptación del brazo de comparación
+  `benchmarks/arms/caveman-SKILL.md` de
+  [ponytail](https://github.com/DietrichGebert/ponytail) (MIT, Dietrich
+  Gebert), redistribuido con cambios: fuera los niveles wenyan,
+  disparadores en español, un límite de idioma explícito y la salvaguarda
+  de seguridad reforzada.
 - `braves-save` y `braves-notebook` son ports de
   [BrainClaude](https://github.com/Carlos-Vera/BrainClaude) (Carlos Vera).
 

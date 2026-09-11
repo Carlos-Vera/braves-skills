@@ -16,8 +16,8 @@
 
 # braves-skills
 
-The all-in-one toolbox I use in my work with Claude Code. It has 19 skills
-covering a project's full lifecycle (13 lifecycle skills + 6 support
+The all-in-one toolbox I use in my work with Claude Code. It has 20 skills
+covering a project's full lifecycle (13 lifecycle skills + 7 support
 skills), because I was going crazy remembering 40 loose skills without
 knowing whether they collided or not — braves-skills solves that.
 
@@ -48,13 +48,14 @@ You can run it like this:
 | `/braves-notebook` | Connects the full Gemini Notebook API (sources, podcasts, reports, quizzes, downloads) to Claude to use as memory and information source. Goes hand in hand with `/braves-save`: when the save runs it creates/feeds your AI Brain notebook with your session log; best to save before hitting 40% of session context. |
 | `/braves-update` | Tells you at session start when a new Braves-skills version exists (checked once a day) and verifies/updates it whenever you say, showing what's new. |
 
-### Support skills (adopted)
+### Support skills
 
 | Skill | What it does |
 |-------|----------|
 | `/desarrollo` | Plan a feature and build it via delegated agents. |
 | `codebase-memory` | Structural code queries via the codebase-memory-mcp graph. |
 | `delegate-by-default` | Orchestrator mode: dispatch subagents instead of working inline, ideal for saving tokens. Every subagent spawns with the house rules already injected (artifacts in English, smallest thing that works, no client names, verify before claiming done, commit signature). |
+| `caveman` | Ultra-compressed replies: strips filler, keeps every technical detail. Spends far fewer tokens — for you and for the subagents you dispatch. |
 | `humanizar` | Brand voice for Spanish copy — you can customize it with your own copy style. |
 | `n8n-workflow-builder` | Build/debug n8n workflows with node validation and CVE (vulnerabilities) check. |
 | `wordpress-spanish` | es_ES translation for WordPress plugins, ideal if you build WordPress plugins. |
@@ -151,6 +152,12 @@ not just the maintainer:
 - The audit skills inherit the philosophy and format of
   [ponytail](https://github.com/DietrichGebert/ponytail) (MIT, Dietrich
   Gebert), of which this project is a conceptual fork.
+- `caveman` is adapted from the benchmark comparison arm
+  `benchmarks/arms/caveman-SKILL.md` in
+  [ponytail](https://github.com/DietrichGebert/ponytail) (MIT, Dietrich
+  Gebert), redistributed with changes: wenyan levels dropped, Spanish
+  triggers added, an explicit language boundary, and a reinforced safety
+  carve-out.
 - `braves-save` and `braves-notebook` are ports of
   [BrainClaude](https://github.com/Carlos-Vera/BrainClaude) (Carlos Vera).
 

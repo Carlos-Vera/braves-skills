@@ -31,6 +31,14 @@ Plugin root: `~/.claude/skills/braves-skills` (a git clone).
 4. Confirm the new version from plugin.json and remind the user to restart
    Claude Code (or run /reload-plugins) so the new version loads.
 
+## After updating
+
+Name any skill the update added that wasn't there before (diff `skills/`
+against the pre-pull list, or read it off the release notes). If one of them
+is configured by `/braves-setup` — right now `caveman`, with its "caveman
+mode for dispatched subagents" toggle — offer `/braves-setup` to set it;
+until the user runs it the default applies (caveman on for subagents).
+
 ## Limits
 
 Read-only until the user confirms the pull; never force-pushes, never

@@ -55,6 +55,14 @@ in English, smallest thing that works, no client names, verify before claiming
 done, commit signature). Don't restate them in the dispatch prompt — you'd be
 paying twice for the same instruction.
 
+## Caveman Mode Is Mandatory
+
+Every dispatched subagent must operate in caveman mode (skill
+`braves-skills:caveman`) for ALL its communication and reports — ~75% fewer
+tokens, full technical accuracy preserved. It affects communication only,
+never the code or files produced. Put the instruction inside the dispatch
+prompt.
+
 ## Reusing An Agent — Three-Way Decision
 
 When a task finishes:
