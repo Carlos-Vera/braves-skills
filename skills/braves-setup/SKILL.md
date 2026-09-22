@@ -86,7 +86,7 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
      number and localized name, spoken in the user's `language`, then
      plays it:
      ```bash
-     sh "$CLAUDE_PLUGIN_ROOT/hooks/braves-sound.sh" preview Illuminate Stargaze Glass Complete
+     sh "${CLAUDE_SKILL_DIR}/../../hooks/braves-sound.sh" preview Illuminate Stargaze Glass Complete
      ```
      Enumerate the catalogs at runtime (`ls`), never from a hardcoded
      list, since Apple changes the sets between releases:

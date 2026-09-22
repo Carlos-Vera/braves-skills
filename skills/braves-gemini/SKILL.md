@@ -124,7 +124,7 @@ Always through the wrapper — never `agy` bare (see "Several projects at
 once" for why):
 
 ```bash
-sh "$CLAUDE_PLUGIN_ROOT/scripts/gemini-dispatch.sh" \
+sh "${CLAUDE_SKILL_DIR}/../../scripts/gemini-dispatch.sh" \
   "<ABSOLUTE project dir>" "<task, absolute paths, acceptance criteria>"
 ```
 
@@ -144,7 +144,7 @@ The fix is almost always to run that shell step yourself beforehand — see
 drive a shell of its own.
 
 ```bash
-sh "$CLAUDE_PLUGIN_ROOT/scripts/gemini-dispatch.sh" -y "<dir>" "<task>"
+sh "${CLAUDE_SKILL_DIR}/../../scripts/gemini-dispatch.sh" -y "<dir>" "<task>"
 ```
 
 `-y` is also what lets it start a server or a watch-mode test and park
@@ -283,7 +283,7 @@ rearranges the whole bar every time a dispatch starts.
 diagnose rather than glance.
 
 ```bash
-sh "$CLAUDE_PLUGIN_ROOT/scripts/gemini-dispatch.sh" --watch "<dir>"
+sh "${CLAUDE_SKILL_DIR}/../../scripts/gemini-dispatch.sh" --watch "<dir>"
 ```
 
 ```
@@ -332,7 +332,7 @@ back to the default silently.
 Same project, same conversation, new instruction:
 
 ```bash
-sh "$CLAUDE_PLUGIN_ROOT/scripts/gemini-dispatch.sh" -c "<dir>" "<feedback>"
+sh "${CLAUDE_SKILL_DIR}/../../scripts/gemini-dispatch.sh" -c "<dir>" "<feedback>"
 ```
 
 `-c` and `-y` combine in either order. The first dispatch for a directory
