@@ -236,28 +236,31 @@ user and do NOT fall back to `/tmp`.
 
 ## Step 4: Upload to the Gemini Notebook Brain (with confirmation)
 
-### 4a. Show Preview
+### 4a. Show Where It Goes
 
-Before uploading, show the user exactly what will be sent and where:
+Before uploading, show where the log lands — not the log itself. The user
+just lived the session; replaying it back at them burns tokens and tells
+them nothing they don't already know.
 
 > **Project:** [name] (`[TAG]`) → notebook **[notebook title]**, label **[label]**
 > **File:** `[TAG]-[topics]-[date].md`
 >
-> **Session summary preview (will be sent to Gemini Notebook):**
->
-> [show the full markdown content of the summary]
->
-> **Send it to that notebook?** (yes/no/edit)
+> **Send it to that notebook?** (yes/no/edit/show)
 
 The project/notebook line is not decoration: it's the last chance to catch a
 log about to land in the wrong brain.
+
+The full text stays one word away: `show` prints it before deciding. Print
+the whole summary only then, or when the user asked for the preview up
+front.
 
 ### 4b. Wait for Confirmation
 
 - **If "yes":** proceed with the upload
 - **If "no":** skip the upload, confirm that memories were saved locally
+- **If "show":** print the full summary, then ask again
 - **If "edit":** ask what they want to change, regenerate, and show the
-  preview again
+  destination line again
 
 Never upload without explicit consent in the current session.
 
