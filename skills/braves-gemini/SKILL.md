@@ -236,8 +236,9 @@ names the step it died on.
 ## Watching a run
 
 The statusline carries it. While a dispatch is running in the current
-project, the wrapper's `--status` feeds one segment that refreshes on its
-own:
+project — or in a repo below it, when the session sits in a folder that
+holds several — the wrapper's `--status` feeds one segment that refreshes
+on its own:
 
 ```
 ✦ gemini  3.7-flash-high -y · #34 · replace_file_content Header.tsx 6s · 4m12s · tok:▰▰▱▱▱▱▱▱▱▱ 206.7k / 1M
