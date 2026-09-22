@@ -208,6 +208,13 @@ if [ "$MODE" = "status" ]; then
     ROOT=$(git -C "$ABS_DIR" rev-parse --show-toplevel 2>/dev/null || true)
     [ -n "$ROOT" ] && STREAM="$GEMINI_STATE/$(printf '%s' "$ROOT" | tr '/ ' '__').stream"
   fi
+  if [ ! -f "$STREAM" ]; then
+    # Or the session sits above the repo, in a folder that holds several: take
+    # the freshest dispatch below it. Keys carry no whitespace, so ls is safe.
+    # ponytail: keys flatten spaces too, so "/a/b c" can pass for "/a/b/c".
+    # shellcheck disable=SC2012
+    STREAM=$(ls -t "$GEMINI_STATE/${KEY}_"*.stream 2>/dev/null | head -1)
+  fi
   [ -f "$STREAM" ] || exit 0
 
   NOW=$(date +%s)

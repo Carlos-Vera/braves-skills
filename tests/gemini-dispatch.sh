@@ -515,5 +515,24 @@ else
     "pct=$PCT26 text=$TEXT26"
 fi
 
+# --- 27: a session sitting above the repo it dispatched to still sees the run,
+#         and a sibling whose name merely starts the same way does not
+
+PARENT27="$TMP/proj-parent"
+mkdir -p "$PARENT27/dev/repo" "$TMP/proj-pa"
+STATE="$TMP/state-parent"
+mkdir -p "$STATE"
+STREAM27="$STATE/$(state_key "$PARENT27/dev/repo").stream"
+printf '{"event":"step_update","step_update":{"step_index":2,"state":"ACTIVE","step_type":"tool","tool_name":"view_file","tool_info":{"parameters":{"AbsolutePath":"/abs/src/page.tsx"}}}}\n' > "$STREAM27"
+OUT27=$(AGY="$STUB" GEMINI_STATE="$STATE" sh "$SCRIPT" --status "$PARENT27" 2>&1)
+OUT_SIBLING=$(AGY="$STUB" GEMINI_STATE="$STATE" sh "$SCRIPT" --status "$TMP/proj-pa" 2>&1)
+
+if [ "$(printf '%s' "$OUT27" | cut -f1)" = "run" ] && [ -z "$OUT_SIBLING" ]; then
+  pass "--status: a session above the repo sees its dispatch; a same-prefix sibling does not"
+else
+  fail "--status: a session above the repo sees its dispatch; a same-prefix sibling does not" \
+    "parent=[$OUT27] sibling=[$OUT_SIBLING]"
+fi
+
 printf '\n%s passed, %s failed\n' "$PASSED" "$FAILED"
 [ "$FAILED" -eq 0 ]
