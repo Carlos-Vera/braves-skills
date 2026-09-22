@@ -59,6 +59,17 @@ Pre-flight red = no commit. Fix first (braves-fix if it's a bug).
 - Merge with the configured strategy (`merge_strategy`), and ONLY if
   `who_merges` allows it — if the user merges, leave the PR ready and
   the link.
+- `merge_strategy` is the default, not the last word: a repo can disable
+  strategies, and the config is global while the choice belongs to the repo.
+  Check first and merge with one it allows, saying in a line when that is not
+  the configured one:
+  ```bash
+  gh api repos/<owner>/<repo> \
+    --jq '{merge:.allow_merge_commit,squash:.allow_squash_merge,rebase:.allow_rebase_merge}'
+  ```
+  It matters beyond the error: squash collapses a branch into one commit, so
+  atomic commits — and one `Co-Authored-By` trailer each — survive only under
+  rebase or a merge commit.
 - Never force push, never straight to main unless
   `direct_push_main: true`.
 
