@@ -267,18 +267,24 @@ Wiring it into a statusline is three lines, and any statusline can do it:
 gem=$(sh <path>/scripts/gemini-dispatch.sh --status "$cwd" 2>/dev/null)
 # "<state><TAB><occupancy %><TAB><text>" while a dispatch is live, and nothing
 # at all the rest of the time. state is "run", or "slow" once it has gone quiet.
+# The percentage is empty when there is no bar, so don't split it with
+# `IFS=$'\t' read`: tab is IFS whitespace and the empty field collapses.
 ```
 
 The percentage comes in its own field so the line can be coloured the way
-the rest of the bar colours its gauges, without parsing the text back
-apart, though bravesline.sh doesn't use it for colour: the line is always
-Gemini's own brand colour, and turns yellow only for `slow` — the token
-bar already shows the spend, so that signal doesn't need to repaint the
-whole line too.
+the rest of the bar colours its gauges. bravesline.sh uses it for the bar
+alone: it redraws the occupancy bar at the context bar's width and
+thresholds, so both gauges read on one scale, while the rest of the line
+stays Gemini's own brand colour and turns yellow only for `slow`.
 
 Give it a line of its own rather than a slot among the other segments. It
 appears and disappears on its own schedule, and threading it inline
 rearranges the whole bar every time a dispatch starts.
+
+And give the `statusLine` a `refreshInterval` (2 seconds is plenty). Claude
+Code only re-runs the command on events, and those go quiet while Claude
+waits on a background dispatch — without the timer the segment never
+appears at all for a run that takes a minute or two.
 
 `--watch` is the other half: the full step history, for when you need to
 diagnose rather than glance.
