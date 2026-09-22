@@ -37,7 +37,7 @@ Mixed task → split it: the frontend part still goes to Gemini.
 ## Dispatch to Gemini (agy)
 
 ```bash
-sh "$CLAUDE_PLUGIN_ROOT/scripts/gemini-dispatch.sh" \
+sh "${CLAUDE_SKILL_DIR}/../../scripts/gemini-dispatch.sh" \
   "/absolute/path/to/project" "<task with absolute paths and acceptance criteria>"
 ```
 

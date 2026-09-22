@@ -96,7 +96,7 @@ background:
 
 ```bash
 source ~/.notebooklm-venv/bin/activate
-python3 "$CLAUDE_PLUGIN_ROOT/scripts/nlm_login.py" > /tmp/nlm_login_output.txt 2>&1 &
+python3 "${CLAUDE_SKILL_DIR}/../../scripts/nlm_login.py" > /tmp/nlm_login_output.txt 2>&1 &
 echo "Login started (PID=$!). The browser should open in a few seconds..."
 ```
 
