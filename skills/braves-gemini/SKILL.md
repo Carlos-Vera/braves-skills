@@ -38,9 +38,11 @@ already shown you:
 3. **Commit the checkpoint** (below) before Gemini touches anything.
 4. **Clear the shell work** — install the packages and components the task
    will need. Gemini writes files; it cannot run commands.
-5. **Write the prompt** with absolute paths, acceptance criteria, what must
+5. **Ask which model** — the one question the user always gets (see
+   "Models"). Every dispatch, even when the task looks obvious.
+6. **Write the prompt** with absolute paths, acceptance criteria, what must
    not be touched, and the house rules.
-6. **Review the result and report** — what changed and what you verified,
+7. **Review the result and report** — what changed and what you verified,
    not the command you ran.
 
 A screenshot with an arrow on it is a complete brief. Turn it into the
@@ -113,6 +115,26 @@ context:
 - Never start anything that does not exit on its own: no dev server, no
   `next start`, no watch mode, no browser or screenshot pipeline. Verifying
   the result is Claude's job after the dispatch, not part of it.
+- Missing something — a file the task doesn't name, a value, a decision,
+  or the result of an MCP or any other tool (docs lookup, web search,
+  browser, database)? Don't go searching the codebase for it, don't call
+  the tool yourself, and don't guess. Stop and end the reply with a line
+  starting `QUESTION:` saying exactly what you need. The agent that
+  dispatched you answers in the same conversation.
+
+Tell it where the project's history lives. Resolve the project's notebook
+the way `braves-save` does (the `projects` map in
+`~/.claude/braves-skills.json`, keyed by repo root) and name it in the
+prompt: "this project's past decisions and session logs are in the Gemini
+Notebook `<name>`; if you need that context, ask for it with `QUESTION:`
+and say what to look up." Gemini can't open the notebook itself — it is
+only reachable through the `notebooklm` CLI, a shell command headless mode
+denies. So when the question comes back, run
+`notebooklm ask -n <notebook-id> "<question>"` yourself and pass the answer
+on with `-c`. Always `-n`, never `notebooklm use` (it switches the global
+context under other sessions), and never `--new` (it deletes the notebook's
+conversation). No registered notebook,
+or `notebooklm.enabled` is `false` → leave the line out.
 
 Add whatever the project itself mandates (its CLAUDE.md, AGENTS.md, lint
 config). Gemini cannot read the user's setup; if it is not in the prompt,
@@ -124,9 +146,13 @@ Always through the wrapper — never `agy` bare (see "Several projects at
 once" for why):
 
 ```bash
-sh "${CLAUDE_SKILL_DIR}/../../scripts/gemini-dispatch.sh" \
+GEMINI_MODEL=<slug the user picked> \
+  sh "${CLAUDE_SKILL_DIR}/../../scripts/gemini-dispatch.sh" \
   "<ABSOLUTE project dir>" "<task, absolute paths, acceptance criteria>"
 ```
+
+Always set `GEMINI_MODEL`: the wrapper's built-in default is a fallback,
+not a choice. `-c` and `-y` dispatches take it the same way.
 
 Run it through Bash with `dangerouslyDisableSandbox: true` (it needs the
 keyring and the network) and a tool timeout above 15m.
@@ -320,14 +346,27 @@ read `--watch` when it goes yellow or when the run ends.
 
 ## Models
 
-`agy models` prints slug and label. Pass the slug to `--model`; the
-suffix is the reasoning effort, not a different model.
+The user picks the model on every dispatch. Never choose it silently.
 
-| Slug | Use it for |
+1. Run `agy models` (network, so outside the sandbox). It prints
+   `<slug><TAB><label>`; the suffix is the reasoning effort, not a
+   different model. The list changes as Google ships versions, so read it
+   each time instead of trusting any slug written here.
+2. Ask with `AskUserQuestion`, one question, the labels as options. Put
+   your recommendation first, marked "(Recommended)", with one line on why
+   it fits this task. Offer the few that make sense for the task; the user
+   can still type any other slug.
+3. Dispatch with `GEMINI_MODEL=<slug>`. On `-c` iterations of the same
+   conversation, reuse the model already chosen unless the user changes it.
+
+What to recommend, by family (take the newest version that `agy models`
+lists):
+
+| Family | Recommend it for |
 |---|---|
-| `gemini-3.7-flash-medium` | Default. Frontend, UI, components, copy-to-markup. |
-| `gemini-3.7-flash-high` | Same work when the layout logic is genuinely hard. |
-| `gemini-3.1-pro-high` | Long reasoning, refactors spanning many files. |
+| `flash-medium` | Frontend, UI, components, copy-to-markup. The usual pick. |
+| `flash-high` | The same work when the layout logic is genuinely hard. |
+| `pro-high` | Long reasoning, refactors spanning many files. |
 
 Verify what actually ran: end the prompt with "then reply with the name of
 the model you are", or grep `~/.gemini/antigravity-cli/cli.log` for
@@ -350,6 +389,14 @@ wrapper says so instead of guessing.
 
 You review the code, always, and you tell the user what you found — that
 report is the deliverable, not Gemini's "DONE".
+
+First, read the end of Gemini's reply. A `QUESTION:` line means it stopped
+to ask you: answer it yourself from the repo, the conversation, or your
+own tools and MCPs — the project's notebook included (run the lookup and
+pass Gemini the result), then
+resume with `-c` and the same `GEMINI_MODEL`. Ask the user only when the
+answer is genuinely theirs to give. A prompt that keeps drawing questions
+was missing context, so put that context into the next brief up front.
 
 1. `git diff HEAD` — against your checkpoint, so what you read is Gemini's
    work alone. `git status` too: anything outside the named files is a
@@ -381,7 +428,8 @@ changing a skill.
 
 ## Common mistakes
 
-- `agy models` not listing 3.7 → the local cache is stale. Run
+- `agy models` missing a version Google already announced → the local
+  cache is stale. Run
   `agy update`; it refreshes the list even when the binary is current.
 - Trusting `--version` alone: it has reported a stale number while the
   installed binary was newer.

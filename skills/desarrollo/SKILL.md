@@ -28,7 +28,7 @@ exception: trivial few-line changes in 1 file.
 
 | Task | Executor | How |
 |---|---|---|
-| Frontend — UI, views, HTML, CSS, interface JS, components. ALWAYS, no exception | Gemini (gemini-3.7-flash-medium) | `agy` (command below) |
+| Frontend — UI, views, HTML, CSS, interface JS, components. ALWAYS, no exception | Gemini (the user picks the model) | `agy` (command below) |
 | Simple backend — CRUD, targeted fix, mechanical refactor, tests | Sonnet 5 | Agent tool with `model: "sonnet"` |
 | Complex backend — architecture, critical business logic, migrations, security | Opus 4.8 | Agent tool with `model: "opus"` |
 
@@ -37,11 +37,13 @@ Mixed task → split it: the frontend part still goes to Gemini.
 ## Dispatch to Gemini (agy)
 
 ```bash
-sh "${CLAUDE_SKILL_DIR}/../../scripts/gemini-dispatch.sh" \
+GEMINI_MODEL=<slug the user picked> \
+  sh "${CLAUDE_SKILL_DIR}/../../scripts/gemini-dispatch.sh" \
   "/absolute/path/to/project" "<task with absolute paths and acceptance criteria>"
 ```
 
-Run it with `dangerouslyDisableSandbox: true` and a generous timeout. Add
+Ask the user which model first — `braves-gemini`'s "Models" section says
+how. Run it with `dangerouslyDisableSandbox: true` and a generous timeout. Add
 `-y` if the task needs a shell (install, build, tests), `-c` to iterate on
 the same project's conversation. Never call `agy` directly: its `-c` is
 global and will resume another project's conversation. Models, the
