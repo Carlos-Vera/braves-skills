@@ -333,6 +333,8 @@ Tell the user:
   declined/authentication failed) — and, if this was the project's first save,
   that the tag, notebook and label are now registered and won't be asked again
 - Any open thread to pick up next time
+- Where to read it: the log's full path (`~/.claude/sessions/<log-name>.md`)
+  and, for a checkpoint, the path of `CONTEXTO.md`. A path, never the content.
 
 Keep it brief. No need to read the full summary - just confirm it's done.
 
@@ -341,9 +343,9 @@ Keep it brief. No need to read the full summary - just confirm it's done.
 Only when the save is a mid-session checkpoint AND tasks remain. If the work
 is finished, stop at Step 5 — a handoff block for nothing is noise.
 
-Print ONE fenced markdown block, written in the user's `language`, that they
-paste as the first message of a fresh conversation. It is the only thing that
-survives the context reset, so it carries the state, not the story:
+Write ONE markdown block, in the user's `language`, that a fresh conversation
+starts from. It is the only thing that survives the context reset, so it
+carries the state, not the story:
 
 ````markdown
 ```markdown
@@ -365,8 +367,7 @@ survives the context reset, so it carries the state, not the story:
 ```
 ````
 
-Then write that same block — the inner markdown, without the outer fence — to
-`CONTEXTO.md` in the project root (the root registered in Step 0, not the cwd),
+Write it — the inner markdown, without the outer fence — to `CONTEXTO.md` in the project root (the root registered in Step 0, not the cwd),
 with mode 600, and make sure the `.gitignore` there lists `CONTEXTO.md` —
 append the line if it is missing and tell the user you did. The block carries
 the state of the work: paths on the user's disk, settled decisions, third
@@ -379,9 +380,10 @@ conversations by hand. The file itself stays put: the user sees it between
 sessions, misses it when it is gone, and it travels with the project instead of
 being orphaned the moment the folder changes path.
 
-Print it anyway. The hook is a convenience, not a guarantee: a session opened
-outside the project root, on another machine, or without the plugin still needs
-the copy-paste path.
+Don't print it in the chat. A screen of handoff nobody reads buries the
+confirmation. Give its path instead (Step 5): a session opened outside the
+project root, on another machine, or without the plugin opens that file and
+pastes it.
 
 Rules:
 - Concrete over narrative: paths, branch names, commands. No recap of the
@@ -390,7 +392,7 @@ Rules:
   was already settled.
 - Never inline secrets — Step 1.5 sanitization applies here too.
 - Tell the user in one line that the next session in this project picks it up
-  on its own, and that the block above is there for any other case.
+  on its own, and give the path of `CONTEXTO.md` for any other case.
 
 ## Error Handling
 
