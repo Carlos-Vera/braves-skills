@@ -1,0 +1,1 @@
+{ "name": "braves-panel", "version": "0.1.0", "description": "Usage dashboard pane: session time, branch, tokens, cost, context and tools", "types": "./types/index.d.ts" }
