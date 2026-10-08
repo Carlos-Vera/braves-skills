@@ -11,7 +11,7 @@ import type { Cell } from './scenery'
 // The whole panel draws here as a Client so the pointer anywhere over it
 // reaches the mascot: it looks toward the pointer, a click makes it hop.
 
-type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number; stride: number }
+type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number; stride: number; lead: number; leadAt: number }
 
 let latest: View | undefined
 
@@ -27,14 +27,14 @@ const Panel: ClientModule<View, State> = (view, surface) => {
 
   if (surface.state === undefined) {
     const now = Date.now()
-    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now, reel: 0, x: 0, goal: 0, gait: 'walk', stepAt: 0, trek: 0, stride: 0 })
+    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now, reel: 0, x: 0, goal: 0, gait: 'walk', stepAt: 0, trek: 0, stride: 0, lead: 0, leadAt: 0 })
 
     surface.every(TICK_MS, () => {
       const s = surface.state
       const v = latest
       if (!s || !v || v.still) return
       const now = Date.now()
-      let { queue, until, cue, blinkAt, idleAt, tool, scene, restAt, goal, gait, stepAt } = s
+      let { queue, until, cue, blinkAt, idleAt, tool, scene, restAt, goal, gait, stepAt, lead, leadAt } = s
       // The floor it can stand on: the region's width less its own.
       const room = Math.max(0, surface.columns - (v.working ? SCENE_COLUMNS : STAGE_COLUMNS))
       let x = Math.min(s.x, room)
@@ -67,14 +67,23 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         tool++
         idleAt = now + 12000 + Math.random() * 8000
       }
+      // Ticks per backdrop cell: 2 at an even pace, 1 on a surge, 3 while it drops back.
+      let pace = 2
+      const stride = v.sprint ? s.stride + 1 : 0
       let pose: Pose = s.look < 0 ? 'look-left' : s.look > 0 ? 'look-right' : 'default'
       if (now < until) pose = s.pose
       else if (queue[0]) {
         const [p, ms] = queue[0]
         pose = p, until = now + ms, queue = queue.slice(1)
       } else if (jog) {
-        // Counted in ticks, not clock time, so a late tick never skips a step.
-        pose = ACTS.jog[Math.floor(s.stride / 3) % ACTS.jog.length]![0]
+        // It jogs to the middle of the stage, then now and then surges ahead and drops back.
+        if (now > leadAt) (lead = Math.round(Math.random() * 7) - 3), (leadAt = now + 4000 + Math.random() * 4000)
+        const target = Math.max(0, Math.min(room, Math.round(room / 2) + lead))
+        const far = Math.abs(target - x) > 4
+        if (x !== target && stride % (far ? 2 : 4) === 0) x += Math.sign(target - x)
+        pace = target > x ? 1 : target < x ? 3 : 2
+        // Counted in ticks, not clock time, so a late tick never skips a step; quicker legs on a surge.
+        pose = ACTS.jog[Math.floor(stride / (pace === 1 ? 2 : 3)) % ACTS.jog.length]![0]
       } else if (!v.working && !v.sprint && goal !== x) {
         // Crossing the stage: a cell every tick (the slack absorbs timer jitter), legs alternating.
         if (now >= stepAt) (x += Math.sign(goal - x)), (stepAt = now + TICK_MS - 10)
@@ -83,10 +92,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       } else if (work === undefined && now > blinkAt) (pose = 'blink'), (until = now + 150), (blinkAt = now + 2500 + Math.random() * 3500)
       // The ticker crawls a cell every 150 ms while it has news.
       const reel = v.news.length > 0 ? Math.floor(now / 150) : s.reel
-      // While sprinting the backdrop moves a cell every other tick.
-      const stride = v.sprint ? s.stride + 1 : 0
-      const trek = v.sprint ? s.trek + (stride % 2) : s.trek
-      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel || x !== s.x || goal !== s.goal || stride !== s.stride) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel, x, goal, gait, stepAt, trek, stride })
+      const trek = v.sprint ? s.trek + (stride % pace === 0 ? 1 : 0) : s.trek
+      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel || x !== s.x || goal !== s.goal || stride !== s.stride) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel, x, goal, gait, stepAt, trek, stride, lead, leadAt })
     })
 
     surface.onPointer(e => {
