@@ -17,7 +17,7 @@ export const LABELS = {
     quiet: 'en silencio', model: 'Modelo', step: 'Paso', doing: 'Haciendo', elapsed: 'Tiempo', contextRow: 'Contexto',
     tools: 'HERRAMIENTAS', calls: 'usos', none: 'ninguna todavía',
     opened: 'Panel de Braves abierto.', closed: 'Panel de Braves cerrado.',
-    plan: 'Plan listo para revisar', failed: 'falló', denied: 'denegado', commit: 'Commit', ship: 'Merge / release publicado', noNews: 'sin novedades',
+    plan: 'Plan listo para revisar', failed: 'falló', denied: 'denegado', commit: 'Commit', ship: 'Merge / release publicado', noNews: 'sin novedades', sprintDemo: 'Trotando 80 s por los cuatro paisajes.',
   },
   en: {
     session: 'SESSION', time: 'Time', branch: 'Branch', noGit: 'No Git',
@@ -30,7 +30,7 @@ export const LABELS = {
     quiet: 'quiet', model: 'Model', step: 'Step', doing: 'Doing', elapsed: 'Elapsed', contextRow: 'Context',
     tools: 'TOOLS', calls: 'calls', none: 'none yet',
     opened: 'Braves panel opened.', closed: 'Braves panel closed.',
-    plan: 'Plan ready to review', failed: 'failed', denied: 'denied', commit: 'Commit', ship: 'Merge / release shipped', noNews: 'no news yet',
+    plan: 'Plan ready to review', failed: 'failed', denied: 'denied', commit: 'Commit', ship: 'Merge / release shipped', noNews: 'no news yet', sprintDemo: 'Jogging 80 s through the four backdrops.',
   },
 } satisfies Record<Lang, Record<string, string>>
 

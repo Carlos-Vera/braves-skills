@@ -51,7 +51,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       const jog = v.sprint && queue.length === 0 && now >= until
       const work = v.working && !v.sprint && queue.length === 0 && now >= until ? workAt(now, scene) : undefined
       if (v.working) (idleAt = now + 12000), (restAt = now)
-      const free = !v.working && queue.length === 0 && now > until
+      const free = !v.working && !v.sprint && queue.length === 0 && now > until
       // Nothing going on: after a minute it meditates, after three it falls asleep.
       if (free && now - restAt > 180000) queue = [...ACTS.sleep]
       else if (free && now - restAt > 60000) queue = [...ACTS.meditate]
@@ -75,7 +75,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       } else if (jog) {
         const steps = ACTS.jog
         pose = steps[Math.floor(now / steps[0]![1]) % steps.length]![0]
-      } else if (!v.working && goal !== x) {
+      } else if (!v.working && !v.sprint && goal !== x) {
         // Crossing the stage: a cell every tick (the slack absorbs timer jitter), legs alternating.
         if (now >= stepAt) (x += Math.sign(goal - x)), (stepAt = now + TICK_MS - 10)
         pose = `${gait}-${(x & 1) + 1}` as Pose
