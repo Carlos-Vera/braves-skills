@@ -11,7 +11,7 @@ import type { Cell } from './scenery'
 // The whole panel draws here as a Client so the pointer anywhere over it
 // reaches the mascot: it looks toward the pointer, a click makes it hop.
 
-type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number; stride: number; lead: number; leadAt: number; rush: '' | 'point' | 'flee' | 'peek' | 'sit'; seenAt: number }
+type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number; stride: number; lead: number; leadAt: number; rush: '' | 'point' | 'flee' | 'peek' | 'sit' | 'lift'; seenAt: number; lift: number; liftAt: number; sheet: boolean }
 
 let latest: View | undefined
 
@@ -23,7 +23,20 @@ const SCENE_COLUMNS = 13
 
 // What it does when idle, in turn; walk and crab cross the stage instead of stepping in place.
 // peek: walks half off one edge to look past it; sit: sits down at an edge for a while.
-const IDLE = ['idle', 'peek', 'sway', 'turning', 'halo', 'walk', 'sit', 'crab', 'wrench', 'hammer'] as const
+const IDLE = ['idle', 'peek', 'sway', 'turning', 'lift', 'halo', 'walk', 'sit', 'crab', 'wrench', 'hammer'] as const
+
+// lift: at the left edge it lifts the stage like a sheet, sticks its face into the code beneath,
+// comes out to nod its approval, looks once more, and lets the sheet drop. Each step: pose, ms,
+// its column (negative: the face is under the sheet), whether the sheet is up.
+const LIFT: readonly (readonly [Pose, number, number, boolean])[] = [
+  ['point-1', 500, 1, false], ['point-1', 400, 1, true], ['look-left', 500, 1, true],
+  ['look-left', 1100, -4, true], ['happy', 450, 1, true], ['blink', 150, 1, true], ['happy', 300, 1, true],
+  ['blink', 150, 1, true], ['arms-up-one', 700, 1, true], ['look-left', 900, -4, true], ['happy', 400, 1, true],
+  ['point-1', 350, 1, false], ['default', 300, 1, false],
+]
+// The sheet up at column 0, in front of the mascot; the floor beneath it shows code.
+const SHEET = ['╭', '│', '│', '╯']
+const UNDER = '</>'
 
 // How far past an edge it leans when it peeks.
 const PEEK = 4
@@ -39,18 +52,18 @@ const Panel: ClientModule<View, State> = (view, surface) => {
 
   if (surface.state === undefined) {
     const now = Date.now()
-    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now, reel: 0, x: 0, goal: 0, gait: 'walk', stepAt: 0, trek: 0, stride: 0, lead: 0, leadAt: 0, rush: '', seenAt: view.news[0]?.at ?? 0 })
+    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now, reel: 0, x: 0, goal: 0, gait: 'walk', stepAt: 0, trek: 0, stride: 0, lead: 0, leadAt: 0, rush: '', seenAt: view.news[0]?.at ?? 0, lift: -1, liftAt: 0, sheet: false })
 
     surface.every(TICK_MS, () => {
       const s = surface.state
       const v = latest
       if (!s || !v || v.still) return
       const now = Date.now()
-      let { queue, until, cue, blinkAt, idleAt, tool, scene, restAt, goal, gait, stepAt, lead, leadAt, rush, seenAt } = s
+      let { queue, until, cue, blinkAt, idleAt, tool, scene, restAt, goal, gait, stepAt, lead, leadAt, rush, seenAt, lift, liftAt, sheet } = s
       // The floor it can stand on: the region's width less its own.
       const room = Math.max(0, surface.columns - (v.working ? SCENE_COLUMNS : STAGE_COLUMNS))
       // Past the edges only while peeking (or coming back from it), never at the laptop.
-      const reach = (rush === 'peek' || goal !== s.x) && !v.working ? PEEK : 0
+      const reach = lift >= 0 ? PEEK : (rush === 'peek' || goal !== s.x) && !v.working ? PEEK : 0
       let x = Math.max(-reach, Math.min(s.x, room + reach))
       goal = Math.max(-reach, Math.min(goal, room + reach))
       if (v.cue.n !== cue) {
@@ -58,6 +71,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         const act = ACTS[v.cue.name as keyof typeof ACTS]
         if (act) (queue = [...act]), (until = 0)
         // /braves-panel peek | sit: the explore routines on demand.
+        // A second error within a minute (angry) is a big problem: once the act ends it goes to look into the code.
+        if ((v.cue.name === 'angry' || v.cue.name === 'lift') && lift < 0) (rush = 'lift'), (gait = 'walk'), (goal = 1)
         if (v.cue.name === 'peek' || v.cue.name === 'sit') (rush = v.cue.name), (gait = 'walk'), (goal = x < room / 2 ? room + (rush === 'peek' ? PEEK : 0) : rush === 'peek' ? -PEEK : 0)
         idleAt = now + 12000
         restAt = now
@@ -73,16 +88,17 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       if (rush && x === goal) {
         if (rush === 'point') queue = [...queue, ...POINT]
         if (rush === 'sit') queue = [...queue, ...SIT]
+        if (rush === 'lift') (lift = 0), (liftAt = 0)
         if (rush === 'peek') (queue = [...queue, ...peekAt(x > 0)]), (goal = x > 0 ? room - PEEK : PEEK), (gait = 'walk')
         rush = ''
       }
-      const rushing = rush !== '' && goal !== x
+      const rushing = (rush !== '' && goal !== x) || lift >= 0
       // Working: its routine, unless an act (a send, a click, a reaction) is playing.
       // A sprint (a busy turn) swaps the laptop for a jog in place while the backdrop scrolls past.
       const jog = v.sprint && queue.length === 0 && now >= until
       const work = v.working && !v.sprint && !rushing && queue.length === 0 && now >= until ? workAt(now, scene) : undefined
       if (v.working) (idleAt = now + 12000), (restAt = now)
-      const free = !v.working && !v.sprint && queue.length === 0 && now > until
+      const free = !v.working && !v.sprint && lift < 0 && queue.length === 0 && now > until
       // Nothing going on: after a minute it meditates, after three it falls asleep.
       if (free && now - restAt > 180000) queue = [...ACTS.sleep]
       else if (free && now - restAt > 60000) queue = [...ACTS.meditate]
@@ -95,6 +111,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
           const r = Math.random() * 0.4 * room
           goal = Math.round(right ? room - r : r)
           gait = name
+        } else if (name === 'lift') {
+          rush = 'lift', gait = 'walk', goal = 1
         } else if (name === 'peek' || name === 'sit') {
           // To the far edge; a peek goes past it.
           goal = right ? room + (name === 'peek' ? PEEK : 0) : name === 'peek' ? -PEEK : 0
@@ -108,7 +126,15 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       let pace = 2
       const stride = v.sprint ? s.stride + 1 : 0
       let pose: Pose = s.look < 0 ? 'look-left' : s.look > 0 ? 'look-right' : 'default'
-      if (now < until) pose = s.pose
+      if (lift >= 0 && queue.length === 0 && (lift > 0 || now >= until)) {
+        // The sheet script runs on its own clock, the acts queued before it first.
+        pose = s.pose
+        if (now >= liftAt) {
+          const step = LIFT[lift]
+          if (step) (pose = step[0]), (liftAt = now + step[1]), (x = step[2]), (sheet = step[3]), lift++
+          else (lift = -1), (sheet = false), (goal = x)
+        }
+      } else if (now < until) pose = s.pose
       else if (queue[0]) {
         const [p, ms] = queue[0]
         pose = p, until = now + ms, queue = queue.slice(1)
@@ -130,7 +156,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       // The ticker crawls a cell every 150 ms while it has news.
       const reel = v.news.length > 0 ? Math.floor(now / 150) : s.reel
       const trek = v.sprint ? s.trek + (stride % pace === 0 ? 1 : 0) : s.trek
-      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel || x !== s.x || goal !== s.goal || stride !== s.stride || rush !== s.rush || seenAt !== s.seenAt) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel, x, goal, gait, stepAt, trek, stride, lead, leadAt, rush, seenAt })
+      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel || x !== s.x || goal !== s.goal || stride !== s.stride || rush !== s.rush || seenAt !== s.seenAt || lift !== s.lift) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel, x, goal, gait, stepAt, trek, stride, lead, leadAt, rush, seenAt, lift, liftAt, sheet })
     })
 
     surface.onPointer(e => {
@@ -166,6 +192,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
     const from = cells.findIndex(cell => cell.ch !== ' ')
     const to = cells.findLastIndex(cell => cell.ch !== ' ')
     for (let i = from; from >= 0 && i <= to; i++) if (x + i >= 0 && x + i < across) row[x + i] = cells[i]!.ch === ' ' ? { ch: ' ' } : cells[i]!
+    if (surface.state?.sheet) row[0] = { ch: SHEET[r] ?? ' ', color: 'text' }
     const runs: Run[] = []
     for (const cell of row) {
       const last = runs.at(-1)
@@ -259,7 +286,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
     </Box>
     <Box flexDirection="column" flexShrink={0}>
       {stage.map(line => <Text wrap="truncate-end">{line.map(r => <Text color={r.color}>{r.text}</Text>)}</Text>)}
-      <Text dimColor>{'▔'.repeat(Math.max(STAGE_COLUMNS, surface.columns))}</Text>
+      <Text>{surface.state?.sheet && <Text color="success">{UNDER}</Text>}<Text dimColor>{'▔'.repeat(Math.max(STAGE_COLUMNS, surface.columns) - (surface.state?.sheet ? UNDER.length : 0))}</Text></Text>
       <Text wrap="truncate-end">{ticker.map(r => <Text color={r.color}>{r.text}</Text>)}{ticker.length === 0 && <Text dimColor>◆ {L.noNews}</Text>}</Text>
     </Box>
     </Box>
