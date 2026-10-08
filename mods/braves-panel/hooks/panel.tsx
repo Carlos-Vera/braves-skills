@@ -9,11 +9,14 @@ import type { Beat, Pose, Scene } from './mascot'
 // The whole panel draws here as a Client so the pointer anywhere over it
 // reaches the mascot: it looks toward the pointer, a click makes it hop.
 
-type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number }
+type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number }
 
 let latest: View | undefined
 
-// What it does when idle, in turn.
+// Columns the work scenes take; the other poses take STAGE_COLUMNS.
+const SCENE_COLUMNS = 13
+
+// What it does when idle, in turn; walk and crab cross the stage instead of stepping in place.
 const IDLE = ['idle', 'sway', 'turning', 'halo', 'walk', 'crab', 'wrench', 'hammer'] as const
 
 const Panel: ClientModule<View, State> = (view, surface) => {
@@ -22,14 +25,18 @@ const Panel: ClientModule<View, State> = (view, surface) => {
 
   if (surface.state === undefined) {
     const now = Date.now()
-    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now, reel: 0 })
+    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now, reel: 0, x: 0, goal: 0, gait: 'walk', stepAt: 0 })
 
     surface.every(TICK_MS, () => {
       const s = surface.state
       const v = latest
       if (!s || !v || v.still) return
       const now = Date.now()
-      let { queue, until, cue, blinkAt, idleAt, tool, scene, restAt } = s
+      let { queue, until, cue, blinkAt, idleAt, tool, scene, restAt, goal, gait, stepAt } = s
+      // The floor it can stand on: the region's width less its own.
+      const room = Math.max(0, surface.columns - (v.working ? SCENE_COLUMNS : STAGE_COLUMNS))
+      let x = Math.min(s.x, room)
+      goal = Math.min(goal, room)
       if (v.cue.n !== cue) {
         cue = v.cue.n
         const act = ACTS[v.cue.name as keyof typeof ACTS]
@@ -46,7 +53,14 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       else if (free && now - restAt > 60000) queue = [...ACTS.meditate]
       // Idle long enough: a little routine, dizzy instead once the context is past 80%.
       else if (free && now > idleAt) {
-        queue = [...((v.ctx?.percent ?? 0) >= 80 ? ACTS.dizzy : ACTS[IDLE[tool % IDLE.length]!])]
+        const name = (v.ctx?.percent ?? 0) >= 80 ? 'dizzy' : IDLE[tool % IDLE.length]!
+        // A walk heads somewhere at least a third of the floor away; a stage too narrow keeps it in place.
+        if ((name === 'walk' || name === 'crab') && room >= 6) {
+          const far = Math.max(3, Math.round(room / 3))
+          do goal = Math.round(Math.random() * room)
+          while (Math.abs(goal - x) < far)
+          gait = name
+        } else queue = [...ACTS[name]]
         tool++
         idleAt = now + 12000 + Math.random() * 8000
       }
@@ -55,10 +69,15 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       else if (queue[0]) {
         const [p, ms] = queue[0]
         pose = p, until = now + ms, queue = queue.slice(1)
+      } else if (!v.working && goal !== x) {
+        // Crossing the stage: a cell per stride, legs alternating.
+        if (now >= stepAt) (x += Math.sign(goal - x)), (stepAt = now + (gait === 'crab' ? 100 : 120))
+        pose = `${gait}-${(x & 1) + 1}` as Pose
+        idleAt = now + 12000
       } else if (work === undefined && now > blinkAt) (pose = 'blink'), (until = now + 150), (blinkAt = now + 2500 + Math.random() * 3500)
       // The ticker crawls a cell every 150 ms while it has news.
       const reel = v.news.length > 0 ? Math.floor(now / 150) : s.reel
-      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel })
+      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel || x !== s.x || goal !== s.goal) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel, x, goal, gait, stepAt })
     })
 
     surface.onPointer(e => {
@@ -67,8 +86,14 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       if (e.type === 'leave') return s.look !== 0 && surface.setState({ ...s, look: 0 })
       // The stage is the footer: STAGE_ROWS rows above the floor line and the ticker.
       const top = surface.rows - STAGE_ROWS - 2
-      if (e.type === 'down' && e.x < STAGE_COLUMNS && e.y >= top && e.y < top + STAGE_ROWS) return surface.setState({ ...s, queue: [...ACTS.poke], until: 0, restAt: Date.now() })
-      const dx = (e.fine?.x ?? e.x + 0.5) - STAGE_COLUMNS / 2
+      const onStage = e.y >= top && e.y < top + STAGE_ROWS
+      // A click on it makes it hop; a click on the floor elsewhere sends it there.
+      if (e.type === 'down' && onStage && e.x >= s.x && e.x < s.x + STAGE_COLUMNS) return surface.setState({ ...s, queue: [...ACTS.poke], until: 0, restAt: Date.now() })
+      if (e.type === 'down' && onStage && !latest?.working) {
+        const goal = Math.max(0, Math.min(surface.columns - STAGE_COLUMNS, Math.round(e.x - STAGE_COLUMNS / 2)))
+        return surface.setState({ ...s, goal, gait: 'walk', restAt: Date.now() })
+      }
+      const dx = (e.fine?.x ?? e.x + 0.5) - (s.x + STAGE_COLUMNS / 2)
       const look = Math.abs(dx) < 2 ? 0 : dx < 0 ? -1 : 1
       if (look !== s.look) surface.setState({ ...s, look, restAt: Date.now() })
     })
@@ -159,7 +184,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
           <Text><Text color="suggestion">{'▪'.repeat(Math.max(1, Math.round((n / toolMax) * 10)))}</Text> {n}</Text>)))}
     </Box>
     <Box flexDirection="column" flexShrink={0}>
-      {stage.map(line => <Text>{line.map(r => <Text color={r.color}>{r.text}</Text>)}</Text>)}
+      {stage.map(line => <Text>{' '.repeat(surface.state?.x ?? 0)}{line.map(r => <Text color={r.color}>{r.text}</Text>)}</Text>)}
       <Text dimColor>{'▔'.repeat(Math.max(STAGE_COLUMNS, surface.columns))}</Text>
       <Text wrap="truncate-end">{ticker.map(r => <Text color={r.color}>{r.text}</Text>)}{ticker.length === 0 && <Text dimColor>◆ {L.noNews}</Text>}</Text>
     </Box>
