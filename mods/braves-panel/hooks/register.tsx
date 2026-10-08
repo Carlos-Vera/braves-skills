@@ -24,6 +24,9 @@ const isOpen = atom({ plugin: 'braves-panel', key: 'isOpen' } as const, false)
 // Rows the pane shows at once; only ui.scroll tells, 0 until it does.
 const bodyRows = atom({ plugin: 'braves-panel', key: 'bodyRows' } as const, 0)
 const news = atom({ plugin: 'braves-panel', key: 'news' } as const, [] as News[])
+// A busy turn (SPRINT_TOOLS calls or more) is a sprint: the mascot jogs instead of typing.
+const sprint = atom({ plugin: 'braves-panel', key: 'sprint' } as const, false)
+const SPRINT_TOOLS = 6
 const gemini = atom({ plugin: 'braves-panel', key: 'gemini' } as const, null as Gemini | null)
 // What Zeus should do next; the panel's Client plays it when `n` moves.
 const cue = atom({ plugin: 'braves-panel', key: 'cue' } as const, { name: 'hello', n: 0 })
@@ -58,7 +61,7 @@ async function refreshGemini($: EngineInterface) {
 }
 
 // What Zeus should do next; kept for the image-sheet mascot.
-const motion = { still: false, typedAt: 0, failedAt: 0, measuring: false, probe: 0 }
+const motion = { still: false, typedAt: 0, failedAt: 0, measuring: false, probe: 0, turnTools: 0 }
 
 // The ticker keeps the latest few, newest first.
 function tell($: EngineInterface, kind: News['kind'], detail = '') {
@@ -97,6 +100,7 @@ export const register: Register = on => {
 
   on('tool.call', async ($, e, next) => {
     await update($, tools, all => ({ ...all, [e.tool]: (all[e.tool] ?? 0) + 1 }))
+    if (++motion.turnTools === SPRINT_TOOLS) void update($, sprint, () => true)
     // Claude needs you (a question) or has a plan ready: the mascot says so before it shows.
     if (e.tool === 'AskUserQuestion') say($, 'point'), tell($, 'ask', e.questions?.[0]?.question ?? '')
     if (e.tool === 'ExitPlanMode') say($, 'lightbulb'), tell($, 'plan')
@@ -139,6 +143,8 @@ export const register: Register = on => {
 
   on('turn.start', async ($, e, next) => {
     await update($, isWorking, () => true)
+    motion.turnTools = 0
+    await update($, sprint, () => false)
     say($, 'thinking')
     return next(e)
   })
@@ -146,6 +152,7 @@ export const register: Register = on => {
   on('turn.complete', async ($, e, next) => {
     if (!e.agentId) {
       await update($, isWorking, () => false)
+      await update($, sprint, () => false)
       if (e.reason === 'answer') say($, 'celebrate')
       else if (e.reason === 'aborted') say($, 'disappointed')
       else if (e.reason === 'error') say($, 'facepalm')
@@ -182,8 +189,8 @@ export const register: Register = on => {
       motion.measuring = true
       $.clock.every(1000, () => void $.ui.scroll({ in: PANE, to: motion.probe++ % 2 ? 'end' : 'start' }).catch(() => {}))
     }
-    const [usage, list, used, br, at, gem, lg, headlines] = await Promise.all([
-      $.session.usage(), read($, turns), read($, tools), read($, branch), read($, now), read($, gemini), read($, lang), read($, news),
+    const [usage, list, used, br, at, gem, lg, headlines, sprinting] = await Promise.all([
+      $.session.usage(), read($, turns), read($, tools), read($, branch), read($, now), read($, gemini), read($, lang), read($, news), read($, sprint),
     ])
     const [acct, model, version, cwd, working, next] = await Promise.all([
       read($, account), $.session.model(), $.session.version(), $.session.cwd(), read($, isWorking), read($, cue),
@@ -198,6 +205,7 @@ export const register: Register = on => {
       lang: lg,
       still: motion.still,
       working,
+      sprint: working && sprinting,
       cue: next,
       version: version.base ?? version.version,
       model,

@@ -121,6 +121,7 @@ export type View = {
   tools: [string, number][]
   room: number
   news: News[]
+  sprint: boolean
 }
 
 export type Run = { text: string; color?: string }
