@@ -16,8 +16,6 @@ export const FRAMES = {
   'look-right': [' ▐█▜██▛▌ ', ' ▜█████▛ ', '  ▆   ▆  '],
   'arms-up': [' █▛███▜█ ', ' ▐█████▌ ', '  ▆   ▆  '],
   reach: [' ▐█▜██▛▙ ', ' ▜█████▌ ', '  ▆   ▆  '],
-  'type-1': [' ▐█▜██▛▙ ', ' ▜█████▌ ', '  ▆   ▆  '],
-  'type-2': [' ▐█▜██▛▌ ', ' ▜██████ ', '  ▆   ▆  '],
   hammer: [' ▐█▜██▛▙▜', ' ▜█████▌▐', '  ▆   ▆  '],
   wrench: [' ▐█▜██▛▙▙', ' ▜█████▌▐', '  ▆   ▆  '],
   hop: [' ▟▙███▟▙ ', ' ▝█▀▀▀█▘ ', '         '],
@@ -39,60 +37,59 @@ export const ACTS = {
   idle: [['default', 800], ['look-left', 1000], ['default', 300], ['look-right', 1000], ['default', 300], ['arms-up', 1200], ['default', 400]],
 } satisfies Record<string, Beat[]>
 
-// ── Laptop Working ──────────────────────────────────────────────────────────
-// While Claude works the mascot types on an open laptop seen from the side:
-// a thin horizontal base extends left, the lid leans back at 45 degrees in
-// steel, and code pixels scroll along the screen's left face.
-// Drawn with the half-block renderer (two pixels per row, one per column).
-const LAPTOP = [
-  // Frame 0: code glows at y=0 (teal) and y=2 (light), y=3 (teal)
-  [
-    '......TS',
-    '.....DS.',
-    '....LS..',
-    '...TS...',
-    'SSSSS...',
-    '.SSSS...',
-  ],
-  // Frame 1: code scrolls upward, new statement appears
-  [
-    '......DS',
-    '.....TS.',
-    '....DS..',
-    '...LS...',
-    'SSSSS...',
-    '.SSSS...',
-  ],
-  // Frame 2: light token at top, teal code follows
-  [
-    '......LS',
-    '.....DS.',
-    '....TS..',
-    '...TS...',
-    'SSSSS...',
-    '.SSSS...',
-  ],
-  // Frame 3: teal top, light sub-expression
-  [
-    '......TS',
-    '.....LS.',
-    '....DS..',
-    '...LS...',
-    'SSSSS...',
-    '.SSSS...',
-  ],
-] as const
+// ── Working ─────────────────────────────────────────────────────────────────
+// While Claude works the mascot types on a laptop seen from the side: a flat
+// base reaching back to it, the lid leaning away from the hinge, the screen's
+// glow flickering on the lid's inner face. The right arm taps the keys.
+// Drawn on the same 2x2 sub-pixel grid as the mascot: 13 cells, 26 x 6.
+const ARM_UP = ['...TTTTTTTTTTTT..', '...TTT.TTTTTT.T..', '..TTTTTTTTTTTTTTT', '...TTTTTTTTTTTT..']
+const ARM_DOWN = ['...TTTTTTTTTTTT..', '...TTT.TTTTTT.T..', '..TTTTTTTTTTTTT..', '...TTTTTTTTTTTTTT']
+const LEGS = ['....TT......TT..S', '....TT......TT...']
+const LID = ['........S', '.......S.', '.......S.', '......S..', 'SSSSSSS..', '.........']
 
-const WORK_POSES: readonly Pose[] = ['type-1', 'type-2', 'type-1', 'type-2']
+/** One working frame: the arm up or down, and where the glow sits on the screen. */
+function workFrame(arm: readonly string[], glow?: [number, number]): string[] {
+  const rows = [...arm, ...LEGS].map((m, r) => m + LID[r]!)
+  if (glow) {
+    const [r, c] = glow
+    rows[r] = rows[r]!.slice(0, c) + 'L' + rows[r]!.slice(c + 1)
+  }
+  return rows
+}
 
-export const WORK_FRAMES = LAPTOP.length
-export const WORK_MS = 250
+const WORK = [
+  workFrame(ARM_UP, [1, 23]),
+  workFrame(ARM_DOWN, [0, 23]),
+  workFrame(ARM_UP),
+  workFrame(ARM_DOWN, [1, 23]),
+]
+export const WORK_FRAMES = WORK.length
+export const WORK_MS = 220
 
-const LAPTOP_COLORS: Record<string, string> = {
-  S: '#9aa3ad', // steel lid frame & keyboard base
-  D: '#1c1c22', // dark screen background
-  T: '#02c0b6', // teal code pixel
-  L: '#f0ece4', // light code pixel
+const SCENE_COLORS: Record<string, string> = {
+  T: '#02c0b6', // the mascot
+  S: '#9aa3ad', // laptop
+  L: '#f0ece4', // screen glow
+}
+
+const QUADS = ' ▘▝▀▖▌▞▛▗▚▐▜▄▙▟█'
+
+/** Sub-pixel rows to cells: each cell is a quadrant char in its most common color. */
+function quadRuns(px: readonly string[]): Run[][] {
+  return Array.from({ length: px.length / 2 }, (_, r) => {
+    const runs: Run[] = []
+    for (let c = 0; c < px[0]!.length / 2; c++) {
+      const cells = [px[2 * r]![2 * c]!, px[2 * r]![2 * c + 1]!, px[2 * r + 1]![2 * c]!, px[2 * r + 1]![2 * c + 1]!]
+      const lit = cells.map(x => x !== '.')
+      const counts = new Map<string, number>()
+      for (const x of cells) if (x !== '.') counts.set(x, (counts.get(x) ?? 0) + 1)
+      const top = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0]
+      const ch = QUADS[(lit[0] ? 1 : 0) + (lit[1] ? 2 : 0) + (lit[2] ? 4 : 0) + (lit[3] ? 8 : 0)]!
+      // The legs keep Carlos's ▆, a hair shorter than a full block.
+      push(runs, { text: ch === '█' && top === 'T' && r === px.length / 2 - 1 ? '▆' : ch, color: top && SCENE_COLORS[top] })
+    }
+    return runs
+  })
 }
 
 export type Run = { text: string; color?: string; bg?: string }
@@ -103,26 +100,9 @@ function push(runs: Run[], run: Run) {
   else runs.push(run)
 }
 
-function laptopRow(px: readonly string[], r: number): Run[] {
-  const runs: Run[] = []
-  for (let c = 0; c < px[0]!.length; c++) {
-    const top = LAPTOP_COLORS[px[2 * r]![c]!]
-    const bottom = LAPTOP_COLORS[px[2 * r + 1]![c]!]
-    push(runs, top === undefined && bottom === undefined ? { text: ' ' }
-      : top === bottom ? { text: '█', color: top }
-      : top === undefined ? { text: '▄', color: bottom }
-      : { text: '▀', color: top, bg: bottom })
-  }
-  return runs
-}
-
 /** The mascot; with `work` set, typing on the laptop beside it. */
 export function toRuns(pose: Pose, work?: number): Run[][] {
-  if (work !== undefined) {
-    const screen = LAPTOP[work % LAPTOP.length]!
-    const mascotPose = WORK_POSES[work % WORK_POSES.length] ?? 'type-1'
-    return FRAMES[mascotPose].map((line, r) => [...lineRuns(line.slice(0, STAGE_COLUMNS - 1)), ...laptopRow(screen, r)])
-  }
+  if (work !== undefined) return quadRuns(WORK[work % WORK.length]!)
   return FRAMES[pose].map(line => lineRuns(line))
 }
 
