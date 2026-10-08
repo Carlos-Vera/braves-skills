@@ -87,7 +87,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
     <Box flexDirection="column" gap={1}>
       <Box flexDirection="row" gap={2}>
         <Box flexDirection="column" flexShrink={0}>
-          {stage.map(line => <Text>{line.map(r => <Text color={r.color} backgroundColor={r.bg}>{r.text}</Text>)}</Text>)}
+          {stage.map(line => <Text>{line.map(r => <Text color={r.color}>{r.text}</Text>)}</Text>)}
         </Box>
         <Box flexDirection="column" flexShrink={1}>
           <Text wrap="truncate-end"><Text bold>Claude Code</Text> <Text dimColor>v{view.version}</Text></Text>
