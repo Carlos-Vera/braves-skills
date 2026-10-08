@@ -1,13 +1,13 @@
 import { expect, test } from 'claude-code/testing'
 
-import { ACTS, STAGE_COLUMNS, STAGE_ROWS, WORK_STEPS, toRuns, workAt } from './mascot'
+import { ACTS, SCENES, STAGE_COLUMNS, STAGE_ROWS, toRuns, workAt } from './mascot'
 import type { Pose } from './mascot'
 import { SEQUENCES, SPRITES } from './sprites'
 
 test('every sprite is 3 rows, 9 cells wide (13 for the laptop scenes), ink matching its characters', () => {
   for (const [name, { rows, ink }] of Object.entries(SPRITES)) {
     expect(rows.length).toBe(STAGE_ROWS)
-    const width = name.startsWith('work') ? 13 : STAGE_COLUMNS
+    const width = name.startsWith('work') || name.startsWith('desk') ? 13 : STAGE_COLUMNS
     expect(rows.every(r => [...r].length === width)).toBe(true)
     rows.forEach((r, i) => expect([...r].length).toBe(ink[i]!.length))
   }
@@ -29,11 +29,18 @@ test('empty cells carry no color, drawn ones do', () => {
   expect(runs.some(r => r.color === '#02c0b6')).toBe(true)
 })
 
-test('the laptop routine loops on its own durations', () => {
-  expect(WORK_STEPS > 1).toBe(true)
-  const first = SEQUENCES.work[0]![1]
-  expect(workAt(0)).toBe(0)
-  expect(workAt(first - 1)).toBe(0)
-  expect(workAt(first)).toBe(1)
-  expect(toRuns('default', 0).map(l => l.map(r => r.text).join(''))).toEqual([...SPRITES[SEQUENCES.work[0]![0]].rows])
+test('both work routines loop on their own durations', () => {
+  for (const scene of ['laptop', 'desktop'] as const) {
+    const steps = SCENES[scene]
+    expect(steps.length > 1).toBe(true)
+    const first = steps[0]![1]
+    expect(workAt(0, scene)).toBe(0)
+    expect(workAt(first - 1, scene)).toBe(0)
+    expect(workAt(first, scene)).toBe(1)
+    expect(toRuns('default', 0, scene).map(l => l.map(r => r.text).join(''))).toEqual([...SPRITES[steps[0]![0]].rows])
+  }
+})
+
+test('every reaction the hooks can cue has an act', () => {
+  for (const cue of ['thinking', 'point', 'lightbulb', 'facepalm', 'disappointed', 'excited', 'confetti', 'dizzy', 'meditate']) expect(cue in ACTS).toBe(true)
 })

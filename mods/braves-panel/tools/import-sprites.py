@@ -4,8 +4,8 @@
     python3 tools/import-sprites.py ~/Downloads/animation.json
 
 Keyframes become sprites (named after the keyframe; a repeated name gets -2, -3),
-timelines become sequences. The one whose name starts with "work" is the laptop
-routine played while Claude works.
+timelines become sequences, keyed by the first word of their name: "work" and
+"work-desktop" are the routines played while Claude works, the rest are acts.
 """
 import json
 import os
@@ -39,7 +39,7 @@ for kid, k in src['keyframes'].items():
 
 sequences = {}
 for s in src['sequences']:
-    key = 'work' if s['name'].startswith('work') else s['name']
+    key = s['name'].split(' ')[0]
     sequences[key] = [[names[st['keyframeId']], st['duration']] for st in s['steps'] if st['keyframeId'] in names]
 
 out = os.path.join(os.path.dirname(__file__), '..', 'hooks', 'sprites.ts')

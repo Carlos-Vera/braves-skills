@@ -13,21 +13,22 @@ export type Pose = keyof typeof SPRITES
 /** A step in a short performance: show `pose` for `ms`. */
 export type Beat = readonly [Pose, number]
 
-const { work: WORK, ...acts } = SEQUENCES
-/** The editor's timelines (hello, jump, celebrate, poke, idle, ...); `work` plays apart. */
+const { work, 'work-desktop': workDesktop, ...acts } = SEQUENCES
+/** The editor's timelines (hello, jump, celebrate, poke, idle, ...); the work routines play apart. */
 export const ACTS: Record<keyof typeof acts, readonly Beat[]> = acts
 
 // ── Working ─────────────────────────────────────────────────────────────────
-// While Claude works the mascot loops its laptop routine: types, glances at the
-// prompt, winks, scratches its head.
-const WORK_MS = WORK.reduce((t, [, ms]) => t + ms, 0)
-export const WORK_STEPS = WORK.length
+// While Claude works the mascot loops a routine at a laptop or at a desktop
+// (one or the other per turn): types, glances at the prompt, winks, scratches its head.
+export const SCENES = { laptop: work, desktop: workDesktop }
+export type Scene = keyof typeof SCENES
 
-/** Which routine step plays `ms` into the loop. */
-export function workAt(ms: number): number {
-  let t = ms % WORK_MS
-  for (let i = 0; i < WORK.length; i++) {
-    t -= WORK[i]![1]
+/** Which step of `scene`'s routine plays `ms` into the loop. */
+export function workAt(ms: number, scene: Scene = 'laptop'): number {
+  const steps = SCENES[scene]
+  let t = ms % steps.reduce((sum, [, d]) => sum + d, 0)
+  for (let i = 0; i < steps.length; i++) {
+    t -= steps[i]![1]
     if (t < 0) return i
   }
   return 0
@@ -35,9 +36,10 @@ export function workAt(ms: number): number {
 
 export type Run = { text: string; color?: string }
 
-/** The sprite for `pose`, or with `work` set, that step of the laptop routine. */
-export function toRuns(pose: Pose, work?: number): Run[][] {
-  const { rows, ink } = SPRITES[work === undefined ? pose : WORK[work % WORK.length]![0]]
+/** The sprite for `pose`, or with `work` set, that step of `scene`'s routine. */
+export function toRuns(pose: Pose, work?: number, scene: Scene = 'laptop'): Run[][] {
+  const steps = SCENES[scene]
+  const { rows, ink } = SPRITES[work === undefined ? pose : steps[work % steps.length]![0]]
   return rows.map((line, r) => {
     const runs: Run[] = []
     ;[...line].forEach((text, c) => {
