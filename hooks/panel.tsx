@@ -68,6 +68,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         cue = v.cue.n
         const act = ACTS[v.cue.name as keyof typeof ACTS]
         if (act) (queue = [...act]), (until = 0)
+        // /braves-panel scratch: the head scratch from the laptop routine, a few rubs longer.
+        if (v.cue.name === 'scratch') (queue = Array.from({ length: 12 }, (_, i): Beat => [i % 2 ? 'work-7' : 'work-6', 160])), (until = 0)
         // /braves-panel peek | sit: the explore routines on demand.
         // A second error within a minute (angry) is a big problem: once the act ends it goes to look into the code.
         if ((v.cue.name === 'angry' || v.cue.name === 'lift') && lift < 0) (rush = 'lift'), (gait = 'walk'), (goal = 0)
