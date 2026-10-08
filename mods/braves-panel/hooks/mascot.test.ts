@@ -4,9 +4,9 @@ import { ACTS, SCENES, STAGE_COLUMNS, STAGE_ROWS, toRuns, workAt } from './masco
 import type { Pose } from './mascot'
 import { SEQUENCES, SPRITES } from './sprites'
 
-test('every sprite is 4 rows (effects on top), 9 cells wide (13 for the work scenes), ink matching its characters', () => {
+test('every sprite is up to 4 rows (effects on top; toRuns pads shorter ones), 9 cells wide (13 for the work scenes), ink matching its characters', () => {
   for (const [name, { rows, ink }] of Object.entries(SPRITES)) {
-    expect(rows.length).toBe(STAGE_ROWS)
+    expect(rows.length).toBeLessThanOrEqual(STAGE_ROWS)
     const width = name.startsWith('work') || name.startsWith('desk') ? 13 : STAGE_COLUMNS
     expect(rows.every(r => [...r].length === width)).toBe(true)
     rows.forEach((r, i) => expect([...r].length).toBe(ink[i]!.length))
