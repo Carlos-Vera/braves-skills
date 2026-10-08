@@ -131,7 +131,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
 
   return (
     <Box flexDirection="column" flexGrow={1}>
-    <Box flexDirection="column" gap={1} flexGrow={1} flexShrink={1} overflow="hidden">
+    <Box flexDirection="column" gap={1} flexGrow={1} flexShrink={1} minHeight={0} overflow="hidden">
       <Box flexDirection="column">
         <Text wrap="truncate-end"><Text bold>Claude Code</Text> <Text dimColor>v{view.version}</Text></Text>
         <Text wrap="truncate-end" dimColor>{view.model}{view.plan ? ` · ${view.plan}` : ''}</Text>
