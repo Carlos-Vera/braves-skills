@@ -5,11 +5,13 @@ import type { Run, View } from './format'
 import type { News, Turn } from '../types'
 import { ACTS, STAGE_COLUMNS, STAGE_ROWS, TICK_MS, toRuns, workAt } from './mascot'
 import type { Beat, Pose, Scene } from './mascot'
+import { BACKDROP_ORDER, backdrop } from './scenery'
+import type { Cell } from './scenery'
 
 // The whole panel draws here as a Client so the pointer anywhere over it
 // reaches the mascot: it looks toward the pointer, a click makes it hop.
 
-type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number }
+type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number }
 
 let latest: View | undefined
 
@@ -25,7 +27,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
 
   if (surface.state === undefined) {
     const now = Date.now()
-    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now, reel: 0, x: 0, goal: 0, gait: 'walk', stepAt: 0 })
+    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now, reel: 0, x: 0, goal: 0, gait: 'walk', stepAt: 0, trek: 0 })
 
     surface.every(TICK_MS, () => {
       const s = surface.state
@@ -45,7 +47,9 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         restAt = now
       }
       // Working: its routine, unless an act (a send, a click, a reaction) is playing.
-      const work = v.working && queue.length === 0 && now >= until ? workAt(now, scene) : undefined
+      // A sprint (a busy turn) swaps the laptop for a jog in place while the backdrop scrolls past.
+      const jog = v.sprint && queue.length === 0 && now >= until
+      const work = v.working && !v.sprint && queue.length === 0 && now >= until ? workAt(now, scene) : undefined
       if (v.working) (idleAt = now + 12000), (restAt = now)
       const free = !v.working && queue.length === 0 && now > until
       // Nothing going on: after a minute it meditates, after three it falls asleep.
@@ -68,6 +72,9 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       else if (queue[0]) {
         const [p, ms] = queue[0]
         pose = p, until = now + ms, queue = queue.slice(1)
+      } else if (jog) {
+        const steps = ACTS.jog
+        pose = steps[Math.floor(now / steps[0]![1]) % steps.length]![0]
       } else if (!v.working && goal !== x) {
         // Crossing the stage: a cell every tick (the slack absorbs timer jitter), legs alternating.
         if (now >= stepAt) (x += Math.sign(goal - x)), (stepAt = now + TICK_MS - 10)
@@ -76,7 +83,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       } else if (work === undefined && now > blinkAt) (pose = 'blink'), (until = now + 150), (blinkAt = now + 2500 + Math.random() * 3500)
       // The ticker crawls a cell every 150 ms while it has news.
       const reel = v.news.length > 0 ? Math.floor(now / 150) : s.reel
-      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel || x !== s.x || goal !== s.goal) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel, x, goal, gait, stepAt })
+      const trek = v.sprint ? Math.floor(now / 90) : s.trek
+      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel || x !== s.x || goal !== s.goal || trek !== s.trek) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel, x, goal, gait, stepAt, trek })
     })
 
     surface.onPointer(e => {
@@ -98,7 +106,28 @@ const Panel: ClientModule<View, State> = (view, surface) => {
     })
   }
 
-  const stage = toRuns(surface.state?.pose ?? 'default', surface.state?.work, surface.state?.scene)
+  const sprite = toRuns(surface.state?.pose ?? 'default', surface.state?.work, surface.state?.scene)
+  // The stage, cell by cell: the backdrop (a sprint's, blank otherwise), the mascot over it at x.
+  const across = Math.max(STAGE_COLUMNS, surface.columns)
+  const ground: Cell[][] = view.sprint
+    ? backdrop(BACKDROP_ORDER[Math.floor(Date.now() / 20000) % BACKDROP_ORDER.length]!, across, surface.state?.trek ?? 0)
+    : sprite.map(() => Array.from({ length: across }, () => ({ ch: ' ' })))
+  const stage = sprite.map((line, r) => {
+    const row = ground[r]!
+    const x = surface.state?.x ?? 0
+    const cells = line.flatMap(run => [...run.text].map(ch => ({ ch, color: run.color })))
+    // Between its first and last glyph the mascot hides the backdrop, so the legs never merge into a building.
+    const from = cells.findIndex(cell => cell.ch !== ' ')
+    const to = cells.findLastIndex(cell => cell.ch !== ' ')
+    for (let i = from; from >= 0 && i <= to; i++) if (x + i < across) row[x + i] = cells[i]!.ch === ' ' ? { ch: ' ' } : cells[i]!
+    const runs: Run[] = []
+    for (const cell of row) {
+      const last = runs.at(-1)
+      if (last && last.color === cell.color) last.text += cell.ch
+      else runs.push({ text: cell.ch, color: cell.color })
+    }
+    return runs
+  })
 
   const L = LABELS[view.lang]
   const headline = (n: News): Run => ({
@@ -183,7 +212,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
           <Text><Text color="suggestion">{'▪'.repeat(Math.max(1, Math.round((n / toolMax) * 10)))}</Text> {n}</Text>)))}
     </Box>
     <Box flexDirection="column" flexShrink={0}>
-      {stage.map(line => <Text>{' '.repeat(surface.state?.x ?? 0)}{line.map(r => <Text color={r.color}>{r.text}</Text>)}</Text>)}
+      {stage.map(line => <Text wrap="truncate-end">{line.map(r => <Text color={r.color}>{r.text}</Text>)}</Text>)}
       <Text dimColor>{'▔'.repeat(Math.max(STAGE_COLUMNS, surface.columns))}</Text>
       <Text wrap="truncate-end">{ticker.map(r => <Text color={r.color}>{r.text}</Text>)}{ticker.length === 0 && <Text dimColor>◆ {L.noNews}</Text>}</Text>
     </Box>

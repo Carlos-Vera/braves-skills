@@ -27,6 +27,7 @@ declare module 'claude-code' {
       isOpen: boolean
       bodyRows: number
       news: News[]
+      sprint: boolean
       gemini: Gemini | null
       lang: Lang
       account: Account | null
