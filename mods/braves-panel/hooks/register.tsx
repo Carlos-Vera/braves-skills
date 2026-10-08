@@ -69,7 +69,7 @@ async function refreshGemini($: EngineInterface) {
 }
 
 // What Zeus should do next; kept for the image-sheet mascot.
-const motion = { still: false, typedAt: 0, failedAt: 0, measuring: false, probe: 0 }
+const motion = { still: false, typedAt: 0, failedAt: 0, measuring: false, probe: 0, sprinting: false }
 
 // The ticker keeps the latest few, newest first.
 function tell($: EngineInterface, kind: News['kind'], detail = '') {
@@ -106,8 +106,8 @@ export const register: Register = on => {
       void $.clock.sleep(80000).then(() => update($, sprint, () => false))
       return { text: L.sprintDemo }
     }
-    if (['peek', 'sit', 'lift', 'scratch'].includes(e.args.trim())) {
-      const act = e.args.trim() as 'peek' | 'sit' | 'lift' | 'scratch'
+    if (['peek', 'sit', 'lift', 'scratch', 'sleep'].includes(e.args.trim())) {
+      const act = e.args.trim() as 'peek' | 'sit' | 'lift' | 'scratch' | 'sleep'
       say($, act)
       return { text: L[act] }
     }
@@ -207,7 +207,8 @@ export const register: Register = on => {
     // Started on the first draw, not session.start, so a hot reload picks it up.
     if (!motion.measuring) {
       motion.measuring = true
-      $.clock.every(1000, () => void $.ui.scroll({ in: PANE, to: motion.probe++ % 2 ? 'end' : 'start' }).catch(() => {}))
+      // Paused while sprinting: each scroll repaints the pane and the scrolling backdrop stutters.
+      $.clock.every(1000, () => void (motion.sprinting || $.ui.scroll({ in: PANE, to: motion.probe++ % 2 ? 'end' : 'start' }).catch(() => {})))
     }
     const [usage, list, used, br, at, gem, lg, headlines, demo, agents, open] = await Promise.all([
       $.session.usage(), read($, turns), read($, tools), read($, branch), read($, now), read($, gemini), read($, lang), read($, news), read($, sprint), read($, crowd), read($, tasks),
@@ -225,7 +226,7 @@ export const register: Register = on => {
       lang: lg,
       still: motion.still,
       working,
-      sprint: demo || agents >= SPRINT || (working && open >= SPRINT),
+      sprint: (motion.sprinting = demo || agents >= SPRINT || (working && open >= SPRINT)),
       cue: next,
       version: version.base ?? version.version,
       model,
