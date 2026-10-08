@@ -49,9 +49,9 @@ export const SPRITES = {
   "point-2": { rows: [" ▐█████▌ ", "▗▟▟██▙█▛ ", "▘ ▆   ▆  "], ink: [" 0000000 ", "00000000 ", "0 0   0  "] },
   "sway-left": { rows: [" █▜██▛█  ", "▝██████▘ ", " ▐▌  ▐▌  "], ink: [" 000000  ", "00000000 ", " 00  00  "] },
   "sway-right": { rows: ["  █▜██▛█ ", " ▝██████▘", "  ▐▌  ▐▌ "], ink: ["  000000 ", " 00000000", "  00  00 "] },
-  "turn-side-left": { rows: [" ▐▜████▌ ", " ▜█████▛ ", "  ▆   ▆  "], ink: [" 0000000 ", " 0000000 ", "  0   0  "] },
+  "turn-side-left": { rows: ["  ▐▜██▌  ", "  ▜███▌  ", "   ▆ ▆   "], ink: ["  00000  ", "  00000  ", "   0 0   "] },
   "turn-back": { rows: [" ▐█████▌ ", " ▜█████▛ ", "  ▆   ▆  "], ink: [" 0000000 ", " 0000000 ", "  0   0  "] },
-  "turn-side-right": { rows: [" ▐████▛▌ ", " ▜█████▛ ", "  ▆   ▆  "], ink: [" 0000000 ", " 0000000 ", "  0   0  "] },
+  "turn-side-right": { rows: ["  ▐██▛▌  ", "  ▐███▛  ", "   ▆ ▆   "], ink: ["  00000  ", "  00000  ", "   0 0   "] },
   "walk-1": { rows: [" ▐█▜██▛▙ ", " ▟█████▌ ", "  ▆   ▀  "], ink: [" 0000000 ", " 0000000 ", "  0   0  "] },
   "walk-2": { rows: [" ▟█▜██▛▌ ", " ▐█████▙ ", "  ▀   ▆  "], ink: [" 0000000 ", " 0000000 ", "  0   0  "] },
   "crab-1": { rows: ["▄█▜██▛█▄ ", " ██████  ", " ▆    ▆  "], ink: ["00000000 ", " 000000  ", " 0    0  "] },
@@ -88,6 +88,8 @@ export const SPRITES = {
   "dizzy-stars-1": { rows: ["  ✦   ·  ", "  ▛████▜ ", " ▝██████▘", "  ▐▌  ▐▌ "], ink: ["  3   3  ", "  000000 ", " 00000000", "  00  00 "] },
   "dizzy-stars-2": { rows: [" ·  ✦  · ", " ▐█▜█▛█▌ ", " ▜█████▛ ", "  ▆   ▆  "], ink: [" 3  3  3 ", " 0000000 ", " 0000000 ", "  0   0  "] },
   "dizzy-stars-3": { rows: ["  ·   ✦  ", " ▛████▜  ", "▝██████▘ ", " ▐▌  ▐▌  "], ink: ["  3   3  ", " 000000  ", "00000000 ", " 00  00  "] },
+  "turn-quarter-left": { rows: [" ▐▜██▜█▌ ", " ▜█████▌ ", "  ▆   ▆  "], ink: [" 0000000 ", " 0000000 ", "  0   0  "] },
+  "turn-quarter-right": { rows: [" ▐█▛██▛▌ ", " ▐█████▛ ", "  ▆   ▆  "], ink: [" 0000000 ", " 0000000 ", "  0   0  "] },
 } as const
 
 export const SEQUENCES = {
@@ -103,7 +105,6 @@ export const SEQUENCES = {
   "disappointed": [["sad-1", 900], ["sad-2", 200], ["sad-1", 900]],
   "meditate": [["meditate-1", 1400], ["meditate-2", 1400]],
   "sway": [["sway-left", 500], ["default", 300], ["sway-right", 500], ["default", 300], ["sway-left", 500], ["default", 300]],
-  "turning": [["look-left", 300], ["turn-side-left", 250], ["turn-back", 400], ["turn-side-right", 250], ["look-right", 300], ["default", 300]],
   "walk": [["walk-1", 200], ["walk-2", 200], ["walk-1", 200], ["walk-2", 200], ["walk-1", 200], ["walk-2", 200], ["walk-1", 200], ["walk-2", 200], ["default", 300]],
   "crab": [["crab-1", 180], ["crab-2", 180], ["crab-1", 180], ["crab-2", 180], ["crab-1", 180], ["crab-2", 180], ["crab-1", 180], ["crab-2", 180], ["default", 300]],
   "work-desktop": [["desk-0", 220], ["desk-1", 220], ["desk-2", 220], ["desk-1", 220], ["desk-0", 220], ["desk-1", 220], ["desk-2", 220], ["desk-1", 220], ["desk-0", 220], ["desk-1", 220], ["desk-2", 220], ["desk-1", 220], ["desk-0", 220], ["desk-1", 220], ["desk-4", 1400], ["desk-5", 250], ["desk-4", 700], ["desk-0", 220], ["desk-1", 220], ["desk-2", 220], ["desk-1", 220], ["desk-0", 220], ["desk-1", 220], ["desk-2", 220], ["desk-1", 220], ["desk-0", 220], ["desk-1", 220], ["desk-2", 220], ["desk-1", 220], ["desk-6", 160], ["desk-7", 160], ["desk-6", 160], ["desk-7", 160], ["desk-6", 160], ["desk-7", 160], ["desk-6", 160], ["desk-7", 160], ["desk-0", 220], ["desk-1", 220], ["desk-2", 220], ["desk-1", 220], ["desk-0", 220], ["desk-1", 220], ["desk-2", 220], ["desk-1", 220], ["desk-0", 220], ["desk-1", 220], ["desk-2", 220], ["desk-1", 220], ["desk-0", 220], ["desk-1", 220], ["desk-4", 1600]],
@@ -117,4 +118,5 @@ export const SEQUENCES = {
   "halo": [["halo-1", 1200], ["halo-2", 900], ["default", 300]],
   "angry": [["angry-1", 400], ["angry-2", 300], ["angry-1", 300], ["angry-2", 300], ["angry-1", 600]],
   "dizzy": [["dizzy-stars-1", 300], ["dizzy-stars-2", 300], ["dizzy-stars-3", 300], ["dizzy-stars-2", 300], ["dizzy-stars-1", 300], ["default", 200]],
+  "turning": [["default", 400], ["turn-quarter-left", 180], ["turn-side-left", 180], ["turn-back", 350], ["turn-side-right", 180], ["turn-quarter-right", 180], ["default", 400], ["turn-quarter-left", 180], ["turn-side-left", 180], ["turn-back", 350], ["turn-side-right", 180], ["turn-quarter-right", 180], ["default", 200], ["happy", 500]],
 } as const
