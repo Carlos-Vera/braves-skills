@@ -35,6 +35,21 @@ test('every act only names poses that exist', () => {
   expect(toRuns('default' as Pose).map(l => l.map(r => r.text).join(''))).toEqual([...FRAMES.default])
 })
 
+test('typing poses differ by at least two cells while preserving body and legs', () => {
+  const p1 = FRAMES['type-1']
+  const p2 = FRAMES['type-2']
+  expect(p1[2]).toBe(p2[2])
+  expect(p1[0].slice(0, 7)).toBe(p2[0].slice(0, 7))
+  expect(p1[1].slice(0, 7)).toBe(p2[1].slice(0, 7))
+  let diffs = 0
+  for (let r = 0; r < STAGE_ROWS; r++) {
+    for (let c = 0; c < STAGE_COLUMNS; c++) {
+      if (p1[r]?.[c] !== p2[r]?.[c]) diffs++
+    }
+  }
+  expect(diffs).toBeGreaterThanOrEqual(2)
+})
+
 test('working draws the mascot typing on a laptop beside it, two frames apart', () => {
   const a = toRuns('default', 0).map(l => l.map(r => r.text).join(''))
   const b = toRuns('default', 1).map(l => l.map(r => r.text).join(''))
