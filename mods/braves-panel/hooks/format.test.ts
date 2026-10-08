@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 
-import { bar, colorFor, fmtDuration, fmtTokens, accountOf, langOf, tildePath, parseGemini, planOf } from './format'
+import { bar, colorFor, fmtDuration, fmtTokens, accountOf, langOf, marquee, tildePath, parseGemini, planOf } from './format'
 
 test('formats the panel figures', () => {
   expect(fmtTokens(950)).toBe('950')
@@ -45,4 +45,14 @@ test('reads the plan from claude auth status', () => {
   expect(accountOf('', '/u')).toBe(null)
   expect(tildePath('/u/x/y', '/u')).toBe('~/x/y')
   expect(tildePath('/other', '/u')).toBe('/other')
+})
+
+test('the ticker stands still when it fits and loops when it does not', () => {
+  const text = (r: { text: string }[]) => r.map(x => x.text).join('')
+  expect(text(marquee([{ text: 'hola', color: 'red' }], 10, 5))).toBe('hola')
+  expect(marquee([], 10, 0)).toEqual([])
+  const long = [{ text: 'abcdef', color: 'red' }, { text: 'xyz' }]
+  expect(text(marquee(long, 8, 0))).toBe('abcdef  ')
+  expect(text(marquee(long, 8, 23))).toBe('abcdef  ')
+  expect(marquee(long, 8, 0)[0]).toEqual({ text: 'abcdef', color: 'red' })
 })

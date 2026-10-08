@@ -1,15 +1,15 @@
 import type { ClientModule, RenderChildren } from 'claude-code'
 
-import { BRAND, GEMINI_COLOR, LABEL, LABELS, bar, colorFor, fmtTokens } from './format'
-import type { View } from './format'
-import type { Turn } from '../types'
+import { BRAND, GEMINI_COLOR, LABEL, LABELS, bar, colorFor, fmtTokens, marquee } from './format'
+import type { Run, View } from './format'
+import type { News, Turn } from '../types'
 import { ACTS, STAGE_COLUMNS, STAGE_ROWS, TICK_MS, toRuns, workAt } from './mascot'
 import type { Beat, Pose, Scene } from './mascot'
 
 // The whole panel draws here as a Client so the pointer anywhere over it
 // reaches the mascot: it looks toward the pointer, a click makes it hop.
 
-type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number }
+type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number }
 
 let latest: View | undefined
 
@@ -22,7 +22,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
 
   if (surface.state === undefined) {
     const now = Date.now()
-    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now })
+    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now, reel: 0 })
 
     surface.every(TICK_MS, () => {
       const s = surface.state
@@ -56,15 +56,18 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         const [p, ms] = queue[0]
         pose = p, until = now + ms, queue = queue.slice(1)
       } else if (work === undefined && now > blinkAt) (pose = 'blink'), (until = now + 150), (blinkAt = now + 2500 + Math.random() * 3500)
-      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt })
+      // The ticker crawls a cell every 150 ms while it has news.
+      const reel = v.news.length > 0 ? Math.floor(now / 150) : s.reel
+      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel })
     })
 
     surface.onPointer(e => {
       const s = surface.state
       if (!s || latest?.still) return
       if (e.type === 'leave') return s.look !== 0 && surface.setState({ ...s, look: 0 })
-      const top = latest?.stage ?? null
-      if (e.type === 'down' && top !== null && e.x < STAGE_COLUMNS && e.y >= top && e.y < top + STAGE_ROWS) return surface.setState({ ...s, queue: [...ACTS.poke], until: 0, restAt: Date.now() })
+      // The stage is the footer: STAGE_ROWS rows above the floor line and the ticker.
+      const top = surface.rows - STAGE_ROWS - 2
+      if (e.type === 'down' && e.x < STAGE_COLUMNS && e.y >= top && e.y < top + STAGE_ROWS) return surface.setState({ ...s, queue: [...ACTS.poke], until: 0, restAt: Date.now() })
       const dx = (e.fine?.x ?? e.x + 0.5) - STAGE_COLUMNS / 2
       const look = Math.abs(dx) < 2 ? 0 : dx < 0 ? -1 : 1
       if (look !== s.look) surface.setState({ ...s, look, restAt: Date.now() })
@@ -74,6 +77,16 @@ const Panel: ClientModule<View, State> = (view, surface) => {
   const stage = toRuns(surface.state?.pose ?? 'default', surface.state?.work, surface.state?.scene)
 
   const L = LABELS[view.lang]
+  const headline = (n: News): Run => ({
+    ask: { text: `? ${n.detail}`, color: 'warning' },
+    plan: { text: `✦ ${L.plan}`, color: 'suggestion' },
+    error: { text: `✗ ${n.detail} ${L.failed}`, color: 'error' },
+    deny: { text: `⊘ ${n.detail} ${L.denied}`, color: 'warning' },
+    commit: { text: `● ${L.commit}${n.detail ? `: ${n.detail}` : ''}`, color: 'success' },
+    ship: { text: `★ ${L.ship}`, color: 'success' },
+    gemini: { text: `✦ Gemini: ${n.detail}`, color: GEMINI_COLOR },
+  })[n.kind]
+  const ticker = marquee(view.news.map(headline), surface.columns, view.still ? 0 : surface.state?.reel ?? 0)
   const Section = (icon: string, title: string, color: string, body: RenderChildren) => (
     <Box flexDirection="column">
       <Text color={color} bold>{icon} {title}</Text>
@@ -93,7 +106,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
   const toolCount = view.tools.reduce((n, [, c]) => n + c, 0)
 
   return (
-    <Box flexDirection="column" gap={1} flexGrow={1}>
+    <Box flexDirection="column" flexGrow={1}>
+    <Box flexDirection="column" gap={1} flexGrow={1} flexShrink={1} overflow="hidden">
       <Box flexDirection="column">
         <Text wrap="truncate-end"><Text bold>Claude Code</Text> <Text dimColor>v{view.version}</Text></Text>
         <Text wrap="truncate-end" dimColor>{view.model}{view.plan ? ` · ${view.plan}` : ''}</Text>
@@ -143,11 +157,12 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         ? Row('', <Text dimColor>{L.none}</Text>)
         : view.tools.slice(0, view.room).map(([name, n]) => Row(name,
           <Text><Text color="suggestion">{'▪'.repeat(Math.max(1, Math.round((n / toolMax) * 10)))}</Text> {n}</Text>)))}
-
-      {view.stage !== null && <Box flexGrow={1} />}
-      {view.stage !== null && <Box flexDirection="column" flexShrink={0}>
-        {stage.map(line => <Text>{line.map(r => <Text color={r.color}>{r.text}</Text>)}</Text>)}
-      </Box>}
+    </Box>
+    <Box flexDirection="column" flexShrink={0}>
+      {stage.map(line => <Text>{line.map(r => <Text color={r.color}>{r.text}</Text>)}</Text>)}
+      <Text dimColor>{'▔'.repeat(Math.max(STAGE_COLUMNS, surface.columns))}</Text>
+      <Text wrap="truncate-end">{ticker.map(r => <Text color={r.color}>{r.text}</Text>)}{ticker.length === 0 && ' '}</Text>
+    </Box>
     </Box>
   )
 }

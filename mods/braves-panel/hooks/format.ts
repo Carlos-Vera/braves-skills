@@ -1,4 +1,4 @@
-import type { Account, Gemini, Lang, Turn } from '../types'
+import type { Account, Gemini, Lang, News, Turn } from '../types'
 
 // Pure helpers shared by the hooks module and the panel's drawing module.
 export const LABEL = 15
@@ -17,6 +17,7 @@ export const LABELS = {
     quiet: 'en silencio', model: 'Modelo', step: 'Paso', doing: 'Haciendo', elapsed: 'Tiempo', contextRow: 'Contexto',
     tools: 'HERRAMIENTAS', calls: 'usos', none: 'ninguna todavía',
     opened: 'Panel de Braves abierto.', closed: 'Panel de Braves cerrado.',
+    plan: 'Plan listo para revisar', failed: 'falló', denied: 'denegado', commit: 'Commit', ship: 'Merge / release publicado',
   },
   en: {
     session: 'SESSION', time: 'Time', branch: 'Branch', noGit: 'No Git',
@@ -29,6 +30,7 @@ export const LABELS = {
     quiet: 'quiet', model: 'Model', step: 'Step', doing: 'Doing', elapsed: 'Elapsed', contextRow: 'Context',
     tools: 'TOOLS', calls: 'calls', none: 'none yet',
     opened: 'Braves panel opened.', closed: 'Braves panel closed.',
+    plan: 'Plan ready to review', failed: 'failed', denied: 'denied', commit: 'Commit', ship: 'Merge / release shipped',
   },
 } satisfies Record<Lang, Record<string, string>>
 
@@ -118,6 +120,22 @@ export type View = {
   gemini: Gemini | null
   tools: [string, number][]
   room: number
-  // Row where the mascot's stage starts, at the bottom; null when the terminal is too short for it.
-  stage: number | null
+  news: News[]
+}
+
+export type Run = { text: string; color?: string }
+
+// A ticker window: the runs as one looping tape, `width` cells from `offset`; still when it fits.
+export function marquee(items: Run[], width: number, offset: number): Run[] {
+  const cells = items.flatMap(r => [...[...r.text].map(ch => ({ ch, color: r.color })), ...[...'   ◆   '].map(ch => ({ ch, color: undefined as string | undefined }))])
+  if (cells.length === 0 || width <= 0) return []
+  const fits = cells.length - 7 <= width
+  const shown = fits ? cells.slice(0, cells.length - 7) : Array.from({ length: width }, (_, i) => cells[(offset + i) % cells.length]!)
+  const runs: Run[] = []
+  for (const c of shown) {
+    const last = runs.at(-1)
+    if (last && last.color === c.color) last.text += c.ch
+    else runs.push({ text: c.ch, color: c.color })
+  }
+  return runs
 }

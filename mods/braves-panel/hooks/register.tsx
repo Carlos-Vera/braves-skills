@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { Account, Gemini, Lang, Turn } from '../types'
+import type { Account, Gemini, Lang, News, Turn } from '../types'
 
 import { LABELS, accountOf, fmtDuration, langOf, parseGemini, planOf, tildePath, untilReset } from './format'
 import type { View } from './format'
@@ -21,6 +21,9 @@ const lang = atom({ plugin: 'braves-panel', key: 'lang' } as const, 'es' as Lang
 const account = atom({ plugin: 'braves-panel', key: 'account' } as const, null as Account | null)
 const isWorking = atom({ plugin: 'braves-panel', key: 'isWorking' } as const, false)
 const isOpen = atom({ plugin: 'braves-panel', key: 'isOpen' } as const, false)
+// Rows the pane shows at once; only ui.scroll tells, 0 until it does.
+const bodyRows = atom({ plugin: 'braves-panel', key: 'bodyRows' } as const, 0)
+const news = atom({ plugin: 'braves-panel', key: 'news' } as const, [] as News[])
 const gemini = atom({ plugin: 'braves-panel', key: 'gemini' } as const, null as Gemini | null)
 // What Zeus should do next; the panel's Client plays it when `n` moves.
 const cue = atom({ plugin: 'braves-panel', key: 'cue' } as const, { name: 'hello', n: 0 })
@@ -50,11 +53,17 @@ async function refreshGemini($: EngineInterface) {
   )
   const next = parseGemini(r.stdout)
   const prev = await read($, gemini)
+  if (next?.step && next.step !== prev?.step) tell($, 'gemini', next.step)
   if (JSON.stringify(prev) !== JSON.stringify(next)) await update($, gemini, () => next)
 }
 
 // What Zeus should do next; kept for the image-sheet mascot.
-const motion = { still: false, typedAt: 0, failedAt: 0 }
+const motion = { still: false, typedAt: 0, failedAt: 0, measuring: false, probe: 0 }
+
+// The ticker keeps the latest few, newest first.
+function tell($: EngineInterface, kind: News['kind'], detail = '') {
+  void update($, news, list => [{ kind, detail }, ...list].slice(0, 6))
+}
 
 function say($: EngineInterface, name: string) {
   void update($, cue, c => ({ name, n: c.n + 1 }))
@@ -89,19 +98,20 @@ export const register: Register = on => {
   on('tool.call', async ($, e, next) => {
     await update($, tools, all => ({ ...all, [e.tool]: (all[e.tool] ?? 0) + 1 }))
     // Claude needs you (a question) or has a plan ready: the mascot says so before it shows.
-    if (e.tool === 'AskUserQuestion') say($, 'point')
-    if (e.tool === 'ExitPlanMode') say($, 'lightbulb')
+    if (e.tool === 'AskUserQuestion') say($, 'point'), tell($, 'ask', e.questions?.[0]?.question ?? '')
+    if (e.tool === 'ExitPlanMode') say($, 'lightbulb'), tell($, 'plan')
     const r = await next(e)
-    if (r.deny !== undefined) say($, 'disappointed')
+    if (r.deny !== undefined) say($, 'disappointed'), tell($, 'deny', e.tool)
     else if (r.isError) {
       // A second failure within a minute is no longer a facepalm.
       say($, Date.now() - motion.failedAt < 60000 ? 'angry' : 'facepalm')
+      tell($, 'error', e.tool)
       motion.failedAt = Date.now()
     }
     else if (e.tool === 'Bash') {
       // ponytail: reads the command text; a commit or a merge/release that went through.
-      if (/\bgh (pr merge|release create)\b/.test(e.command)) say($, 'confetti')
-      else if (/\bgit commit\b/.test(e.command)) say($, 'excited')
+      if (/\bgh (pr merge|release create)\b/.test(e.command)) say($, 'confetti'), tell($, 'ship')
+      else if (/\bgit commit\b/.test(e.command)) say($, 'excited'), tell($, 'commit', /-m\s+(?:"([^"\n]+)|'([^'\n]+))/.exec(e.command)?.slice(1).find(Boolean) ?? '')
     }
     return r
   })
@@ -149,25 +159,35 @@ export const register: Register = on => {
     return next(e)
   })
 
+  on('ui.scroll', { requestId: PANE }, async ($, e, next) => {
+    if ((await read($, bodyRows)) !== e.bodyRows) await update($, bodyRows, () => e.bodyRows)
+    return next(e)
+  })
+
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const ui = $.ui.resolve(e)
     const { Box } = ui
     // Client and Raster are the terminal's; elsewhere the panel has nothing to draw with.
     if (!('Client' in ui)) return <Box />
     const { Client } = ui
-    const [usage, list, used, br, at, gem, lg] = await Promise.all([
-      $.session.usage(), read($, turns), read($, tools), read($, branch), read($, now), read($, gemini), read($, lang),
+    // ponytail: no resize event reaches a pane body; a scroll every second makes ui.scroll report its height.
+    // It alternates ends: after a shrink the tree is taller than the window and a scroll to its own edge moves nothing.
+    // Started on the first draw, not session.start, so a hot reload picks it up.
+    if (!motion.measuring) {
+      motion.measuring = true
+      $.clock.every(1000, () => void $.ui.scroll({ in: PANE, to: motion.probe++ % 2 ? 'end' : 'start' }).catch(() => {}))
+    }
+    const [usage, list, used, br, at, gem, lg, headlines] = await Promise.all([
+      $.session.usage(), read($, turns), read($, tools), read($, branch), read($, now), read($, gemini), read($, lang), read($, news),
     ])
     const [acct, model, version, cwd, working, next] = await Promise.all([
       read($, account), $.session.model(), $.session.version(), $.session.cwd(), read($, isWorking), read($, cue),
     ])
+    const body = (await read($, bodyRows)) || undefined
     const L = LABELS[lg]
     const t = at || Date.now()
     const ctx = usage.context.percent
     const rows = e.viewport?.rows ?? 30
-    // The data comes first: the stage only shows when the tools keep their 3 rows.
-    const spare = rows - (gem ? 40 : 32)
-    const stage = spare >= 3 + STAGE_ROWS
     const view: View = {
       lang: lg,
       still: motion.still,
@@ -193,12 +213,13 @@ export const register: Register = on => {
       usd: usage.cost?.usd ?? null,
       gemini: gem,
       tools: Object.entries(used).sort((a, b) => b[1] - a[1]),
-      room: Math.max(3, spare - (stage ? STAGE_ROWS : 0)),
-      stage: stage ? rows - STAGE_ROWS : null,
+      room: Math.max(3, rows - (gem ? 40 : 32) - STAGE_ROWS - 2),
+      news: headlines,
     }
 
     return (
-      <Box flexDirection="column" height={rows}>
+      // viewport.rows is the whole terminal, not the pane: the body's own rows pin the footer.
+      <Box flexDirection="column" height={body}>
         <Client key="panel" module="./panel.tsx" props={view} flexGrow={1} />
       </Box>
     )
