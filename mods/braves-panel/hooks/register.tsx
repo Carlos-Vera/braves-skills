@@ -106,6 +106,10 @@ export const register: Register = on => {
       void $.clock.sleep(80000).then(() => update($, sprint, () => false))
       return { text: L.sprintDemo }
     }
+    if (e.args.trim() === 'peek' || e.args.trim() === 'sit') {
+      say($, e.args.trim())
+      return { text: '' }
+    }
     const open = !(await read($, isOpen))
     await update($, isOpen, () => open)
     if (open) await $.ui.open({ id: PANE, title: TITLE, columns: WIDTH })

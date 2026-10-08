@@ -11,7 +11,7 @@ import type { Cell } from './scenery'
 // The whole panel draws here as a Client so the pointer anywhere over it
 // reaches the mascot: it looks toward the pointer, a click makes it hop.
 
-type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number; stride: number; lead: number; leadAt: number; rush: '' | 'point' | 'flee'; seenAt: number }
+type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number; stride: number; lead: number; leadAt: number; rush: '' | 'point' | 'flee' | 'peek' | 'sit'; seenAt: number }
 
 let latest: View | undefined
 
@@ -22,7 +22,16 @@ const POINT: Beat[] = [['point-1', 300], ['point-2', 300], ['point-1', 250], ['p
 const SCENE_COLUMNS = 13
 
 // What it does when idle, in turn; walk and crab cross the stage instead of stepping in place.
-const IDLE = ['idle', 'sway', 'turning', 'halo', 'walk', 'crab', 'wrench', 'hammer'] as const
+// peek: walks half off one edge to look past it; sit: sits down at an edge for a while.
+const IDLE = ['idle', 'peek', 'sway', 'turning', 'halo', 'walk', 'sit', 'crab', 'wrench', 'hammer'] as const
+
+// How far past an edge it leans when it peeks.
+const PEEK = 4
+const peekAt = (right: boolean): Beat[] => {
+  const look = right ? 'look-right' : 'look-left'
+  return [[look, 900], ['default', 300], [look, 700], ['happy', 400]]
+}
+const SIT: Beat[] = [['sit-1', 400], ['sit-2', 400], ['sit-1', 400], ['sit-2', 400], ['sit-1', 1500], ['blink', 150], ['sit-1', 900], ['sit-2', 400], ['sit-1', 400], ['sit-2', 400], ['hop', 200], ['default', 300]]
 
 const Panel: ClientModule<View, State> = (view, surface) => {
   latest = view
@@ -40,12 +49,16 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       let { queue, until, cue, blinkAt, idleAt, tool, scene, restAt, goal, gait, stepAt, lead, leadAt, rush, seenAt } = s
       // The floor it can stand on: the region's width less its own.
       const room = Math.max(0, surface.columns - (v.working ? SCENE_COLUMNS : STAGE_COLUMNS))
-      let x = Math.min(s.x, room)
-      goal = Math.min(goal, room)
+      // Past the edges only while peeking (or coming back from it), never at the laptop.
+      const reach = (rush === 'peek' || goal !== s.x) && !v.working ? PEEK : 0
+      let x = Math.max(-reach, Math.min(s.x, room + reach))
+      goal = Math.max(-reach, Math.min(goal, room + reach))
       if (v.cue.n !== cue) {
         cue = v.cue.n
         const act = ACTS[v.cue.name as keyof typeof ACTS]
         if (act) (queue = [...act]), (until = 0)
+        // /braves-panel peek | sit: the explore routines on demand.
+        if (v.cue.name === 'peek' || v.cue.name === 'sit') (rush = v.cue.name), (gait = 'walk'), (goal = x < room / 2 ? room + (rush === 'peek' ? PEEK : 0) : rush === 'peek' ? -PEEK : 0)
         idleAt = now + 12000
         restAt = now
       }
@@ -59,6 +72,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       }
       if (rush && x === goal) {
         if (rush === 'point') queue = [...queue, ...POINT]
+        if (rush === 'sit') queue = [...queue, ...SIT]
+        if (rush === 'peek') (queue = [...queue, ...peekAt(x > 0)]), (goal = x > 0 ? room - PEEK : PEEK), (gait = 'walk')
         rush = ''
       }
       const rushing = rush !== '' && goal !== x
@@ -75,11 +90,17 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       else if (free && now > idleAt) {
         const name = (v.ctx?.percent ?? 0) >= 80 ? 'dizzy' : IDLE[tool % IDLE.length]!
         // A walk crosses to the far side of the floor; a stage too narrow keeps it in place.
+        const right = x < room / 2
         if ((name === 'walk' || name === 'crab') && room >= 6) {
           const r = Math.random() * 0.4 * room
-          goal = Math.round(x < room / 2 ? room - r : r)
+          goal = Math.round(right ? room - r : r)
           gait = name
-        } else queue = [...ACTS[name]]
+        } else if (name === 'peek' || name === 'sit') {
+          // To the far edge; a peek goes past it.
+          goal = right ? room + (name === 'peek' ? PEEK : 0) : name === 'peek' ? -PEEK : 0
+          gait = 'walk'
+          rush = name
+        } else if (name !== 'walk' && name !== 'crab') queue = [...ACTS[name]]
         tool++
         idleAt = now + 12000 + Math.random() * 8000
       }
@@ -144,7 +165,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
     // Between its first and last glyph the mascot hides the backdrop, so the legs never merge into a building.
     const from = cells.findIndex(cell => cell.ch !== ' ')
     const to = cells.findLastIndex(cell => cell.ch !== ' ')
-    for (let i = from; from >= 0 && i <= to; i++) if (x + i < across) row[x + i] = cells[i]!.ch === ' ' ? { ch: ' ' } : cells[i]!
+    for (let i = from; from >= 0 && i <= to; i++) if (x + i >= 0 && x + i < across) row[x + i] = cells[i]!.ch === ' ' ? { ch: ' ' } : cells[i]!
     const runs: Run[] = []
     for (const cell of row) {
       const last = runs.at(-1)
