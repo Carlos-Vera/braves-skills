@@ -15,7 +15,7 @@ export type Gemini = {
 }
 
 // One headline of the ticker under the mascot's floor.
-export type News = { kind: 'ask' | 'plan' | 'error' | 'deny' | 'commit' | 'ship' | 'gemini'; detail: string }
+export type News = { kind: 'ask' | 'plan' | 'error' | 'deny' | 'commit' | 'ship' | 'gemini'; detail: string; at: number }
 
 declare module 'claude-code' {
   interface PluginState {

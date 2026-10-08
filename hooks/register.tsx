@@ -3,7 +3,7 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import type { Account, Gemini, Lang, News, Turn } from '../types'
 
-import { LABELS, accountOf, fmtDuration, langOf, parseGemini, planOf, tildePath, untilReset } from './format'
+import { LABELS, NEWS_TTL, accountOf, commitTitle, fmtDuration, langOf, parseGemini, planOf, tildePath, untilReset } from './format'
 import type { View } from './format'
 import { STAGE_ROWS } from './mascot'
 
@@ -62,7 +62,7 @@ const motion = { still: false, typedAt: 0, failedAt: 0, measuring: false, probe:
 
 // The ticker keeps the latest few, newest first.
 function tell($: EngineInterface, kind: News['kind'], detail = '') {
-  void update($, news, list => [{ kind, detail }, ...list].slice(0, 6))
+  void update($, news, list => [{ kind, detail, at: Date.now() }, ...list].slice(0, 6))
 }
 
 function say($: EngineInterface, name: string) {
@@ -101,6 +101,11 @@ export const register: Register = on => {
     if (e.tool === 'AskUserQuestion') say($, 'point'), tell($, 'ask', e.questions?.[0]?.question ?? '')
     if (e.tool === 'ExitPlanMode') say($, 'lightbulb'), tell($, 'plan')
     const r = await next(e)
+    // Answered or reviewed: the headline has nothing left to say.
+    if (e.tool === 'AskUserQuestion' || e.tool === 'ExitPlanMode') {
+      const kind = e.tool === 'AskUserQuestion' ? 'ask' : 'plan'
+      void update($, news, list => list.filter(n => n.kind !== kind))
+    }
     if (r.deny !== undefined) say($, 'disappointed'), tell($, 'deny', e.tool)
     else if (r.isError) {
       // A second failure within a minute is no longer a facepalm.
@@ -111,7 +116,7 @@ export const register: Register = on => {
     else if (e.tool === 'Bash') {
       // ponytail: reads the command text; a commit or a merge/release that went through.
       if (/\bgh (pr merge|release create)\b/.test(e.command)) say($, 'confetti'), tell($, 'ship')
-      else if (/\bgit commit\b/.test(e.command)) say($, 'excited'), tell($, 'commit', /-m\s+(?:"([^"\n]+)|'([^'\n]+))/.exec(e.command)?.slice(1).find(Boolean) ?? '')
+      else if (/\bgit commit\b/.test(e.command)) say($, 'excited'), tell($, 'commit', commitTitle(e.command))
     }
     return r
   })
@@ -214,7 +219,7 @@ export const register: Register = on => {
       gemini: gem,
       tools: Object.entries(used).sort((a, b) => b[1] - a[1]),
       room: Math.max(3, rows - (gem ? 40 : 32) - STAGE_ROWS - 2),
-      news: headlines,
+      news: headlines.filter(n => t - n.at < NEWS_TTL),
     }
 
     return (
