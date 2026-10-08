@@ -22,7 +22,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
 
   if (surface.state === undefined) {
     const now = Date.now()
-    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'desktop', wasWorking: false, restAt: now })
+    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now })
 
     surface.every(TICK_MS, () => {
       const s = surface.state
@@ -37,8 +37,6 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         idleAt = now + 12000
         restAt = now
       }
-      // A new stretch of work: laptop and desktop take turns.
-      if (v.working && !s.wasWorking) scene = scene === 'laptop' ? 'desktop' : 'laptop'
       // Working: its routine, unless an act (a send, a click, a reaction) is playing.
       const work = v.working && queue.length === 0 && now >= until ? workAt(now, scene) : undefined
       if (v.working) (idleAt = now + 12000), (restAt = now)
