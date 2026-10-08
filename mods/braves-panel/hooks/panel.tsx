@@ -3,7 +3,7 @@ import type { ClientModule, RenderChildren } from 'claude-code'
 import { BRAND, GEMINI_COLOR, LABEL, LABELS, bar, colorFor, fmtTokens } from './format'
 import type { View } from './format'
 import type { Turn } from '../types'
-import { ACTS, STAGE_COLUMNS, STAGE_ROWS, TICK_MS, WORK_FRAMES, WORK_MS, toRuns } from './mascot'
+import { ACTS, STAGE_COLUMNS, STAGE_ROWS, TICK_MS, toRuns, workAt } from './mascot'
 import type { Beat, Pose } from './mascot'
 
 // The whole panel draws here as a Client so the pointer anywhere over it
@@ -33,8 +33,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         if (act) (queue = [...act]), (until = 0)
         idleAt = now + 12000
       }
-      // Working: it types on a laptop, unless an act (a send, a click) is playing.
-      const work = v.working && queue.length === 0 && now >= until ? Math.floor(now / WORK_MS) % WORK_FRAMES : undefined
+      // Working: its laptop routine, unless an act (a send, a click) is playing.
+      const work = v.working && queue.length === 0 && now >= until ? workAt(now) : undefined
       if (work !== undefined) idleAt = now + 12000
       // Idle long enough: a look around, or now and then it shows off a tool.
       if (!v.working && queue.length === 0 && now > until && now > idleAt) {
