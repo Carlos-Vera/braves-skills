@@ -16,8 +16,8 @@ export const FRAMES = {
   'look-right': [' ▐█▜██▛▌ ', ' ▜█████▛ ', '  ▆   ▆  '],
   'arms-up': [' █▛███▜█ ', ' ▐█████▌ ', '  ▆   ▆  '],
   reach: [' ▐█▜██▛▙ ', ' ▜█████▌ ', '  ▆   ▆  '],
-  'type-1': [' ▐█▜██▛▌ ', ' ▜█████▛ ', '  ▆   ▆  '],
-  'type-2': [' ▐█▜██▛▌ ', ' ▜█████▙ ', '  ▆   ▆  '],
+  'type-1': [' ▐█▜██▛▙ ', ' ▜█████▌ ', '  ▆   ▆  '],
+  'type-2': [' ▐█▜██▛▌ ', ' ▜██████ ', '  ▆   ▆  '],
   hammer: [' ▐█▜██▛▙▜', ' ▜█████▌▐', '  ▆   ▆  '],
   wrench: [' ▐█▜██▛▙▙', ' ▜█████▌▐', '  ▆   ▆  '],
   hop: [' ▟▙███▟▙ ', ' ▝█▀▀▀█▘ ', '         '],
@@ -40,45 +40,46 @@ export const ACTS = {
 } satisfies Record<string, Beat[]>
 
 // ── Laptop Working ──────────────────────────────────────────────────────────
-// While Claude works the mascot types on an open laptop beside it: its hands
-// alternate tapping the keyboard, and lines of code scroll on the screen.
+// While Claude works the mascot types on an open laptop seen from the side:
+// a thin horizontal base extends left, the lid leans back at 45 degrees in
+// steel, and code pixels scroll along the screen's left face.
 // Drawn with the half-block renderer (two pixels per row, one per column).
 const LAPTOP = [
-  // Frame 0: code line 1 start, line 2 indented call
+  // Frame 0: code glows at y=0 (teal) and y=2 (light), y=3 (teal)
   [
-    '.SSSSSSS',
-    '.STTLDDS',
-    '.SDTTLDS',
-    '.SSSSSSS',
-    'SSSSSSSS',
-    '.SSSSSS.',
+    '......TS',
+    '.....DS.',
+    '....LS..',
+    '...TS...',
+    'SSSSS...',
+    '.SSSS...',
   ],
-  // Frame 1: typing advances on line 2
+  // Frame 1: code scrolls upward, new statement appears
   [
-    '.SSSSSSS',
-    '.STTLDDS',
-    '.SDTTLLS',
-    '.SSSSSSS',
-    'SSSSSSSS',
-    '.SSSSSS.',
+    '......DS',
+    '.....TS.',
+    '....DS..',
+    '...LS...',
+    'SSSSS...',
+    '.SSSS...',
   ],
-  // Frame 2: code scrolls up, new statement starts
+  // Frame 2: light token at top, teal code follows
   [
-    '.SSSSSSS',
-    '.SDTTLLS',
-    '.SDDTTLS',
-    '.SSSSSSS',
-    'SSSSSSSS',
-    '.SSSSSS.',
+    '......LS',
+    '.....DS.',
+    '....TS..',
+    '...TS...',
+    'SSSSS...',
+    '.SSSS...',
   ],
-  // Frame 3: fresh syntax highlighted line
+  // Frame 3: teal top, light sub-expression
   [
-    '.SSSSSSS',
-    '.SLTTLDS',
-    '.SDDLLTS',
-    '.SSSSSSS',
-    'SSSSSSSS',
-    '.SSSSSS.',
+    '......TS',
+    '.....LS.',
+    '....DS..',
+    '...LS...',
+    'SSSSS...',
+    '.SSSS...',
   ],
 ] as const
 
@@ -88,7 +89,7 @@ export const WORK_FRAMES = LAPTOP.length
 export const WORK_MS = 250
 
 const LAPTOP_COLORS: Record<string, string> = {
-  S: '#9aa3ad', // steel frame & keyboard base
+  S: '#9aa3ad', // steel lid frame & keyboard base
   D: '#1c1c22', // dark screen background
   T: '#02c0b6', // teal code pixel
   L: '#f0ece4', // light code pixel
