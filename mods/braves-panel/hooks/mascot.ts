@@ -1,11 +1,12 @@
 // The braves mascot, drawn by Carlos in the Unicode Mascot Animator
 // (uma.sujumayas.com) and imported into sprites.ts with tools/import-sprites.py.
-// Poses are 9 x 3 cells of quadrant blocks; the laptop scenes are 13 x 3.
+// Poses are 9 x 3 cells of quadrant blocks (laptop scenes 13 x 3); some carry a
+// fourth row on top for effects: hearts, z's, a question mark.
 
 import { PALETTE, SEQUENCES, SPRITES } from './sprites'
 
 export const STAGE_COLUMNS = 9
-export const STAGE_ROWS = 3
+export const STAGE_ROWS = 4
 export const TICK_MS = 100
 
 export type Pose = keyof typeof SPRITES
@@ -39,7 +40,11 @@ export type Run = { text: string; color?: string }
 /** The sprite for `pose`, or with `work` set, that step of `scene`'s routine. */
 export function toRuns(pose: Pose, work?: number, scene: Scene = 'laptop'): Run[][] {
   const steps = SCENES[scene]
-  const { rows, ink } = SPRITES[work === undefined ? pose : steps[work % steps.length]![0]]
+  const sprite = SPRITES[work === undefined ? pose : steps[work % steps.length]![0]]
+  // Sprites without an effects row sit on the floor: an empty row on top keeps the stage still.
+  const pad = STAGE_ROWS - sprite.rows.length
+  const rows = [...Array<string>(pad).fill(' '), ...sprite.rows]
+  const ink = [...Array<string>(pad).fill(' '), ...sprite.ink]
   return rows.map((line, r) => {
     const runs: Run[] = []
     ;[...line].forEach((text, c) => {

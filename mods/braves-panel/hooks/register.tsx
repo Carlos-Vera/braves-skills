@@ -53,7 +53,7 @@ async function refreshGemini($: EngineInterface) {
 }
 
 // What Zeus should do next; kept for the image-sheet mascot.
-const motion = { still: false, typedAt: 0 }
+const motion = { still: false, typedAt: 0, failedAt: 0 }
 
 function say($: EngineInterface, name: string) {
   void update($, cue, c => ({ name, n: c.n + 1 }))
@@ -92,7 +92,11 @@ export const register: Register = on => {
     if (e.tool === 'ExitPlanMode') say($, 'lightbulb')
     const r = await next(e)
     if (r.deny !== undefined) say($, 'disappointed')
-    else if (r.isError) say($, 'facepalm')
+    else if (r.isError) {
+      // A second failure within a minute is no longer a facepalm.
+      say($, Date.now() - motion.failedAt < 60000 ? 'angry' : 'facepalm')
+      motion.failedAt = Date.now()
+    }
     else if (e.tool === 'Bash') {
       // ponytail: reads the command text; a commit or a merge/release that went through.
       if (/\bgh (pr merge|release create)\b/.test(e.command)) say($, 'confetti')
@@ -112,7 +116,8 @@ export const register: Register = on => {
   })
 
   on('prompt.submit', async ($, e, next) => {
-    say($, 'jump')
+    // A thank-you gets hearts instead of the usual hop.
+    say($, /\b(gracias|thanks?|thank you|genial|excelente|bien hecho|te quiero|love)\b|❤/i.test(e.text) ? 'love' : 'jump')
     return next(e)
   })
 
