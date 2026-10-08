@@ -11,9 +11,12 @@ import type { Cell } from './scenery'
 // The whole panel draws here as a Client so the pointer anywhere over it
 // reaches the mascot: it looks toward the pointer, a click makes it hop.
 
-type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number; stride: number; lead: number; leadAt: number }
+type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number; stride: number; lead: number; leadAt: number; rush: '' | 'point' | 'flee'; seenAt: number }
 
 let latest: View | undefined
+
+// Pointing down-left at the ticker, once it got there.
+const POINT: Beat[] = [['point-1', 300], ['point-2', 300], ['point-1', 250], ['point-2', 600], ['happy', 400]]
 
 // Columns the work scenes take; the other poses take STAGE_COLUMNS.
 const SCENE_COLUMNS = 13
@@ -27,14 +30,14 @@ const Panel: ClientModule<View, State> = (view, surface) => {
 
   if (surface.state === undefined) {
     const now = Date.now()
-    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now, reel: 0, x: 0, goal: 0, gait: 'walk', stepAt: 0, trek: 0, stride: 0, lead: 0, leadAt: 0 })
+    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now, reel: 0, x: 0, goal: 0, gait: 'walk', stepAt: 0, trek: 0, stride: 0, lead: 0, leadAt: 0, rush: '', seenAt: view.news[0]?.at ?? 0 })
 
     surface.every(TICK_MS, () => {
       const s = surface.state
       const v = latest
       if (!s || !v || v.still) return
       const now = Date.now()
-      let { queue, until, cue, blinkAt, idleAt, tool, scene, restAt, goal, gait, stepAt, lead, leadAt } = s
+      let { queue, until, cue, blinkAt, idleAt, tool, scene, restAt, goal, gait, stepAt, lead, leadAt, rush, seenAt } = s
       // The floor it can stand on: the region's width less its own.
       const room = Math.max(0, surface.columns - (v.working ? SCENE_COLUMNS : STAGE_COLUMNS))
       let x = Math.min(s.x, room)
@@ -46,10 +49,23 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         idleAt = now + 12000
         restAt = now
       }
+      // A new headline: it runs to the ticker's start and points at it; an error startles it a few steps back.
+      // Gemini's steps come too often to chase; a sprint keeps its jog.
+      if ((v.news[0]?.at ?? seenAt) !== seenAt) {
+        const kind = v.news[0]!.kind
+        seenAt = v.news[0]!.at
+        if (!v.sprint && kind === 'error') (queue = [['surprised', 450], ['hop', 200], ...queue]), (until = 0), (goal = Math.min(room, x + 5)), (gait = 'crab'), (rush = 'flee')
+        else if (!v.sprint && kind !== 'gemini') (goal = 0), (gait = 'walk'), (rush = 'point')
+      }
+      if (rush && x === goal) {
+        if (rush === 'point') queue = [...queue, ...POINT]
+        rush = ''
+      }
+      const rushing = rush !== '' && goal !== x
       // Working: its routine, unless an act (a send, a click, a reaction) is playing.
       // A sprint (a busy turn) swaps the laptop for a jog in place while the backdrop scrolls past.
       const jog = v.sprint && queue.length === 0 && now >= until
-      const work = v.working && !v.sprint && queue.length === 0 && now >= until ? workAt(now, scene) : undefined
+      const work = v.working && !v.sprint && !rushing && queue.length === 0 && now >= until ? workAt(now, scene) : undefined
       if (v.working) (idleAt = now + 12000), (restAt = now)
       const free = !v.working && !v.sprint && queue.length === 0 && now > until
       // Nothing going on: after a minute it meditates, after three it falls asleep.
@@ -84,7 +100,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         pace = target > x ? 1 : target < x ? 3 : 2
         // Counted in ticks, not clock time, so a late tick never skips a step; quicker legs on a surge.
         pose = ACTS.jog[Math.floor(stride / (pace === 1 ? 2 : 3)) % ACTS.jog.length]![0]
-      } else if (!v.working && !v.sprint && goal !== x) {
+      } else if ((!v.working || rushing) && !v.sprint && goal !== x) {
         // Crossing the stage: a cell every tick (the slack absorbs timer jitter), legs alternating.
         if (now >= stepAt) (x += Math.sign(goal - x)), (stepAt = now + TICK_MS - 10)
         pose = `${gait}-${(x & 1) + 1}` as Pose
@@ -93,7 +109,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       // The ticker crawls a cell every 150 ms while it has news.
       const reel = v.news.length > 0 ? Math.floor(now / 150) : s.reel
       const trek = v.sprint ? s.trek + (stride % pace === 0 ? 1 : 0) : s.trek
-      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel || x !== s.x || goal !== s.goal || stride !== s.stride) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel, x, goal, gait, stepAt, trek, stride, lead, leadAt })
+      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel || x !== s.x || goal !== s.goal || stride !== s.stride || rush !== s.rush || seenAt !== s.seenAt) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel, x, goal, gait, stepAt, trek, stride, lead, leadAt, rush, seenAt })
     })
 
     surface.onPointer(e => {
