@@ -161,7 +161,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
     <Box flexDirection="column" flexShrink={0}>
       {stage.map(line => <Text>{line.map(r => <Text color={r.color}>{r.text}</Text>)}</Text>)}
       <Text dimColor>{'▔'.repeat(Math.max(STAGE_COLUMNS, surface.columns))}</Text>
-      <Text wrap="truncate-end">{ticker.map(r => <Text color={r.color}>{r.text}</Text>)}{ticker.length === 0 && ' '}</Text>
+      <Text wrap="truncate-end">{ticker.map(r => <Text color={r.color}>{r.text}</Text>)}{ticker.length === 0 && <Text dimColor>◆ {L.noNews}</Text>}</Text>
     </Box>
     </Box>
   )
