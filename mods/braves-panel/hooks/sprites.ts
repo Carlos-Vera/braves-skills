@@ -102,6 +102,7 @@ export const SPRITES = {
   "lie-3": { rows: ["  Zz     ", " z  ▅    ", " █▟████  ", " ██████▄▄"], ink: ["  22     ", " 2  0    ", " 000000  ", " 00000000"] },
   "work-to-back": { rows: ["             ", "  ▐████▌    ▞", "  ▜████▛▘  ▗▘", "   ▆  ▆ ▀▀▀▀ "], ink: ["             ", "  000000    1", "  0000000  12", "   0  0 1111 "] },
   "work-to-front": { rows: ["             ", " ▐█▛██▛▌    ▞", " ▐█████▛▘  ▗▘", "  ▆   ▆ ▀▀▀▀ "], ink: ["             ", " 0000000    1", " 00000000  12", "  0   0 1111 "] },
+  "walk-3": { rows: [" ▐█▜██▛▌ ", " ▜█████▛ ", "    ▆    "], ink: [" 0000000 ", " 0000000 ", "    0    "] },
 } as const
 
 export const SEQUENCES = {
@@ -126,7 +127,7 @@ export const SEQUENCES = {
   "thinking": [["think-dots-1", 350], ["think-dots-2", 350], ["think-dots-3", 450], ["think-dots-4", 800]],
   "point": [["alert", 350], ["alert-2", 350], ["alert", 350], ["alert-2", 350], ["alert", 700]],
   "poke": [["surprised", 450], ["hop", 200], ["happy", 600]],
-  "sleep": [["lie-1", 900], ["lie-2", 900], ["lie-3", 1300]],
+  "sleep": [["lie-1", 900], ["lie-2", 900], ["lie-3", 1300], ["lie-1", 900], ["lie-2", 900], ["lie-3", 1300]],
   "halo": [["halo-1", 1200], ["halo-2", 900], ["default", 300]],
   "angry": [["angry-1", 400], ["angry-2", 300], ["angry-1", 300], ["angry-2", 300], ["angry-1", 600]],
   "dizzy": [["dizzy-stars-1", 300], ["dizzy-stars-2", 300], ["dizzy-stars-3", 300], ["dizzy-stars-2", 300], ["dizzy-stars-1", 300], ["default", 200]],
