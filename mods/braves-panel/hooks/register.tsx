@@ -192,7 +192,8 @@ export const register: Register = on => {
     const L = LABELS[lg]
     const t = at || Date.now()
     const ctx = usage.context.percent
-    const rows = e.viewport?.rows ?? 30
+    // The pane's own rows once ui.scroll told them; the terminal's (taller) until then.
+    const rows = body ?? e.viewport?.rows ?? 30
     const view: View = {
       lang: lg,
       still: motion.still,
@@ -218,7 +219,8 @@ export const register: Register = on => {
       usd: usage.cost?.usd ?? null,
       gemini: gem,
       tools: Object.entries(used).sort((a, b) => b[1] - a[1]),
-      room: Math.max(3, rows - (gem ? 40 : 32) - STAGE_ROWS - 2),
+      // The data above the tools takes 28 rows (36 with Gemini); the footer, the stage, its floor and the ticker.
+      room: Math.max(1, rows - (gem ? 36 : 28) - STAGE_ROWS - 2),
       news: headlines.filter(n => t - n.at < NEWS_TTL),
     }
 
