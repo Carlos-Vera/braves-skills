@@ -4,14 +4,17 @@ import { BRAND, GEMINI_COLOR, LABEL, LABELS, bar, colorFor, fmtTokens } from './
 import type { View } from './format'
 import type { Turn } from '../types'
 import { ACTS, STAGE_COLUMNS, STAGE_ROWS, TICK_MS, toRuns, workAt } from './mascot'
-import type { Beat, Pose } from './mascot'
+import type { Beat, Pose, Scene } from './mascot'
 
 // The whole panel draws here as a Client so the pointer anywhere over it
 // reaches the mascot: it looks toward the pointer, a click makes it hop.
 
-type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number }
+type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number }
 
 let latest: View | undefined
+
+// What it does when idle, in turn.
+const IDLE = ['idle', 'sway', 'turning', 'walk', 'crab', 'wrench', 'hammer'] as const
 
 const Panel: ClientModule<View, State> = (view, surface) => {
   latest = view
@@ -19,26 +22,32 @@ const Panel: ClientModule<View, State> = (view, surface) => {
 
   if (surface.state === undefined) {
     const now = Date.now()
-    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0 })
+    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'desktop', wasWorking: false, restAt: now })
 
     surface.every(TICK_MS, () => {
       const s = surface.state
       const v = latest
       if (!s || !v || v.still) return
       const now = Date.now()
-      let { queue, until, cue, blinkAt, idleAt, tool } = s
+      let { queue, until, cue, blinkAt, idleAt, tool, scene, restAt } = s
       if (v.cue.n !== cue) {
         cue = v.cue.n
         const act = ACTS[v.cue.name as keyof typeof ACTS]
         if (act) (queue = [...act]), (until = 0)
         idleAt = now + 12000
+        restAt = now
       }
-      // Working: its laptop routine, unless an act (a send, a click) is playing.
-      const work = v.working && queue.length === 0 && now >= until ? workAt(now) : undefined
-      if (work !== undefined) idleAt = now + 12000
-      // Idle long enough: a look around, or now and then it shows off a tool.
-      if (!v.working && queue.length === 0 && now > until && now > idleAt) {
-        queue = [...(tool % 3 === 2 ? (tool % 2 ? ACTS.hammer : ACTS.wrench) : ACTS.idle)]
+      // A new stretch of work: laptop and desktop take turns.
+      if (v.working && !s.wasWorking) scene = scene === 'laptop' ? 'desktop' : 'laptop'
+      // Working: its routine, unless an act (a send, a click, a reaction) is playing.
+      const work = v.working && queue.length === 0 && now >= until ? workAt(now, scene) : undefined
+      if (v.working) (idleAt = now + 12000), (restAt = now)
+      const free = !v.working && queue.length === 0 && now > until
+      // A minute with nothing going on: it meditates until something happens.
+      if (free && now - restAt > 60000) queue = [...ACTS.meditate]
+      // Idle long enough: a little routine, dizzy instead once the context is past 80%.
+      else if (free && now > idleAt) {
+        queue = [...((v.ctx?.percent ?? 0) >= 80 ? ACTS.dizzy : ACTS[IDLE[tool % IDLE.length]!])]
         tool++
         idleAt = now + 12000 + Math.random() * 8000
       }
@@ -48,21 +57,21 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         const [p, ms] = queue[0]
         pose = p, until = now + ms, queue = queue.slice(1)
       } else if (work === undefined && now > blinkAt) (pose = 'blink'), (until = now + 150), (blinkAt = now + 2500 + Math.random() * 3500)
-      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work })
+      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt })
     })
 
     surface.onPointer(e => {
       const s = surface.state
       if (!s || latest?.still) return
       if (e.type === 'leave') return s.look !== 0 && surface.setState({ ...s, look: 0 })
-      if (e.type === 'down' && e.x < STAGE_COLUMNS && e.y < STAGE_ROWS) return surface.setState({ ...s, queue: [...ACTS.poke], until: 0 })
+      if (e.type === 'down' && e.x < STAGE_COLUMNS && e.y < STAGE_ROWS) return surface.setState({ ...s, queue: [...ACTS.poke], until: 0, restAt: Date.now() })
       const dx = (e.fine?.x ?? e.x + 0.5) - STAGE_COLUMNS / 2
       const look = Math.abs(dx) < 2 ? 0 : dx < 0 ? -1 : 1
-      if (look !== s.look) surface.setState({ ...s, look })
+      if (look !== s.look) surface.setState({ ...s, look, restAt: Date.now() })
     })
   }
 
-  const stage = toRuns(surface.state?.pose ?? 'default', surface.state?.work)
+  const stage = toRuns(surface.state?.pose ?? 'default', surface.state?.work, surface.state?.scene)
 
   const L = LABELS[view.lang]
   const Section = (icon: string, title: string, color: string, body: RenderChildren) => (
