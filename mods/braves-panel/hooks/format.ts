@@ -139,3 +139,12 @@ export function marquee(items: Run[], width: number, offset: number): Run[] {
   }
   return runs
 }
+
+// A headline stays on the ticker this long.
+export const NEWS_TTL = 5 * 60000
+
+// The title a `git commit -m` / `-qm` / `-am` carries; empty for a heredoc or an editor.
+export function commitTitle(command: string): string {
+  const m = /\s-[a-zA-Z]*m\s+(?:"([^"\n]+)|'([^'\n]+))/.exec(command)
+  return m?.[1] ?? m?.[2] ?? ''
+}
