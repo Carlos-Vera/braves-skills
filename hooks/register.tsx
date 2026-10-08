@@ -106,7 +106,7 @@ export const register: Register = on => {
       void $.clock.sleep(80000).then(() => update($, sprint, () => false))
       return { text: L.sprintDemo }
     }
-    if (e.args.trim() === 'peek' || e.args.trim() === 'sit') {
+    if (['peek', 'sit', 'lift'].includes(e.args.trim())) {
       say($, e.args.trim())
       return { text: '' }
     }
