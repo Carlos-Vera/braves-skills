@@ -11,7 +11,7 @@ import type { Cell } from './scenery'
 // The whole panel draws here as a Client so the pointer anywhere over it
 // reaches the mascot: it looks toward the pointer, a click makes it hop.
 
-type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number; stride: number; lead: number; leadAt: number; rush: '' | 'point' | 'flee' | 'peek' | 'sit' | 'lift'; seenAt: number; lift: number; liftAt: number; sheet: number }
+type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number; stride: number; lead: number; leadAt: number; rush: '' | 'point' | 'flee' | 'peek' | 'sit' | 'lift'; seenAt: number; lift: number; liftAt: number }
 
 let latest: View | undefined
 
@@ -25,18 +25,13 @@ const SCENE_COLUMNS = 13
 // peek: walks half off one edge to look past it; sit: sits down at an edge for a while.
 const IDLE = ['idle', 'peek', 'sway', 'turning', 'lift', 'halo', 'walk', 'sit', 'crab', 'wrench', 'hammer'] as const
 
-// lift: at the left edge it lifts the stage's corner like a sheet, opening a black triangle into
-// the code, hides its face in it, comes out to nod its approval, looks once more and lets it drop.
-// Each step: pose, ms, its column (negative: the face is inside), how open the sheet is (0-2).
-const LIFT: readonly (readonly [Pose, number, number, number])[] = [
-  ['point-1', 500, 2, 0], ['point-1', 250, 2, 1], ['point-1', 300, 2, 2], ['look-left', 500, 2, 2],
-  ['look-left', 1100, -3, 2], ['happy', 450, 2, 2], ['blink', 150, 2, 2], ['happy', 300, 2, 2],
-  ['blink', 150, 2, 2], ['arms-up-one', 700, 2, 2], ['look-left', 900, -3, 2], ['happy', 400, 2, 2],
-  ['point-1', 250, 2, 1], ['point-1', 250, 2, 0], ['default', 300, 2, 0],
+// lift: at the left edge it sticks its face past the border to look into the code, comes out to
+// nod its approval, looks once more and walks off. Each step: pose, ms, its column (negative: the
+// face is past the edge).
+const LIFT: readonly (readonly [Pose, number, number])[] = [
+  ['look-left', 500, 0], ['look-left', 1100, -4], ['happy', 450, 0], ['blink', 150, 0], ['happy', 300, 0],
+  ['blink', 150, 0], ['arms-up-one', 700, 0], ['look-left', 900, -4], ['happy', 400, 0], ['default', 300, 0],
 ]
-// The opening at the left edge, drawn in front of the mascot so its face disappears inside.
-const SHEET: Record<number, readonly string[]> = { 1: ['', '▌', '▌', ''], 2: ['▙', '█▙', '█▛', '▛'] }
-const HOLE = '#000000'
 
 // How far past an edge it leans when it peeks.
 const PEEK = 4
@@ -52,14 +47,14 @@ const Panel: ClientModule<View, State> = (view, surface) => {
 
   if (surface.state === undefined) {
     const now = Date.now()
-    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now, reel: 0, x: 0, goal: 0, gait: 'walk', stepAt: 0, trek: 0, stride: 0, lead: 0, leadAt: 0, rush: '', seenAt: view.news[0]?.at ?? 0, lift: -1, liftAt: 0, sheet: 0 })
+    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now, reel: 0, x: 0, goal: 0, gait: 'walk', stepAt: 0, trek: 0, stride: 0, lead: 0, leadAt: 0, rush: '', seenAt: view.news[0]?.at ?? 0, lift: -1, liftAt: 0 })
 
     surface.every(TICK_MS, () => {
       const s = surface.state
       const v = latest
       if (!s || !v || v.still) return
       const now = Date.now()
-      let { queue, until, cue, blinkAt, idleAt, tool, scene, restAt, goal, gait, stepAt, lead, leadAt, rush, seenAt, lift, liftAt, sheet } = s
+      let { queue, until, cue, blinkAt, idleAt, tool, scene, restAt, goal, gait, stepAt, lead, leadAt, rush, seenAt, lift, liftAt } = s
       // The floor it can stand on: the region's width less its own.
       const room = Math.max(0, surface.columns - (v.working ? SCENE_COLUMNS : STAGE_COLUMNS))
       // Past the edges only while peeking (or coming back from it), never at the laptop.
@@ -72,7 +67,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         if (act) (queue = [...act]), (until = 0)
         // /braves-panel peek | sit: the explore routines on demand.
         // A second error within a minute (angry) is a big problem: once the act ends it goes to look into the code.
-        if ((v.cue.name === 'angry' || v.cue.name === 'lift') && lift < 0) (rush = 'lift'), (gait = 'walk'), (goal = 2)
+        if ((v.cue.name === 'angry' || v.cue.name === 'lift') && lift < 0) (rush = 'lift'), (gait = 'walk'), (goal = 0)
         if (v.cue.name === 'peek' || v.cue.name === 'sit') (rush = v.cue.name), (gait = 'walk'), (goal = x < room / 2 ? room + (rush === 'peek' ? PEEK : 0) : rush === 'peek' ? -PEEK : 0)
         idleAt = now + 12000
         restAt = now
@@ -112,7 +107,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
           goal = Math.round(right ? room - r : r)
           gait = name
         } else if (name === 'lift') {
-          rush = 'lift', gait = 'walk', goal = 2
+          rush = 'lift', gait = 'walk', goal = 0
         } else if (name === 'peek' || name === 'sit') {
           // To the far edge; a peek goes past it.
           goal = right ? room + (name === 'peek' ? PEEK : 0) : name === 'peek' ? -PEEK : 0
@@ -127,12 +122,12 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       const stride = v.sprint ? s.stride + 1 : 0
       let pose: Pose = s.look < 0 ? 'look-left' : s.look > 0 ? 'look-right' : 'default'
       if (lift >= 0 && queue.length === 0 && (lift > 0 || now >= until)) {
-        // The sheet script runs on its own clock, the acts queued before it first.
+        // The lift script runs on its own clock, the acts queued before it first.
         pose = s.pose
         if (now >= liftAt) {
           const step = LIFT[lift]
-          if (step) (pose = step[0]), (liftAt = now + step[1]), (x = step[2]), (sheet = step[3]), lift++
-          else (lift = -1), (sheet = 0), (goal = x)
+          if (step) (pose = step[0]), (liftAt = now + step[1]), (x = step[2]), lift++
+          else (lift = -1), (goal = x)
         }
       } else if (now < until) pose = s.pose
       else if (queue[0]) {
@@ -156,7 +151,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       // The ticker crawls a cell every 150 ms while it has news.
       const reel = v.news.length > 0 ? Math.floor(now / 150) : s.reel
       const trek = v.sprint ? s.trek + (stride % pace === 0 ? 1 : 0) : s.trek
-      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel || x !== s.x || goal !== s.goal || stride !== s.stride || rush !== s.rush || seenAt !== s.seenAt || lift !== s.lift) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel, x, goal, gait, stepAt, trek, stride, lead, leadAt, rush, seenAt, lift, liftAt, sheet })
+      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel || x !== s.x || goal !== s.goal || stride !== s.stride || rush !== s.rush || seenAt !== s.seenAt || lift !== s.lift) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel, x, goal, gait, stepAt, trek, stride, lead, leadAt, rush, seenAt, lift, liftAt })
     })
 
     surface.onPointer(e => {
@@ -192,7 +187,6 @@ const Panel: ClientModule<View, State> = (view, surface) => {
     const from = cells.findIndex(cell => cell.ch !== ' ')
     const to = cells.findLastIndex(cell => cell.ch !== ' ')
     for (let i = from; from >= 0 && i <= to; i++) if (x + i >= 0 && x + i < across) row[x + i] = cells[i]!.ch === ' ' ? { ch: ' ' } : cells[i]!
-    ;[...(SHEET[surface.state?.sheet ?? 0]?.[r] ?? '')].forEach((ch, c) => (row[c] = { ch, color: HOLE }))
     const runs: Run[] = []
     for (const cell of row) {
       const last = runs.at(-1)
