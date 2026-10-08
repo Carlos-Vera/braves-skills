@@ -87,7 +87,18 @@ export const register: Register = on => {
 
   on('tool.call', async ($, e, next) => {
     await update($, tools, all => ({ ...all, [e.tool]: (all[e.tool] ?? 0) + 1 }))
-    return next(e)
+    // Claude needs you (a question) or has a plan ready: the mascot says so before it shows.
+    if (e.tool === 'AskUserQuestion') say($, 'point')
+    if (e.tool === 'ExitPlanMode') say($, 'lightbulb')
+    const r = await next(e)
+    if (r.deny !== undefined) say($, 'disappointed')
+    else if (r.isError) say($, 'facepalm')
+    else if (e.tool === 'Bash') {
+      // ponytail: reads the command text; a commit or a merge/release that went through.
+      if (/\bgh (pr merge|release create)\b/.test(e.command)) say($, 'confetti')
+      else if (/\bgit commit\b/.test(e.command)) say($, 'excited')
+    }
+    return r
   })
 
   // Zeus watches you type; one cue per 400 ms keeps the panel from redrawing on every key.
@@ -107,6 +118,7 @@ export const register: Register = on => {
 
   on('turn.start', async ($, e, next) => {
     await update($, isWorking, () => true)
+    say($, 'thinking')
     return next(e)
   })
 
@@ -114,6 +126,8 @@ export const register: Register = on => {
     if (!e.agentId) {
       await update($, isWorking, () => false)
       if (e.reason === 'answer') say($, 'celebrate')
+      else if (e.reason === 'aborted') say($, 'disappointed')
+      else if (e.reason === 'error') say($, 'facepalm')
     }
     const u = e.usage
     if (u && !e.agentId) {
