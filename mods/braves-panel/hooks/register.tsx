@@ -107,8 +107,9 @@ export const register: Register = on => {
       return { text: L.sprintDemo }
     }
     if (['peek', 'sit', 'lift'].includes(e.args.trim())) {
-      say($, e.args.trim())
-      return { text: '' }
+      const act = e.args.trim() as 'peek' | 'sit' | 'lift'
+      say($, act)
+      return { text: L[act] }
     }
     const open = !(await read($, isOpen))
     await update($, isOpen, () => open)
