@@ -89,8 +89,14 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('command.run', { command: 'braves-panel' }, async $ => {
+  on('command.run', { command: 'braves-panel' }, async ($, e) => {
     const L = LABELS[await read($, lang)]
+    // `/braves-panel sprint`: the jog and its backdrops for 80 s (four scenes), to see them without a busy turn.
+    if (e.args.trim() === 'sprint') {
+      await update($, sprint, () => true)
+      void $.clock.sleep(80000).then(() => update($, sprint, () => false))
+      return { text: L.sprintDemo }
+    }
     const open = !(await read($, isOpen))
     await update($, isOpen, () => open)
     if (open) await $.ui.open({ id: PANE, title: TITLE, columns: WIDTH })
@@ -205,7 +211,7 @@ export const register: Register = on => {
       lang: lg,
       still: motion.still,
       working,
-      sprint: working && sprinting,
+      sprint: sprinting,
       cue: next,
       version: version.base ?? version.version,
       model,
