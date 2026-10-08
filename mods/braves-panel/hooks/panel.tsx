@@ -29,11 +29,11 @@ const IDLE = ['idle', 'peek', 'sway', 'turning', 'lift', 'halo', 'walk', 'sit', 
 // nod its approval, looks once more and walks off. Each step: pose, ms, its column (negative: the
 // face is past the edge).
 // It leans like a person, from the hips with its feet planted: lean-2 and lean-3 are drawn one and
-// two columns left of where it stands.
+// two columns left of where it stands, right at the edge (its body touching column 0).
 const LIFT: readonly (readonly [Pose, number, number])[] = [
-  ['look-left', 500, 0], ['lean-1', 180, 0], ['lean-2', 180, -1], ['lean-3', 1100, -2], ['lean-2', 160, -1], ['lean-1', 160, 0],
-  ['happy', 450, 0], ['blink', 150, 0], ['happy', 300, 0], ['blink', 150, 0], ['arms-up-one', 700, 0],
-  ['lean-1', 160, 0], ['lean-2', 160, -1], ['lean-3', 900, -2], ['lean-2', 160, -1], ['lean-1', 160, 0], ['default', 300, 0],
+  ['look-left', 500, -1], ['lean-1', 180, -1], ['lean-2', 180, -2], ['lean-3', 1100, -3], ['lean-2', 160, -2], ['lean-1', 160, -1],
+  ['happy', 450, -1], ['blink', 150, -1], ['happy', 300, -1], ['blink', 150, -1], ['arms-up-one', 700, -1],
+  ['lean-1', 160, -1], ['lean-2', 160, -2], ['lean-3', 900, -3], ['lean-2', 160, -2], ['lean-1', 160, -1], ['default', 300, -1],
 ]
 
 // How far past an edge it leans when it peeks.
