@@ -77,7 +77,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         if (v.cue.name === 'sleep') (queue = []), (goal = x < room / 2 ? 0 : room), (gait = 'walk'), (rush = 'sleep')
         if (v.cue.name === 'peek' || v.cue.name === 'sit') (rush = v.cue.name), (gait = 'walk'), (goal = x < room / 2 ? room + (rush === 'peek' ? PEEK : 0) : rush === 'peek' ? -PEEK : 0)
         idleAt = now + 12000
-        restAt = now
+        // The demo nap is a real one: it sleeps on until something wakes it.
+        restAt = v.cue.name === 'sleep' ? now - 180001 : now
       }
       // A new headline: it runs to the ticker's start and points at it; an error startles it a few steps back.
       // Gemini's steps come too often to chase; a sprint keeps its jog.
@@ -90,8 +91,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       if (rush && x === goal) {
         if (rush === 'point') queue = [...queue, ...POINT]
         if (rush === 'sit') queue = [...queue, ...SIT]
-        // Down on the floor first, unless it is already lying there.
-        if (rush === 'sleep') queue = [...queue, ...(s.pose.startsWith('lie') ? [] : [['sit-1', 500] as Beat]), ...ACTS.sleep]
+        if (rush === 'sleep') queue = [...queue, ...ACTS.sleep]
         if (rush === 'lift') (lift = 0), (liftAt = 0)
         if (rush === 'peek') (queue = [...queue, ...peekAt(x > 0)]), (goal = x > 0 ? room - PEEK : PEEK), (gait = 'walk')
         rush = ''
