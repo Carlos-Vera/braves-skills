@@ -5,7 +5,7 @@ import type { Run, View } from './format'
 import type { News, Turn } from '../types'
 import { ACTS, STAGE_COLUMNS, STAGE_ROWS, TICK_MS, toRuns, workAt } from './mascot'
 import type { Beat, Pose, Scene } from './mascot'
-import { BACKDROP_ORDER, backdrop } from './scenery'
+import { BACKDROP_ORDER, backdrop, ground as groundRow } from './scenery'
 import type { Cell } from './scenery'
 
 // The whole panel draws here as a Client so the pointer anywhere over it
@@ -181,9 +181,21 @@ const Panel: ClientModule<View, State> = (view, surface) => {
   const sprite = toRuns(surface.state?.pose ?? 'default', surface.state?.work, surface.state?.scene)
   // The stage, cell by cell: the backdrop (a sprint's, blank otherwise), the mascot over it at x.
   const across = Math.max(STAGE_COLUMNS, surface.columns)
+  const trek = surface.state?.trek ?? 0
+  const scenery = BACKDROP_ORDER[Math.floor(Date.now() / 20000) % BACKDROP_ORDER.length]!
   const ground: Cell[][] = view.sprint
-    ? backdrop(BACKDROP_ORDER[Math.floor(Date.now() / 20000) % BACKDROP_ORDER.length]!, across, surface.state?.trek ?? 0)
+    ? backdrop(scenery, across, trek)
     : sprite.map(() => Array.from({ length: across }, () => ({ ch: ' ' })))
+  // Cells to runs of one color over one background.
+  const toLine = (row: Cell[]) => {
+    const runs: (Run & { bg?: string })[] = []
+    for (const cell of row) {
+      const last = runs.at(-1)
+      if (last && last.color === cell.color && last.bg === cell.bg) last.text += cell.ch
+      else runs.push({ text: cell.ch, color: cell.color, bg: cell.bg })
+    }
+    return runs
+  }
   const stage = sprite.map((line, r) => {
     const row = ground[r]!
     const x = surface.state?.x ?? 0
@@ -191,15 +203,14 @@ const Panel: ClientModule<View, State> = (view, surface) => {
     // Between its first and last glyph the mascot hides the backdrop, so the legs never merge into a building.
     const from = cells.findIndex(cell => cell.ch !== ' ')
     const to = cells.findLastIndex(cell => cell.ch !== ' ')
-    for (let i = from; from >= 0 && i <= to; i++) if (x + i >= 0 && x + i < across) row[x + i] = cells[i]!.ch === ' ' ? { ch: ' ' } : cells[i]!
-    const runs: Run[] = []
-    for (const cell of row) {
-      const last = runs.at(-1)
-      if (last && last.color === cell.color) last.text += cell.ch
-      else runs.push({ text: cell.ch, color: cell.color })
+    // The sky stays behind it: the mascot's cells keep the row's background.
+    for (let i = from; from >= 0 && i <= to; i++) if (x + i >= 0 && x + i < across) {
+      const bg = row[x + i]!.bg
+      row[x + i] = cells[i]!.ch === ' ' ? { ch: ' ', bg } : { ...cells[i]!, bg }
     }
-    return runs
+    return toLine(row)
   })
+  const floor = view.sprint ? toLine(groundRow(scenery, across, trek)) : null
 
   const L = LABELS[view.lang]
   const headline = (n: News): Run => ({
@@ -284,8 +295,10 @@ const Panel: ClientModule<View, State> = (view, surface) => {
           <Text><Text color="suggestion">{'▪'.repeat(Math.max(1, Math.round((n / toolMax) * 10)))}</Text> {n}</Text>)))}
     </Box>
     <Box flexDirection="column" flexShrink={0}>
-      {stage.map(line => <Text wrap="truncate-end">{line.map(r => <Text color={r.color}>{r.text}</Text>)}</Text>)}
-      <Text dimColor>{'▔'.repeat(Math.max(STAGE_COLUMNS, surface.columns))}</Text>
+      {stage.map(line => <Text wrap="truncate-end">{line.map(r => <Text color={r.color} backgroundColor={r.bg}>{r.text}</Text>)}</Text>)}
+      {floor
+        ? <Text wrap="truncate-end">{floor.map(r => <Text color={r.color} backgroundColor={r.bg}>{r.text}</Text>)}</Text>
+        : <Text dimColor>{'▔'.repeat(across)}</Text>}
       <Text wrap="truncate-end">{ticker.map(r => <Text color={r.color}>{r.text}</Text>)}{ticker.length === 0 && <Text dimColor>◆ {L.noNews}</Text>}</Text>
     </Box>
     </Box>
