@@ -54,11 +54,10 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       // Idle long enough: a little routine, dizzy instead once the context is past 80%.
       else if (free && now > idleAt) {
         const name = (v.ctx?.percent ?? 0) >= 80 ? 'dizzy' : IDLE[tool % IDLE.length]!
-        // A walk heads somewhere at least a third of the floor away; a stage too narrow keeps it in place.
+        // A walk crosses to the far side of the floor; a stage too narrow keeps it in place.
         if ((name === 'walk' || name === 'crab') && room >= 6) {
-          const far = Math.max(3, Math.round(room / 3))
-          do goal = Math.round(Math.random() * room)
-          while (Math.abs(goal - x) < far)
+          const r = Math.random() * 0.4 * room
+          goal = Math.round(x < room / 2 ? room - r : r)
           gait = name
         } else queue = [...ACTS[name]]
         tool++
@@ -70,8 +69,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         const [p, ms] = queue[0]
         pose = p, until = now + ms, queue = queue.slice(1)
       } else if (!v.working && goal !== x) {
-        // Crossing the stage: a cell per stride, legs alternating.
-        if (now >= stepAt) (x += Math.sign(goal - x)), (stepAt = now + (gait === 'crab' ? 100 : 120))
+        // Crossing the stage: a cell every tick (the slack absorbs timer jitter), legs alternating.
+        if (now >= stepAt) (x += Math.sign(goal - x)), (stepAt = now + TICK_MS - 10)
         pose = `${gait}-${(x & 1) + 1}` as Pose
         idleAt = now + 12000
       } else if (work === undefined && now > blinkAt) (pose = 'blink'), (until = now + 150), (blinkAt = now + 2500 + Math.random() * 3500)
