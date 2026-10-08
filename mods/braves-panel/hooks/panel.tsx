@@ -3,13 +3,13 @@ import type { ClientModule, RenderChildren } from 'claude-code'
 import { BRAND, GEMINI_COLOR, LABEL, LABELS, bar, colorFor, fmtTokens } from './format'
 import type { View } from './format'
 import type { Turn } from '../types'
-import { ACTS, COOK_FRAMES, COOK_MS, STAGE_COLUMNS, STAGE_ROWS, TICK_MS, toRuns } from './mascot'
+import { ACTS, STAGE_COLUMNS, STAGE_ROWS, TICK_MS, WORK_FRAMES, WORK_MS, toRuns } from './mascot'
 import type { Beat, Pose } from './mascot'
 
 // The whole panel draws here as a Client so the pointer anywhere over it
 // reaches the mascot: it looks toward the pointer, a click makes it hop.
 
-type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; cook?: number }
+type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number }
 
 let latest: View | undefined
 
@@ -33,9 +33,9 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         if (act) (queue = [...act]), (until = 0)
         idleAt = now + 12000
       }
-      // Working: it cooks, unless an act (a send, a click) is playing.
-      const cook = v.working && queue.length === 0 && now >= until ? Math.floor(now / COOK_MS) % COOK_FRAMES : undefined
-      if (cook !== undefined) idleAt = now + 12000
+      // Working: it types on a laptop, unless an act (a send, a click) is playing.
+      const work = v.working && queue.length === 0 && now >= until ? Math.floor(now / WORK_MS) % WORK_FRAMES : undefined
+      if (work !== undefined) idleAt = now + 12000
       // Idle long enough: a look around, or now and then it shows off a tool.
       if (!v.working && queue.length === 0 && now > until && now > idleAt) {
         queue = [...(tool % 3 === 2 ? (tool % 2 ? ACTS.hammer : ACTS.wrench) : ACTS.idle)]
@@ -47,8 +47,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       else if (queue[0]) {
         const [p, ms] = queue[0]
         pose = p, until = now + ms, queue = queue.slice(1)
-      } else if (cook === undefined && now > blinkAt) (pose = 'blink'), (until = now + 150), (blinkAt = now + 2500 + Math.random() * 3500)
-      if (pose !== s.pose || cook !== s.cook || cue !== s.cue || queue !== s.queue) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, cook })
+      } else if (work === undefined && now > blinkAt) (pose = 'blink'), (until = now + 150), (blinkAt = now + 2500 + Math.random() * 3500)
+      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work })
     })
 
     surface.onPointer(e => {
@@ -62,7 +62,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
     })
   }
 
-  const stage = toRuns(surface.state?.pose ?? 'default', surface.state?.cook)
+  const stage = toRuns(surface.state?.pose ?? 'default', surface.state?.work)
 
   const L = LABELS[view.lang]
   const Section = (icon: string, title: string, color: string, body: RenderChildren) => (

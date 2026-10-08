@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { ACTS, COOK_FRAMES, FRAMES, STAGE_COLUMNS, STAGE_ROWS, toRuns } from './mascot'
+import { ACTS, FRAMES, STAGE_COLUMNS, STAGE_ROWS, WORK_FRAMES, toRuns } from './mascot'
 import type { Pose } from './mascot'
 
 const ALLOWED_CHARS = new Set([...' ▘▝▀▖▌▞▛▗▚▐▜▄▙▟█▆'])
@@ -35,27 +35,28 @@ test('every act only names poses that exist', () => {
   expect(toRuns('default' as Pose).map(l => l.map(r => r.text).join(''))).toEqual([...FRAMES.default])
 })
 
-test('cooking draws the mascot with its arm up and a pot beside it, two frames apart', () => {
+test('working draws the mascot typing on a laptop beside it, two frames apart', () => {
   const a = toRuns('default', 0).map(l => l.map(r => r.text).join(''))
   const b = toRuns('default', 1).map(l => l.map(r => r.text).join(''))
-  expect(a.every(l => [...l].length === STAGE_COLUMNS - 1 + 7)).toBe(true)
-  expect(a[0]!.startsWith(FRAMES.reach[0].slice(0, STAGE_COLUMNS - 1))).toBe(true)
+  expect(a.every(l => [...l].length === STAGE_COLUMNS - 1 + 8)).toBe(true)
+  expect(a[0]!.startsWith(FRAMES['type-1'][0].slice(0, STAGE_COLUMNS - 1))).toBe(true)
   expect(a.join('') !== b.join('')).toBe(true)
-  expect(toRuns('default', 0).flat().some(r => r.color === '#f59e0b' || r.bg === '#f59e0b')).toBe(true)
 })
 
-test('cooking has at least 4 distinct frames with stirring and flame flicker', () => {
-  expect(COOK_FRAMES).toBeGreaterThanOrEqual(4)
-  const frames = Array.from({ length: COOK_FRAMES }, (_, i) => toRuns('default', i).map(l => l.map(r => r.text).join('')))
+test('laptop scene has at least 4 distinct frames with screen and code colors', () => {
+  expect(WORK_FRAMES).toBeGreaterThanOrEqual(4)
+  const frames = Array.from({ length: WORK_FRAMES }, (_, i) => toRuns('default', i).map(l => l.map(r => r.text).join('')))
   for (const f of frames) {
     expect(f.length).toBe(STAGE_ROWS)
-    expect(f.every(l => [...l].length === STAGE_COLUMNS - 1 + 7)).toBe(true)
+    expect(f.every(l => [...l].length === STAGE_COLUMNS - 1 + 8)).toBe(true)
   }
-  for (let i = 0; i < COOK_FRAMES; i++) {
-    const next = (i + 1) % COOK_FRAMES
+  for (let i = 0; i < WORK_FRAMES; i++) {
+    const next = (i + 1) % WORK_FRAMES
     expect(frames[i]!.join('') !== frames[next]!.join('')).toBe(true)
   }
-  const runsAll = Array.from({ length: COOK_FRAMES }, (_, i) => toRuns('default', i).flat()).flat()
-  expect(runsAll.some(r => r.color === '#f59e0b' || r.bg === '#f59e0b')).toBe(true)
-  expect(runsAll.some(r => r.color === '#ef4444' || r.bg === '#ef4444')).toBe(true)
+  const runsAll = Array.from({ length: WORK_FRAMES }, (_, i) => toRuns('default', i).flat()).flat()
+  expect(runsAll.some(r => r.color === '#9aa3ad' || r.bg === '#9aa3ad')).toBe(true)
+  expect(runsAll.some(r => r.color === '#1c1c22' || r.bg === '#1c1c22')).toBe(true)
+  expect(runsAll.some(r => r.color === '#02c0b6' || r.bg === '#02c0b6')).toBe(true)
+  expect(runsAll.some(r => r.color === '#f0ece4' || r.bg === '#f0ece4')).toBe(true)
 })

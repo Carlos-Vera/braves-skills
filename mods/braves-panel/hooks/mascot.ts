@@ -16,7 +16,8 @@ export const FRAMES = {
   'look-right': [' ▐█▜██▛▌ ', ' ▜█████▛ ', '  ▆   ▆  '],
   'arms-up': [' █▛███▜█ ', ' ▐█████▌ ', '  ▆   ▆  '],
   reach: [' ▐█▜██▛▙ ', ' ▜█████▌ ', '  ▆   ▆  '],
-  stir: [' ▐█▜██▛█ ', ' ▜█████▙ ', '  ▆   ▆  '],
+  'type-1': [' ▐█▜██▛▌ ', ' ▜█████▛ ', '  ▆   ▆  '],
+  'type-2': [' ▐█▜██▛▌ ', ' ▜█████▙ ', '  ▆   ▆  '],
   hammer: [' ▐█▜██▛▙▜', ' ▜█████▌▐', '  ▆   ▆  '],
   wrench: [' ▐█▜██▛▙▙', ' ▜█████▌▐', '  ▆   ▆  '],
   hop: [' ▟▙███▟▙ ', ' ▝█▀▀▀█▘ ', '         '],
@@ -38,61 +39,59 @@ export const ACTS = {
   idle: [['default', 800], ['look-left', 1000], ['default', 300], ['look-right', 1000], ['default', 300], ['arms-up', 1200], ['default', 400]],
 } satisfies Record<string, Beat[]>
 
-// ── Cooking ─────────────────────────────────────────────────────────────────
-// While Claude works the mascot stirs a pot beside it: its arm pumps with the
-// spoon, steam rises and fades, and flames flicker. The pot is drawn at one
-// pixel per column and two per row (half blocks).
-const POT = [
-  // Frame 0: spoon dips left, steam right, flames bright
+// ── Laptop Working ──────────────────────────────────────────────────────────
+// While Claude works the mascot types on an open laptop beside it: its hands
+// alternate tapping the keyboard, and lines of code scroll on the screen.
+// Drawn with the half-block renderer (two pixels per row, one per column).
+const LAPTOP = [
+  // Frame 0: code line 1 start, line 2 indented call
   [
-    'W....S.',
-    '.W..S..',
-    '..W....',
-    '.RWRRRR',
-    '.PPPPPP',
-    '..F.f.F',
+    '.SSSSSSS',
+    '.STTLDDS',
+    '.SDTTLDS',
+    '.SSSSSSS',
+    'SSSSSSSS',
+    '.SSSSSS.',
   ],
-  // Frame 1: spoon moves center, steam rises high, flame flickers
+  // Frame 1: typing advances on line 2
   [
-    'W.....S',
-    '..W.S..',
-    '...W...',
-    '.RRWRRR',
-    '.PPPPPP',
-    '.f.F.f.',
+    '.SSSSSSS',
+    '.STTLDDS',
+    '.SDTTLLS',
+    '.SSSSSSS',
+    'SSSSSSSS',
+    '.SSSSSS.',
   ],
-  // Frame 2: spoon dips right, steam mid, flames dance
+  // Frame 2: code scrolls up, new statement starts
   [
-    'W...S..',
-    '..W..S.',
-    '....W..',
-    '.RRRWRR',
-    '.PPPPPP',
-    '..f.F.f',
+    '.SSSSSSS',
+    '.SDTTLLS',
+    '.SDDTTLS',
+    '.SSSSSSS',
+    'SSSSSSSS',
+    '.SSSSSS.',
   ],
-  // Frame 3: spoon sweeps back center, fresh steam puff, flame alternates
+  // Frame 3: fresh syntax highlighted line
   [
-    'W....S.',
-    '.W.S...',
-    '...W...',
-    '.RRWRRR',
-    '.PPPPPP',
-    '.F.f.F.',
+    '.SSSSSSS',
+    '.SLTTLDS',
+    '.SDDLLTS',
+    '.SSSSSSS',
+    'SSSSSSSS',
+    '.SSSSSS.',
   ],
 ] as const
 
-const COOK_POSES: readonly Pose[] = ['reach', 'stir', 'stir', 'reach']
+const WORK_POSES: readonly Pose[] = ['type-1', 'type-2', 'type-1', 'type-2']
 
-export const COOK_FRAMES = POT.length
-export const COOK_MS = 300
+export const WORK_FRAMES = LAPTOP.length
+export const WORK_MS = 250
 
-const POT_COLORS: Record<string, string> = {
-  W: '#be8e5c', // wooden spoon
-  S: '#c9ced6', // steam
-  R: '#9aa3ad', // rim
-  P: '#5f6b7a', // pot
-  F: '#f59e0b', // flame
-  f: '#ef4444',
+const LAPTOP_COLORS: Record<string, string> = {
+  S: '#9aa3ad', // steel frame & keyboard base
+  D: '#1c1c22', // dark screen background
+  T: '#02c0b6', // teal code pixel
+  L: '#f0ece4', // light code pixel
 }
 
 export type Run = { text: string; color?: string; bg?: string }
@@ -103,11 +102,11 @@ function push(runs: Run[], run: Run) {
   else runs.push(run)
 }
 
-function potRow(px: readonly string[], r: number): Run[] {
+function laptopRow(px: readonly string[], r: number): Run[] {
   const runs: Run[] = []
   for (let c = 0; c < px[0]!.length; c++) {
-    const top = POT_COLORS[px[2 * r]![c]!]
-    const bottom = POT_COLORS[px[2 * r + 1]![c]!]
+    const top = LAPTOP_COLORS[px[2 * r]![c]!]
+    const bottom = LAPTOP_COLORS[px[2 * r + 1]![c]!]
     push(runs, top === undefined && bottom === undefined ? { text: ' ' }
       : top === bottom ? { text: '█', color: top }
       : top === undefined ? { text: '▄', color: bottom }
@@ -116,13 +115,12 @@ function potRow(px: readonly string[], r: number): Run[] {
   return runs
 }
 
-/** The mascot; with `cook` set, stirring the pot in that frame beside it. */
-export function toRuns(pose: Pose, cook?: number): Run[][] {
-  if (cook !== undefined) {
-    const pot = POT[cook % POT.length]!
-    const mascotPose = COOK_POSES[cook % COOK_POSES.length] ?? 'reach'
-    // The reaching/stirring arm ends at column 7; the spoon continues from it into the pot.
-    return FRAMES[mascotPose].map((line, r) => [...lineRuns(line.slice(0, STAGE_COLUMNS - 1)), ...potRow(pot, r)])
+/** The mascot; with `work` set, typing on the laptop beside it. */
+export function toRuns(pose: Pose, work?: number): Run[][] {
+  if (work !== undefined) {
+    const screen = LAPTOP[work % LAPTOP.length]!
+    const mascotPose = WORK_POSES[work % WORK_POSES.length] ?? 'type-1'
+    return FRAMES[mascotPose].map((line, r) => [...lineRuns(line.slice(0, STAGE_COLUMNS - 1)), ...laptopRow(screen, r)])
   }
   return FRAMES[pose].map(line => lineRuns(line))
 }
