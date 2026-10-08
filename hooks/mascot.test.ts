@@ -4,9 +4,9 @@ import { ACTS, SCENES, STAGE_COLUMNS, STAGE_ROWS, toRuns, workAt } from './masco
 import type { Pose } from './mascot'
 import { SEQUENCES, SPRITES } from './sprites'
 
-test('every sprite is 3 rows, 9 cells wide (13 for the laptop scenes), ink matching its characters', () => {
+test('every sprite is 3 rows (4 with effects), 9 cells wide (13 for the work scenes), ink matching its characters', () => {
   for (const [name, { rows, ink }] of Object.entries(SPRITES)) {
-    expect(rows.length).toBe(STAGE_ROWS)
+    expect(rows.length === 3 || rows.length === STAGE_ROWS).toBe(true)
     const width = name.startsWith('work') || name.startsWith('desk') ? 13 : STAGE_COLUMNS
     expect(rows.every(r => [...r].length === width)).toBe(true)
     rows.forEach((r, i) => expect([...r].length).toBe(ink[i]!.length))
@@ -15,12 +15,19 @@ test('every sprite is 3 rows, 9 cells wide (13 for the laptop scenes), ink match
 
 test("Carlos's own default pose is kept as drawn", () => {
   expect([...SPRITES.default.rows]).toEqual([' ▐▛███▜▌ ', ' ▜█████▛ ', '  ▆   ▆  '])
+  // On the 4-row stage it stands on the floor, the effects row empty.
+  expect(toRuns('default').map(l => l.map(r => r.text).join(''))).toEqual([' ', ' ▐▛███▜▌ ', ' ▜█████▛ ', '  ▆   ▆  '])
 })
 
 test('the poses the panel names exist, and every timeline only names sprites that exist', () => {
   for (const pose of ['default', 'blink', 'look-left', 'look-right'] satisfies Pose[]) expect(pose in SPRITES).toBe(true)
   for (const act of ['hello', 'jump', 'celebrate', 'poke', 'idle'] as const) expect(act in ACTS).toBe(true)
   for (const steps of Object.values(SEQUENCES)) for (const [sprite] of steps) expect(sprite in SPRITES).toBe(true)
+})
+
+test('effects sit in the top row in their own color', () => {
+  const top = toRuns('love-1')
+  expect(top[0]!.some(r => r.text.includes('♥') && r.color === '#e5534b')).toBe(true)
 })
 
 test('empty cells carry no color, drawn ones do', () => {
@@ -37,10 +44,10 @@ test('both work routines loop on their own durations', () => {
     expect(workAt(0, scene)).toBe(0)
     expect(workAt(first - 1, scene)).toBe(0)
     expect(workAt(first, scene)).toBe(1)
-    expect(toRuns('default', 0, scene).map(l => l.map(r => r.text).join(''))).toEqual([...SPRITES[steps[0]![0]].rows])
+    expect(toRuns('default', 0, scene).map(l => l.map(r => r.text).join('')).slice(1)).toEqual([...SPRITES[steps[0]![0]].rows])
   }
 })
 
 test('every reaction the hooks can cue has an act', () => {
-  for (const cue of ['thinking', 'point', 'lightbulb', 'facepalm', 'disappointed', 'excited', 'confetti', 'dizzy', 'meditate']) expect(cue in ACTS).toBe(true)
+  for (const cue of ['thinking', 'point', 'lightbulb', 'facepalm', 'disappointed', 'excited', 'confetti', 'dizzy', 'meditate', 'sleep', 'love', 'angry', 'halo']) expect(cue in ACTS).toBe(true)
 })

@@ -14,7 +14,7 @@ type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: 
 let latest: View | undefined
 
 // What it does when idle, in turn.
-const IDLE = ['idle', 'sway', 'turning', 'walk', 'crab', 'wrench', 'hammer'] as const
+const IDLE = ['idle', 'sway', 'turning', 'halo', 'walk', 'crab', 'wrench', 'hammer'] as const
 
 const Panel: ClientModule<View, State> = (view, surface) => {
   latest = view
@@ -41,8 +41,9 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       const work = v.working && queue.length === 0 && now >= until ? workAt(now, scene) : undefined
       if (v.working) (idleAt = now + 12000), (restAt = now)
       const free = !v.working && queue.length === 0 && now > until
-      // A minute with nothing going on: it meditates until something happens.
-      if (free && now - restAt > 60000) queue = [...ACTS.meditate]
+      // Nothing going on: after a minute it meditates, after three it falls asleep.
+      if (free && now - restAt > 180000) queue = [...ACTS.sleep]
+      else if (free && now - restAt > 60000) queue = [...ACTS.meditate]
       // Idle long enough: a little routine, dizzy instead once the context is past 80%.
       else if (free && now > idleAt) {
         queue = [...((v.ctx?.percent ?? 0) >= 80 ? ACTS.dizzy : ACTS[IDLE[tool % IDLE.length]!])]
