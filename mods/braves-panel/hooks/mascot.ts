@@ -38,33 +38,72 @@ export const ACTS = {
 } satisfies Record<string, Beat[]>
 
 // ── Working ─────────────────────────────────────────────────────────────────
-// While Claude works the mascot types on a laptop seen from the side: a flat
-// base reaching back to it, the lid leaning away from the hinge, the screen's
-// glow flickering on the lid's inner face. The right arm taps the keys.
+// While Claude works the mascot sits at a laptop seen from the side (a flat
+// base reaching back to it, the lid leaning away from the hinge) and goes
+// through a little routine: types, stops to glance down-left at what you are
+// writing, winks, goes back to typing, now and then scratches its head.
 // Drawn on the same 2x2 sub-pixel grid as the mascot: 13 cells, 26 x 6.
-const ARM_UP = ['...TTTTTTTTTTTT..', '...TTT.TTTTTT.T..', '..TTTTTTTTTTTTTTT', '...TTTTTTTTTTTT..']
-const ARM_DOWN = ['...TTTTTTTTTTTT..', '...TTT.TTTTTT.T..', '..TTTTTTTTTTTTT..', '...TTTTTTTTTTTTTT']
-const LEGS = ['....TT......TT..S', '....TT......TT...']
 const LID = ['........S', '.......S.', '.......S.', '......S..', 'SSSSSSS..', '.........']
+const LEGS = ['....TT......TT..S', '....TT......TT...']
 
-/** One working frame: the arm up or down, and where the glow sits on the screen. */
-function workFrame(arm: readonly string[], glow?: [number, number]): string[] {
-  const rows = [...arm, ...LEGS].map((m, r) => m + LID[r]!)
-  if (glow) {
-    const [r, c] = glow
-    rows[r] = rows[r]!.slice(0, c) + 'L' + rows[r]!.slice(c + 1)
-  }
+type Arm = 'up' | 'down' | 'head' | 'head2'
+type Eyes = 'laptop' | 'prompt' | 'wink' | 'up'
+
+// Where each eye's gap goes, [row, columns]: the laptop is to the right, the
+// prompt below-left, `up` is the thinking look.
+const EYES: Record<Eyes, [number, number[]]> = {
+  laptop: [1, [6, 13]],
+  prompt: [2, [4, 11]],
+  wink: [2, [4]],
+  up: [0, [5, 12]],
+}
+
+function scene(arm: Arm, eyes: Eyes, glow?: number): string[] {
+  const m = ['...TTTTTTTTTTTT..', '...TTTTTTTTTTTT..', '..TTTTTTTTTTTTT..', '...TTTTTTTTTTTT..'].map(r => [...r])
+  const on = (r: number, c: number) => (m[r]![c] = 'T')
+  if (arm === 'up') on(2, 15), on(2, 16)
+  if (arm === 'down') on(3, 15), on(3, 16)
+  if (arm === 'head') on(0, 15), on(1, 15)
+  if (arm === 'head2') on(0, 15), on(0, 16), on(1, 15)
+  const [row, cols] = EYES[eyes]
+  for (const c of cols) m[row]![c] = '.'
+  const rows = [...m.map(r => r.join('')), ...LEGS].map((r, i) => r + LID[i]!)
+  // The screen's glow, seen edge-on: a light pixel on the lid's inner face.
+  if (glow !== undefined) rows[glow] = rows[glow]!.slice(0, 23) + 'L' + rows[glow]!.slice(24)
   return rows
 }
 
-const WORK = [
-  workFrame(ARM_UP, [1, 23]),
-  workFrame(ARM_DOWN, [0, 23]),
-  workFrame(ARM_UP),
-  workFrame(ARM_DOWN, [1, 23]),
+const typing = (beats: number): [string[], number][] =>
+  Array.from({ length: beats }, (_, i) => [scene(i % 2 ? 'down' : 'up', 'laptop', i % 3 === 2 ? undefined : i % 2), 220])
+const scratching = (times: number): [string[], number][] =>
+  Array.from({ length: times * 2 }, (_, i) => [scene(i % 2 ? 'head2' : 'head', 'up'), 160])
+
+// ponytail: one fixed routine on a loop; randomize the order if it starts to feel scripted.
+const ROUTINE: [string[], number][] = [
+  ...typing(14),
+  [scene('down', 'prompt'), 1400],
+  [scene('down', 'wink'), 250],
+  [scene('down', 'prompt'), 700],
+  ...typing(12),
+  [scene('down', 'prompt'), 900],
+  ...typing(10),
+  ...scratching(4),
+  [scene('down', 'up'), 600],
+  ...typing(14),
+  [scene('down', 'prompt'), 1600],
 ]
-export const WORK_FRAMES = WORK.length
-export const WORK_MS = 220
+const ROUTINE_MS = ROUTINE.reduce((t, [, ms]) => t + ms, 0)
+
+/** Which routine step plays `ms` into the loop. */
+export function workAt(ms: number): number {
+  let t = ms % ROUTINE_MS
+  for (let i = 0; i < ROUTINE.length; i++) {
+    t -= ROUTINE[i]![1]
+    if (t < 0) return i
+  }
+  return 0
+}
+export const WORK_STEPS = ROUTINE.length
 
 const SCENE_COLORS: Record<string, string> = {
   T: '#02c0b6', // the mascot
@@ -102,7 +141,7 @@ function push(runs: Run[], run: Run) {
 
 /** The mascot; with `work` set, typing on the laptop beside it. */
 export function toRuns(pose: Pose, work?: number): Run[][] {
-  if (work !== undefined) return quadRuns(WORK[work % WORK.length]!)
+  if (work !== undefined) return quadRuns(ROUTINE[work % ROUTINE.length]![0])
   return FRAMES[pose].map(line => lineRuns(line))
 }
 
