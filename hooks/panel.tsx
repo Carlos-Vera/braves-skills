@@ -11,7 +11,7 @@ import type { Cell } from './scenery'
 // The whole panel draws here as a Client so the pointer anywhere over it
 // reaches the mascot: it looks toward the pointer, a click makes it hop.
 
-type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number }
+type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number; stride: number }
 
 let latest: View | undefined
 
@@ -27,7 +27,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
 
   if (surface.state === undefined) {
     const now = Date.now()
-    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now, reel: 0, x: 0, goal: 0, gait: 'walk', stepAt: 0, trek: 0 })
+    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now, reel: 0, x: 0, goal: 0, gait: 'walk', stepAt: 0, trek: 0, stride: 0 })
 
     surface.every(TICK_MS, () => {
       const s = surface.state
@@ -73,8 +73,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         const [p, ms] = queue[0]
         pose = p, until = now + ms, queue = queue.slice(1)
       } else if (jog) {
-        const steps = ACTS.jog
-        pose = steps[Math.floor(now / steps[0]![1]) % steps.length]![0]
+        // Counted in ticks, not clock time, so a late tick never skips a step.
+        pose = ACTS.jog[Math.floor(s.stride / 3) % ACTS.jog.length]![0]
       } else if (!v.working && !v.sprint && goal !== x) {
         // Crossing the stage: a cell every tick (the slack absorbs timer jitter), legs alternating.
         if (now >= stepAt) (x += Math.sign(goal - x)), (stepAt = now + TICK_MS - 10)
@@ -83,8 +83,10 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       } else if (work === undefined && now > blinkAt) (pose = 'blink'), (until = now + 150), (blinkAt = now + 2500 + Math.random() * 3500)
       // The ticker crawls a cell every 150 ms while it has news.
       const reel = v.news.length > 0 ? Math.floor(now / 150) : s.reel
-      const trek = v.sprint ? Math.floor(now / 90) : s.trek
-      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel || x !== s.x || goal !== s.goal || trek !== s.trek) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel, x, goal, gait, stepAt, trek })
+      // While sprinting the backdrop moves a cell every other tick.
+      const stride = v.sprint ? s.stride + 1 : 0
+      const trek = v.sprint ? s.trek + (stride % 2) : s.trek
+      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel || x !== s.x || goal !== s.goal || stride !== s.stride) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel, x, goal, gait, stepAt, trek, stride })
     })
 
     surface.onPointer(e => {

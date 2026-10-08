@@ -28,6 +28,8 @@ declare module 'claude-code' {
       bodyRows: number
       news: News[]
       sprint: boolean
+      crowd: number
+      tasks: number
       gemini: Gemini | null
       lang: Lang
       account: Account | null
