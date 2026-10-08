@@ -5,6 +5,7 @@ import type { Account, Gemini, Lang, Turn } from '../types'
 
 import { LABELS, accountOf, fmtDuration, langOf, parseGemini, planOf, tildePath, untilReset } from './format'
 import type { View } from './format'
+import { STAGE_ROWS } from './mascot'
 
 const PANE = 'braves-panel'
 const TITLE = 'Braves'
@@ -164,6 +165,9 @@ export const register: Register = on => {
     const t = at || Date.now()
     const ctx = usage.context.percent
     const rows = e.viewport?.rows ?? 30
+    // The data comes first: the stage only shows when the tools keep their 3 rows.
+    const spare = rows - (gem ? 40 : 32)
+    const stage = spare >= 3 + STAGE_ROWS
     const view: View = {
       lang: lg,
       still: motion.still,
@@ -189,7 +193,8 @@ export const register: Register = on => {
       usd: usage.cost?.usd ?? null,
       gemini: gem,
       tools: Object.entries(used).sort((a, b) => b[1] - a[1]),
-      room: Math.max(3, rows - (gem ? 40 : 32)),
+      room: Math.max(3, spare - (stage ? STAGE_ROWS : 0)),
+      stage: stage ? rows - STAGE_ROWS : null,
     }
 
     return (

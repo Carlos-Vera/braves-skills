@@ -118,4 +118,6 @@ export type View = {
   gemini: Gemini | null
   tools: [string, number][]
   room: number
+  // Row where the mascot's stage starts, at the bottom; null when the terminal is too short for it.
+  stage: number | null
 }

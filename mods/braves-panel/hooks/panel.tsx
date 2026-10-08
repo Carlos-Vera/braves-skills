@@ -63,7 +63,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       const s = surface.state
       if (!s || latest?.still) return
       if (e.type === 'leave') return s.look !== 0 && surface.setState({ ...s, look: 0 })
-      if (e.type === 'down' && e.x < STAGE_COLUMNS && e.y < STAGE_ROWS) return surface.setState({ ...s, queue: [...ACTS.poke], until: 0, restAt: Date.now() })
+      const top = latest?.stage ?? null
+      if (e.type === 'down' && top !== null && e.x < STAGE_COLUMNS && e.y >= top && e.y < top + STAGE_ROWS) return surface.setState({ ...s, queue: [...ACTS.poke], until: 0, restAt: Date.now() })
       const dx = (e.fine?.x ?? e.x + 0.5) - STAGE_COLUMNS / 2
       const look = Math.abs(dx) < 2 ? 0 : dx < 0 ? -1 : 1
       if (look !== s.look) surface.setState({ ...s, look, restAt: Date.now() })
@@ -92,16 +93,11 @@ const Panel: ClientModule<View, State> = (view, surface) => {
   const toolCount = view.tools.reduce((n, [, c]) => n + c, 0)
 
   return (
-    <Box flexDirection="column" gap={1}>
-      <Box flexDirection="row" gap={2}>
-        <Box flexDirection="column" flexShrink={0}>
-          {stage.map(line => <Text>{line.map(r => <Text color={r.color}>{r.text}</Text>)}</Text>)}
-        </Box>
-        <Box flexDirection="column" flexShrink={1}>
-          <Text wrap="truncate-end"><Text bold>Claude Code</Text> <Text dimColor>v{view.version}</Text></Text>
-          <Text wrap="truncate-end" dimColor>{view.model}{view.plan ? ` · ${view.plan}` : ''}</Text>
-          <Text wrap="truncate-start" dimColor>{view.cwd}</Text>
-        </Box>
+    <Box flexDirection="column" gap={1} flexGrow={1}>
+      <Box flexDirection="column">
+        <Text wrap="truncate-end"><Text bold>Claude Code</Text> <Text dimColor>v{view.version}</Text></Text>
+        <Text wrap="truncate-end" dimColor>{view.model}{view.plan ? ` · ${view.plan}` : ''}</Text>
+        <Text wrap="truncate-start" dimColor>{view.cwd}</Text>
       </Box>
 
       {Section('◷', L.session, BRAND, <Box flexDirection="column">
@@ -147,6 +143,11 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         ? Row('', <Text dimColor>{L.none}</Text>)
         : view.tools.slice(0, view.room).map(([name, n]) => Row(name,
           <Text><Text color="suggestion">{'▪'.repeat(Math.max(1, Math.round((n / toolMax) * 10)))}</Text> {n}</Text>)))}
+
+      {view.stage !== null && <Box flexGrow={1} />}
+      {view.stage !== null && <Box flexDirection="column" flexShrink={0}>
+        {stage.map(line => <Text>{line.map(r => <Text color={r.color}>{r.text}</Text>)}</Text>)}
+      </Box>}
     </Box>
   )
 }
