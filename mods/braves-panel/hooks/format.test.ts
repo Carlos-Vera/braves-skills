@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 
-import { bar, colorFor, fmtDuration, fmtTokens, accountOf, langOf, marquee, tildePath, parseGemini, planOf } from './format'
+import { bar, colorFor, fmtDuration, fmtTokens, accountOf, commitTitle, langOf, marquee, tildePath, parseGemini, planOf } from './format'
 
 test('formats the panel figures', () => {
   expect(fmtTokens(950)).toBe('950')
@@ -55,4 +55,11 @@ test('the ticker stands still when it fits and loops when it does not', () => {
   expect(text(marquee(long, 8, 0))).toBe('abcdef  ')
   expect(text(marquee(long, 8, 23))).toBe('abcdef  ')
   expect(marquee(long, 8, 0)[0]).toEqual({ text: 'abcdef', color: 'red' })
+})
+
+test('reads the commit title from -m and its combined flags', () => {
+  expect(commitTitle('git commit -m "feat: a"')).toBe('feat: a')
+  expect(commitTitle("git add . && git commit -qm 'fix: b' && git log")).toBe('fix: b')
+  expect(commitTitle('git commit -am "chore: c"')).toBe('chore: c')
+  expect(commitTitle('git commit -F msg.txt')).toBe('')
 })
