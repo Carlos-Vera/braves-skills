@@ -26,43 +26,43 @@ type Backdrop = {
 export const BACKDROPS = {
   // A city at night: a moon and twinkling stars, a far skyline, lit windows rushing past.
   city: {
-    sky: ['#0b1026', '#111a3d', '#18234f', '#202d5e'],
+    sky: ['#0b1026', '#0f1838', '#141e45', '#18234f'],
     layers: [
       { rows: ['   ·        ●         ·    ✦     ·  ', '        ·                           ', '                                    ', '                                    '], speed: 0, color: '#c9d1ff', ink: { '●': '#f5f3ce' } },
-      { rows: ['                ▗▖                  ', '   ▄▄      ▗▄▄  ██   ▄▄▄       ▗▄    ', '  ▐██▌ ▄▄  ███▌ ██  ▐███▌ ▄▄   ██▌   ', '  ▐██▌▐██▌ ███▌ ██  ▐███▌▐██▌  ██▌   '], speed: 1, color: '#2c3a6b' },
-      { rows: ['      ▄       ◆           ▄▄       ', ' ▐▀▀▌ █   ▐▀▀▀▀▌      ▐▀▀▀▌██  ▐▀▌  ', ' ▐▪▫▌ █▪  ▐▪▫▪▪▌  ▄▄  ▐▪▪▫▌▪█  ▐▪▌  ', ' ▐▫▪▌ █▫  ▐▪▪▫▪▌ ▐▪▪▌ ▐▫▪▪▌▫█  ▐▪▌  '], speed: 4, color: '#3d4466', ink: { '▪': '#ffd166', '▫': '#ffd166', '◆': '#ff4fd8' } },
+      { rows: ['                ▗▖                  ', '   ▄▄      ▗▄▄  ██   ▄▄▄       ▗▄    ', '  ▐██▌ ▄▄  ███▌ ██  ▐███▌ ▄▄   ██▌   ', '  ▐██▌▐██▌ ███▌ ██  ▐███▌▐██▌  ██▌   '], speed: 1, color: '#55679f' },
+      { rows: ['      ▄       ◆           ▄▄       ', ' ▐▀▀▌ █   ▐▀▀▀▀▌      ▐▀▀▀▌██  ▐▀▌  ', ' ▐▪▫▌ █▪  ▐▪▫▪▪▌  ▄▄  ▐▪▪▫▌▪█  ▐▪▌  ', ' ▐▫▪▌ █▫  ▐▪▪▫▪▌ ▐▪▪▌ ▐▫▪▪▌▫█  ▐▪▌  '], speed: 4, color: '#8a93bd', ink: { '▪': '#ffd166', '▫': '#ffd166', '◆': '#ff4fd8' } },
     ],
     ground: { tile: '▬▬▬   ▬▬▬   ', color: '#f2c14e', bg: '#2a2d36' },
   },
   // A park at sunset: the sun sinking behind purple hills, birds, trees and lamps going by.
   park: {
-    sky: ['#ffb36b', '#f58a73', '#d06a83', '#8a5a8f'],
+    sky: ['#3a2560', '#6a3a78', '#a04a78', '#e07a6a'],
     layers: [
       { rows: ['                ◖◗                    ', '                                      ', '                                      ', '                                      '], speed: 0, color: '#ffe08a' },
-      { rows: ['                                      ', '         ᵛ               ᵛ ᵛ          ', '                                      ', '▂▃▄▅▅▄▃▂▁    ▁▂▃▄▃▂▁      ▂▃▄▅▆▅▄▃▂▁▁  '], speed: 2, color: '#5a3d6b', ink: { ᵛ: '#3a2a3f' } },
-      { rows: ['   ▄██▄          ●          ▄▄       ', '  ▐████▌         ╿         ▟██▙      ', '   ▀██▀    ✿     ╿    ✿   ▜██▛    ✿ ', '    ▐▌           ╿          ▐▌       '], speed: 4, color: '#2f6b3a', ink: { '▐': '#7a5236', '▌': '#7a5236', '●': '#ffd88a', '╿': '#4a4a55', '✿': '#ff6fa8' } },
+      { rows: ['                                      ', '         ᵛ               ᵛ ᵛ          ', '                                      ', '▂▃▄▅▅▄▃▂▁    ▁▂▃▄▃▂▁      ▂▃▄▅▆▅▄▃▂▁▁  '], speed: 2, color: '#5a2f5f', ink: { ᵛ: '#1a1020' } },
+      { rows: ['   ▄██▄          ●          ▄▄       ', '  ▐████▌         ╿         ▟██▙      ', '   ▀██▀    ✿     ╿    ✿   ▜██▛    ✿ ', '    ▕▏           ╿          ▕▏       '], speed: 4, color: '#7ccf60', ink: { '▕': '#3e2416', '▏': '#3e2416', '●': '#ffd88a', '╿': '#15151c', '✿': '#fff1a8' } },
     ],
-    ground: { tile: '▁ ▁  ▁   ▁ ', color: '#c9a27a', bg: '#7a5a46' },
+    ground: { tile: '▁ ▁  ▁   ▁ ', color: '#f0d6b0', bg: '#6a4a38' },
   },
   // A field by day: clouds drifting, green hills, a fence and wheat swaying past.
   field: {
-    sky: ['#4aa3e0', '#6db8eb', '#97cdf2', '#c3e4f7'],
+    sky: ['#1f6fb8', '#3388cf', '#7cbde8', '#b5dcf3'],
     layers: [
       { rows: ['   ▗▄▄▖           ☀            ▗▄▖   ', '  ▀▀▀▀▀▀                     ▀▀▀▀▀  ', '                                      ', '                                      '], speed: 1, color: '#ffffff', ink: { '☀': '#ffd23f' } },
-      { rows: ['                                      ', '                                      ', '        ▁▂▃▃▂▁          ▁▂▂▁          ', '▁▂▃▄▄▃▂▂▃▄▅▅▄▃▂▁▁▂▃▄▄▃▂▃▄▅▅▅▄▃▂▁▁▁▂▂▁  '], speed: 2, color: '#5f9e4a' },
-      { rows: ['                                      ', '  ┬─┬─┬─┬              ψ ψ           ', '  │ │ │ │     ψ ψ ψ   ψψψψψ   ψ ψ    ', '  │ │ │ │    ψψψψψψ  ψψψψψψψ ψψψψψ   '], speed: 4, color: '#8a6a45', ink: { ψ: '#e8b93a' } },
+      { rows: ['                                      ', '                                      ', '        ▁▂▃▃▂▁          ▁▂▂▁          ', '▁▂▃▄▄▃▂▂▃▄▅▅▄▃▂▁▁▂▃▄▄▃▂▃▄▅▅▅▄▃▂▁▁▁▂▂▁  '], speed: 2, color: '#3a7a2a' },
+      { rows: ['                                      ', '  ┬─┬─┬─┬              ψ ψ           ', '  │ │ │ │     ψ ψ ψ   ψψψψψ   ψ ψ    ', '  │ │ │ │    ψψψψψψ  ψψψψψψψ ψψψψψ   '], speed: 4, color: '#5a3f22', ink: { ψ: '#7a4a05' } },
     ],
-    ground: { tile: 'ʷ  ʷʷ   ʷ  ', color: '#2f6b2a', bg: '#4f8a3a' },
+    ground: { tile: 'ʷ  ʷʷ   ʷ  ', color: '#b8eb80', bg: '#3f7a2e' },
   },
   // Mountains at dawn: snowy peaks far away, pines and a river close by.
   nature: {
-    sky: ['#2d1b4e', '#6b3a6e', '#c86b6b', '#f2b880'],
+    sky: ['#3b2d6e', '#a8709a', '#eba08a', '#ffd6a5'],
     layers: [
-      { rows: ['  ·        ▲              ▲          ', '          ▟▲▙       ▲    ▟▲▙         ', '        ▗▟███▙▖    ▟█▙  ▟███▙▖       ', '     ▗▄▟███████▙▄▄▟███▙▟███████▙▄▖   '], speed: 1, color: '#4a4e69', ink: { '▲': '#f0f0f5', '·': '#ffe6c7' } },
-      { rows: ['                                     ', '    ▲          ▲▲           ▲         ', '   ▟█▙   ▲    ▟██▙    ▲    ▟█▙   ▲    ', '  ▟███▙ ▟█▙  ▟████▙  ▟█▙  ▟███▙ ▟█▙   '], speed: 2, color: '#1f4d3a' },
-      { rows: ['                                     ', '                       ▲             ', '  ▲                   ▟█▙        ≈≈   ', ' ▟█▙   ≈≈≈≈          ▟███▙   ≈≈≈≈≈≈≈  '], speed: 4, color: '#16382a', ink: { '≈': '#6ec6ff' } },
+      { rows: ['  ·        ▲              ▲          ', '          ▟▲▙       ▲    ▟▲▙         ', '        ▗▟███▙▖    ▟█▙  ▟███▙▖       ', '     ▗▄▟███████▙▄▄▟███▙▟███████▙▄▖   '], speed: 1, color: '#3a3358', ink: { '▲': '#f0f0f5', '·': '#ffe6c7' } },
+      { rows: ['                                     ', '    ▲          ▲▲           ▲         ', '   ▟█▙   ▲    ▟██▙    ▲    ▟█▙   ▲    ', '  ▟███▙ ▟█▙  ▟████▙  ▟█▙  ▟███▙ ▟█▙   '], speed: 2, color: '#1a4030' },
+      { rows: ['                                     ', '                       ▲             ', '  ▲                   ▟█▙        ≈≈   ', ' ▟█▙   ≈≈≈≈          ▟███▙   ≈≈≈≈≈≈≈  '], speed: 4, color: '#16382a', ink: { '≈': '#1f5fc0' } },
     ],
-    ground: { tile: '░ ░░  ░ ', color: '#8a6a4a', bg: '#5b4636' },
+    ground: { tile: '░ ░░  ░ ', color: '#c9a27a', bg: '#4a3628' },
   },
 } satisfies Record<string, Backdrop>
 
