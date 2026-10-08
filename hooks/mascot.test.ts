@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { ACTS, FRAMES, STAGE_COLUMNS, STAGE_ROWS, WORK_FRAMES, toRuns } from './mascot'
+import { ACTS, FRAMES, STAGE_COLUMNS, STAGE_ROWS, WORK_STEPS, toRuns, workAt } from './mascot'
 import type { Pose } from './mascot'
 
 const ALLOWED_CHARS = new Set([...' ▘▝▀▖▌▞▛▗▚▐▜▄▙▟█▆'])
@@ -35,14 +35,17 @@ test('every act only names poses that exist', () => {
   expect(toRuns('default' as Pose).map(l => l.map(r => r.text).join(''))).toEqual([...FRAMES.default])
 })
 
-test('working: the mascot types on a side-view laptop, 13 cells wide, every frame different', () => {
-  expect(WORK_FRAMES).toBeGreaterThanOrEqual(4)
-  const frames = Array.from({ length: WORK_FRAMES }, (_, i) => toRuns('default', i).map(l => l.map(r => r.text).join('')))
+test('working: a 13-cell laptop routine that types, glances at the prompt, winks and scratches its head', () => {
+  const frames = Array.from({ length: WORK_STEPS }, (_, i) => toRuns('default', i).map(l => l.map(r => r.text).join('')))
   for (const f of frames) {
     expect(f.length).toBe(STAGE_ROWS)
     expect(f.every(l => [...l].length === 13)).toBe(true)
   }
-  for (let i = 0; i < WORK_FRAMES; i++) expect(frames[i]!.join('') !== frames[(i + 1) % WORK_FRAMES]!.join('')).toBe(true)
-  const runs = Array.from({ length: WORK_FRAMES }, (_, i) => toRuns('default', i).flat()).flat()
+  expect(new Set(frames.map(f => f.join('\n'))).size >= 7).toBe(true)
+  const runs = Array.from({ length: WORK_STEPS }, (_, i) => toRuns('default', i).flat()).flat()
   for (const color of ['#02c0b6', '#9aa3ad', '#f0ece4']) expect(runs.some(r => r.color === color)).toBe(true)
+  // The loop wraps: the first beat plays again one routine later.
+  expect(workAt(0)).toBe(0)
+  expect(workAt(219)).toBe(0)
+  expect(workAt(220)).toBe(1)
 })
