@@ -11,7 +11,7 @@ import type { Cell } from './scenery'
 // The whole panel draws here as a Client so the pointer anywhere over it
 // reaches the mascot: it looks toward the pointer, a click makes it hop.
 
-type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number; stride: number; lead: number; leadAt: number; rush: '' | 'point' | 'flee' | 'peek' | 'sit' | 'lift'; seenAt: number; lift: number; liftAt: number }
+type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number; stride: number; lead: number; leadAt: number; rush: '' | 'point' | 'flee' | 'peek' | 'sit' | 'lift' | 'sleep'; seenAt: number; lift: number; liftAt: number }
 
 let latest: View | undefined
 
@@ -73,6 +73,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         // /braves-panel peek | sit: the explore routines on demand.
         // A second error within a minute (angry) is a big problem: once the act ends it goes to look into the code.
         if ((v.cue.name === 'angry' || v.cue.name === 'lift') && lift < 0) (rush = 'lift'), (gait = 'walk'), (goal = 0)
+        // /braves-panel sleep: the nap without three idle minutes.
+        if (v.cue.name === 'sleep') (queue = []), (goal = x < room / 2 ? 0 : room), (gait = 'walk'), (rush = 'sleep')
         if (v.cue.name === 'peek' || v.cue.name === 'sit') (rush = v.cue.name), (gait = 'walk'), (goal = x < room / 2 ? room + (rush === 'peek' ? PEEK : 0) : rush === 'peek' ? -PEEK : 0)
         idleAt = now + 12000
         restAt = now
@@ -88,6 +90,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       if (rush && x === goal) {
         if (rush === 'point') queue = [...queue, ...POINT]
         if (rush === 'sit') queue = [...queue, ...SIT]
+        // Down on the floor first, unless it is already lying there.
+        if (rush === 'sleep') queue = [...queue, ...(s.pose.startsWith('lie') ? [] : [['sit-1', 500] as Beat]), ...ACTS.sleep]
         if (rush === 'lift') (lift = 0), (liftAt = 0)
         if (rush === 'peek') (queue = [...queue, ...peekAt(x > 0)]), (goal = x > 0 ? room - PEEK : PEEK), (gait = 'walk')
         rush = ''
@@ -99,8 +103,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       const work = v.working && !v.sprint && !rushing && queue.length === 0 && now >= until ? workAt(now, scene) : undefined
       if (v.working) (idleAt = now + 12000), (restAt = now)
       const free = !v.working && !v.sprint && lift < 0 && queue.length === 0 && now > until
-      // Nothing going on: after a minute it meditates, after three it falls asleep.
-      if (free && now - restAt > 180000) queue = [...ACTS.sleep]
+      // Nothing going on: after a minute it meditates, after three it walks to the nearer corner and lies down to sleep.
+      if (free && now - restAt > 180000) (goal = x < room / 2 ? 0 : room), (gait = 'walk'), (rush = 'sleep')
       else if (free && now - restAt > 60000) queue = [...ACTS.meditate]
       // Idle long enough: a little routine, dizzy instead once the context is past 80%.
       else if (free && now > idleAt) {
