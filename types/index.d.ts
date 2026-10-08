@@ -14,6 +14,9 @@ export type Gemini = {
   tokens: string
 }
 
+// One headline of the ticker under the mascot's floor.
+export type News = { kind: 'ask' | 'plan' | 'error' | 'deny' | 'commit' | 'ship' | 'gemini'; detail: string }
+
 declare module 'claude-code' {
   interface PluginState {
     'braves-panel': {
@@ -22,6 +25,8 @@ declare module 'claude-code' {
       branch: string
       now: number
       isOpen: boolean
+      bodyRows: number
+      news: News[]
       gemini: Gemini | null
       lang: Lang
       account: Account | null
