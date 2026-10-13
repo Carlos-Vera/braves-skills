@@ -1,0 +1,14 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "braves-skills",
+  "description": "BravesLab's optional add-ons for braves-skills.",
+  "owner": { "name": "Carlos Vera", "url": "https://braveslab.com" },
+  "plugins": [
+    {
+      "name": "braves-panel",
+      "description": "Usage panel beside the conversation (session, tokens, context, cost, Gemini, tools) with an animated mascot. Optional: bravesline stays the status bar.",
+      "source": "./mods/braves-panel",
+      "category": "productivity"
+    }
+  ]
+}
