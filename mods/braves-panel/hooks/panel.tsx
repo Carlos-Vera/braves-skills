@@ -152,9 +152,10 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         // Counted in ticks, not clock time, so a late tick never skips a step; quicker legs on a surge.
         pose = ACTS.jog[Math.floor(stride / (pace === 1 ? 2 : 3)) % ACTS.jog.length]![0]
       } else if ((!v.working || rushing) && !v.sprint && goal !== x) {
-        // Crossing the stage: a cell every tick (the slack absorbs timer jitter), legs alternating.
+        // Crossing the stage: a cell every tick (the slack absorbs timer jitter), legs alternating every
+        // two cells: swapped every tick, the terminal caught half of one frame over half of the other.
         if (now >= stepAt) (x += Math.sign(goal - x)), (stepAt = now + TICK_MS - 10)
-        pose = `${gait}-${(x & 1) + 1}` as Pose
+        pose = `${gait}-${((x >> 1) & 1) + 1}` as Pose
         idleAt = now + 12000
       } else if (work === undefined && now > blinkAt) (pose = 'blink'), (until = now + 150), (blinkAt = now + 2500 + Math.random() * 3500)
       // The ticker crawls a cell every 150 ms while it has news.
