@@ -17,7 +17,7 @@ export const LABELS = {
     quiet: 'en silencio', model: 'Modelo', step: 'Paso', doing: 'Haciendo', elapsed: 'Tiempo', contextRow: 'Contexto',
     tools: 'HERRAMIENTAS', calls: 'usos', none: 'ninguna todavía',
     opened: 'Panel de Braves abierto.', closed: 'Panel de Braves cerrado.',
-    plan: 'Plan listo para revisar', failed: 'falló', denied: 'denegado', commit: 'Commit', ship: 'Merge / release publicado', sprintDemo: 'Trotando 80 s por los cuatro paisajes.', peek: 'Se asoma por el borde.', sit: 'Se sienta en la orilla.', lift: 'Se asoma a revisar el código.', scratch: 'Se rasca la cabeza.', sleep: 'Se va a una esquina a dormir.',
+    plan: 'Plan listo para revisar', failed: 'falló', denied: 'denegado', commit: 'Commit', ship: 'Merge / release publicado', sprintDemo: 'Trotando 80 s por los cuatro paisajes.', peek: 'Se asoma por el borde.', sit: 'Se sienta en la orilla.', lift: 'Se asoma a revisar el código.', scratch: 'Se rasca la cabeza.', sleep: 'Se va a una esquina a dormir.', neo: 'Golpe arriba y onda expansiva.',
   },
   en: {
     session: 'SESSION', time: 'Time', branch: 'Branch', noGit: 'No Git',
@@ -30,7 +30,7 @@ export const LABELS = {
     quiet: 'quiet', model: 'Model', step: 'Step', doing: 'Doing', elapsed: 'Elapsed', contextRow: 'Context',
     tools: 'TOOLS', calls: 'calls', none: 'none yet',
     opened: 'Braves panel opened.', closed: 'Braves panel closed.',
-    plan: 'Plan ready to review', failed: 'failed', denied: 'denied', commit: 'Commit', ship: 'Merge / release shipped', sprintDemo: 'Jogging 80 s through the four backdrops.', peek: 'Peeking past the edge.', sit: 'Sitting at the edge.', lift: 'Peeking into the code.', scratch: 'Scratching its head.', sleep: 'Off to a corner to sleep.',
+    plan: 'Plan ready to review', failed: 'failed', denied: 'denied', commit: 'Commit', ship: 'Merge / release shipped', sprintDemo: 'Jogging 80 s through the four backdrops.', peek: 'Peeking past the edge.', sit: 'Sitting at the edge.', lift: 'Peeking into the code.', scratch: 'Scratching its head.', sleep: 'Off to a corner to sleep.', neo: 'A punch up and a shockwave.',
   },
 } satisfies Record<Lang, Record<string, string>>
 
