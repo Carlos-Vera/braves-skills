@@ -23,7 +23,7 @@ const SCENE_COLUMNS = 13
 
 // What it does when idle, in turn; walk and crab cross the stage instead of stepping in place.
 // peek: walks half off one edge to look past it; sit: sits down at an edge for a while.
-// ms per cell walked: the calibration knob for its speed (70 was too quick to read).
+// ms per cell walked, on average: the knob for its speed (70 too quick, 140 too slow).
 const STEP_MS = 100
 const IDLE = ['idle', 'peek', 'sway', 'turning', 'lift', 'halo', 'walk', 'sit', 'crab', 'wrench', 'hammer'] as const
 
@@ -156,7 +156,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       } else if ((!v.working || rushing) && !v.sprint && goal !== x) {
         // Crossing the stage: a cell every STEP_MS; the legs keep the pace of his own walk timeline
         // (200 ms a frame, 180 the crab's), two cells to a frame.
-        if (now >= stepAt) (x += Math.sign(goal - x)), (stepAt = now + STEP_MS)
+        // Kept on a schedule rather than from the last step, so the average is STEP_MS between the 70 ms ticks.
+        if (now >= stepAt) (x += Math.sign(goal - x)), (stepAt = Math.max(stepAt + STEP_MS, now - STEP_MS))
         pose = `${gait}-${(Math.floor(now / ACTS[gait][0]![1]) & 1) + 1}` as Pose
         idleAt = now + 12000
       } else if (work === undefined && now > blinkAt) (pose = 'blink'), (until = now + 150), (blinkAt = now + 2500 + Math.random() * 3500)
