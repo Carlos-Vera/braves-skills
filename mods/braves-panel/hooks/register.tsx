@@ -172,7 +172,7 @@ export const register: Register = on => {
   on('turn.complete', async ($, e, next) => {
     if (!e.agentId) {
       await update($, isWorking, () => false)
-      if (e.reason === 'answer') say($, 'neo')
+      if (e.reason === 'answer') say($, 'celebrate')
       else if (e.reason === 'aborted') say($, 'disappointed')
       else if (e.reason === 'error') say($, 'facepalm')
     }

@@ -31,6 +31,9 @@ const SNOOZE: Beat[] = [...LIE, ...LIE.slice(1, -1).reverse()]
 // Neo's punch at the end of a turn: a jump, a fist up, a grin; the wave goes as the jump lands.
 const NEO: Beat[] = [['hop', 180], ['arms-up-one', 600], ['happy', 400]]
 const WAVE_MS = 700
+// The least time between two waves: a calibration knob for how often it happens.
+const NEO_GAP_MS = 5 * 60000
+let neoAt = 0
 // The data last drawn while idle, and the copy held from a turn's start until its wave has passed.
 let lastIdle: View | undefined
 let frozen: View | undefined
@@ -175,8 +178,9 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       } else if (work === undefined && now > blinkAt) (pose = 'blink'), (until = now + 150), (blinkAt = now + 2500 + Math.random() * 3500)
       // The ticker crawls a cell every 150 ms while it has news.
       const reel = v.news.length > 0 ? Math.floor(now / 150) : s.reel
-      // The turn just ended: the wave leaves as the jump lands (the panel sees it itself, no cue to race).
-      if (s.wasWorking && !v.working) waveAt = now + NEO[0]![1]
+      // The turn just ended: now and then (a coin flip, five minutes apart at least) the jump, the punch and the wave.
+      if (s.wasWorking && !v.working && now - neoAt > NEO_GAP_MS && Math.random() < 0.5)
+        (queue = [...NEO]), (until = 0), (waveAt = now + NEO[0]![1]), (neoAt = now)
       // The wave's progress in thousandths while it rises, -1 otherwise.
       const wave = waveAt && now >= waveAt && now - waveAt < WAVE_MS ? Math.floor(((now - waveAt) / WAVE_MS) * 1000) : -1
       if (waveAt && now - waveAt >= WAVE_MS) waveAt = 0
