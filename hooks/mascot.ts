@@ -7,7 +7,8 @@ import { PALETTE, SEQUENCES, SPRITES } from './sprites'
 
 export const STAGE_COLUMNS = 9
 export const STAGE_ROWS = 4
-export const TICK_MS = 70
+// 50 so a 100 ms walk step is exactly two ticks (at 70 they alternated 70/140 and the legs shimmered).
+export const TICK_MS = 50
 
 export type Pose = keyof typeof SPRITES
 
