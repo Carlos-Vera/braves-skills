@@ -49,7 +49,7 @@ test('both work routines loop on their own durations', () => {
 })
 
 test('every reaction the hooks can cue has an act', () => {
-  for (const cue of ['thinking', 'point', 'lightbulb', 'facepalm', 'disappointed', 'excited', 'confetti', 'dizzy', 'meditate', 'sleep', 'love', 'angry', 'halo']) expect(cue in ACTS).toBe(true)
+  for (const cue of ['thinking', 'point', 'lightbulb', 'facepalm', 'disappointed', 'excited', 'confetti', 'dizzy', 'meditate', 'sleep', 'love', 'angry', 'halo', 'neo']) expect(cue in ACTS).toBe(true)
 })
 
 test('a mirrored walk faces left, and mirroring twice gives the drawing back', () => {
