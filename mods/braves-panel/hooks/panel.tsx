@@ -28,8 +28,8 @@ const STEP_MS = 100
 // Asleep on the floor: his lie frames breathing in and out (1 2 3 2), looped with no lying down in between.
 const LIE = [...new Map(ACTS.sleep.map(b => [b[0], b])).values()]
 const SNOOZE: Beat[] = [...LIE, ...LIE.slice(1, -1).reverse()]
-// Neo's punch at the end of a turn: a jump, a fist up, a grin; the wave goes as the jump lands.
-const NEO: Beat[] = [['hop', 180], ['arms-up-one', 600], ['happy', 400]]
+// Neo's punch at the end of a turn, his "neo" timeline in the editor; the wave goes as its first frame ends.
+const NEO = ACTS.neo
 const WAVE_MS = 700
 // The least time between two waves: a calibration knob for how often it happens.
 const NEO_GAP_MS = 5 * 60000
