@@ -25,7 +25,6 @@ declare module 'claude-code' {
       branch: string
       now: number
       isOpen: boolean
-      bodyRows: number
       news: News[]
       sprint: boolean
       crowd: number

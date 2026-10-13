@@ -23,7 +23,7 @@ const SCENE_COLUMNS = 13
 
 // What it does when idle, in turn; walk and crab cross the stage instead of stepping in place.
 // peek: walks half off one edge to look past it; sit: sits down at an edge for a while.
-const IDLE = ['idle', 'peek', 'sway', 'turning', 'lift', 'halo', 'walk', 'sit', 'crab', 'wrench', 'hammer'] as const
+const IDLE = ['idle', 'peek', 'sway', 'turning', 'lift', 'halo', 'walk', 'sit', 'wrench', 'hammer'] as const
 
 // lift: at the left edge it sticks its face past the border to look into the code, comes out to
 // nod its approval, looks once more and walks off. Each step: pose, ms, its column (negative: the
@@ -85,7 +85,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       if ((v.news[0]?.at ?? seenAt) !== seenAt) {
         const kind = v.news[0]!.kind
         seenAt = v.news[0]!.at
-        if (!v.sprint && kind === 'error') (queue = [['surprised', 450], ['hop', 200], ...queue]), (until = 0), (goal = Math.min(room, x + 5)), (gait = 'crab'), (rush = 'flee')
+        if (!v.sprint && kind === 'error') (queue = [['surprised', 450], ['hop', 200], ...queue]), (until = 0), (goal = Math.min(room, x + 5)), (gait = 'walk'), (rush = 'flee')
         else if (!v.sprint && kind !== 'gemini') (goal = 0), (gait = 'walk'), (rush = 'point')
       }
       if (rush && x === goal) {
@@ -111,10 +111,10 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         const name = (v.ctx?.percent ?? 0) >= 80 ? 'dizzy' : IDLE[tool % IDLE.length]!
         // A walk crosses to the far side of the floor; a stage too narrow keeps it in place.
         const right = x < room / 2
-        if ((name === 'walk' || name === 'crab') && room >= 6) {
+        if (name === 'walk' && room >= 6) {
           const r = Math.random() * 0.4 * room
           goal = Math.round(right ? room - r : r)
-          gait = name
+          gait = 'walk'
         } else if (name === 'lift') {
           rush = 'lift', gait = 'walk', goal = 0
         } else if (name === 'peek' || name === 'sit') {
@@ -122,7 +122,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
           goal = right ? room + (name === 'peek' ? PEEK : 0) : name === 'peek' ? -PEEK : 0
           gait = 'walk'
           rush = name
-        } else if (name !== 'walk' && name !== 'crab') queue = [...ACTS[name]]
+        } else if (name !== 'walk') queue = [...ACTS[name]]
         tool++
         idleAt = now + 12000 + Math.random() * 8000
       }
