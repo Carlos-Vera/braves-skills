@@ -22,7 +22,6 @@ const account = atom({ plugin: 'braves-panel', key: 'account' } as const, null a
 const isWorking = atom({ plugin: 'braves-panel', key: 'isWorking' } as const, false)
 const isOpen = atom({ plugin: 'braves-panel', key: 'isOpen' } as const, false)
 // Rows the pane shows at once; only ui.scroll tells, 0 until it does.
-const bodyRows = atom({ plugin: 'braves-panel', key: 'bodyRows' } as const, 0)
 const news = atom({ plugin: 'braves-panel', key: 'news' } as const, [] as News[])
 // A sprint: SPRINT or more agents running at once, or that many open tasks while Claude works.
 // The mascot jogs instead of typing. `sprint` itself is the demo's switch (/braves-panel sprint).
@@ -69,7 +68,7 @@ async function refreshGemini($: EngineInterface) {
 }
 
 // What Zeus should do next; kept for the image-sheet mascot.
-const motion = { still: false, typedAt: 0, failedAt: 0, measuring: false, probe: 0, sprinting: false }
+const motion = { still: false, typedAt: 0, failedAt: 0, }
 
 // The ticker keeps the latest few, newest first.
 function tell($: EngineInterface, kind: News['kind'], detail = '') {
@@ -191,42 +190,30 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('ui.scroll', { requestId: PANE }, async ($, e, next) => {
-    if ((await read($, bodyRows)) !== e.bodyRows) await update($, bodyRows, () => e.bodyRows)
-    return next(e)
-  })
-
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const ui = $.ui.resolve(e)
     const { Box } = ui
     // Client and Raster are the terminal's; elsewhere the panel has nothing to draw with.
     if (!('Client' in ui)) return <Box />
     const { Client } = ui
-    // ponytail: no resize event reaches a pane body; a scroll every second makes ui.scroll report its height.
-    // It alternates ends: after a shrink the tree is taller than the window and a scroll to its own edge moves nothing.
-    // Started on the first draw, not session.start, so a hot reload picks it up.
-    if (!motion.measuring) {
-      motion.measuring = true
-      // Paused while sprinting: each scroll repaints the pane and the scrolling backdrop stutters.
-      $.clock.every(1000, () => void (motion.sprinting || $.ui.scroll({ in: PANE, to: motion.probe++ % 2 ? 'end' : 'start' }).catch(() => {})))
-    }
     const [usage, list, used, br, at, gem, lg, headlines, demo, agents, open] = await Promise.all([
       $.session.usage(), read($, turns), read($, tools), read($, branch), read($, now), read($, gemini), read($, lang), read($, news), read($, sprint), read($, crowd), read($, tasks),
     ])
     const [acct, model, version, cwd, working, next] = await Promise.all([
       read($, account), $.session.model(), $.session.version(), $.session.cwd(), read($, isWorking), read($, cue),
     ])
-    const body = (await read($, bodyRows)) || undefined
+    // The body's own rows, as the engine gave them; no probe needed.
+    const body = e.props.scroll?.bodyRows || undefined
     const L = LABELS[lg]
     const t = at || Date.now()
     const ctx = usage.context.percent
-    // The pane's own rows once ui.scroll told them; the terminal's (taller) until then.
+    // The terminal's rows (taller) only until the engine reports the body's.
     const rows = body ?? e.viewport?.rows ?? 30
     const view: View = {
       lang: lg,
       still: motion.still,
       working,
-      sprint: (motion.sprinting = demo || agents >= SPRINT || (working && open >= SPRINT)),
+      sprint: demo || agents >= SPRINT || (working && open >= SPRINT),
       cue: next,
       version: version.base ?? version.version,
       model,
