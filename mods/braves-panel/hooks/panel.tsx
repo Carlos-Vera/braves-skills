@@ -185,7 +185,9 @@ const Panel: ClientModule<View, State> = (view, surface) => {
     })
   }
 
-  const sprite = toRuns(surface.state?.pose ?? 'default', surface.state?.work, surface.state?.scene)
+  // Walking left, it faces left: the walk is drawn facing right.
+  const leftward = /^(walk|crab)-/.test(surface.state?.pose ?? '') && (surface.state?.goal ?? 0) < (surface.state?.x ?? 0)
+  const sprite = toRuns(surface.state?.pose ?? 'default', surface.state?.work, surface.state?.scene, leftward)
   // The stage, cell by cell: the backdrop (a sprint's, blank otherwise), the mascot over it at x.
   const across = Math.max(STAGE_COLUMNS, surface.columns)
   const trek = surface.state?.trek ?? 0

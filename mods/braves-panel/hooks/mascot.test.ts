@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { ACTS, SCENES, STAGE_COLUMNS, STAGE_ROWS, toRuns, workAt } from './mascot'
+import { ACTS, SCENES, STAGE_COLUMNS, STAGE_ROWS, mirror, toRuns, workAt } from './mascot'
 import type { Pose } from './mascot'
 import { SEQUENCES, SPRITES } from './sprites'
 
@@ -50,4 +50,10 @@ test('both work routines loop on their own durations', () => {
 
 test('every reaction the hooks can cue has an act', () => {
   for (const cue of ['thinking', 'point', 'lightbulb', 'facepalm', 'disappointed', 'excited', 'confetti', 'dizzy', 'meditate', 'sleep', 'love', 'angry', 'halo']) expect(cue in ACTS).toBe(true)
+})
+
+test('a mirrored walk faces left, and mirroring twice gives the drawing back', () => {
+  const walk = SPRITES['walk-1']
+  expect(mirror(walk).rows[1]).toBe(' ▟▜██▛█▌ ')
+  expect(mirror(mirror(walk))).toEqual({ rows: [...walk.rows], ink: [...walk.ink] })
 })
