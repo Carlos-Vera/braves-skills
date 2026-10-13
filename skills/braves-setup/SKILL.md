@@ -246,6 +246,23 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
     on for every dispatched subagent (default: yes).
     - If YES (or default): save `"caveman": true` inside `subagent_rules`.
     - If NO: save `"caveman": false` — subagents report in normal prose.
+16. **Side panel** — explain in two lines: "besides the status bar
+    (bravesline, which stays as it is) there's an optional panel beside the
+    conversation: session, tokens, context, cost, Gemini and tools, with an
+    animated mascot; `/braves-panel` opens and closes it. It needs Claude
+    Code's fullscreen layout to dock beside the transcript (from 110
+    columns); narrower, it sits above the prompt." Ask if they want it
+    (default: no — the bar already covers the essentials).
+    - If YES: install it from the marketplace this plugin ships, then tell
+      them to run `/reload-plugins` (or restart) and `/braves-panel`:
+      ```bash
+      claude plugin marketplace add "${CLAUDE_SKILL_DIR}/../.."
+      claude plugin install braves-panel@braves-skills
+      ```
+      Save `"panel": { "enabled": true }`.
+    - If NO: save `"panel": { "enabled": false }`. On a re-run that turns
+      it off, offer `claude plugin uninstall braves-panel@braves-skills`
+      and run it only on an explicit yes.
 
 ## Writing the configuration
 
@@ -270,7 +287,8 @@ Save to `~/.claude/braves-skills.json`:
   "mcps": [],
   "plugins": [],
   "adopted_skills": [],
-  "subagent_rules": { "enabled": true, "caveman": true }
+  "subagent_rules": { "enabled": true, "caveman": true },
+  "panel": { "enabled": false }
 }
 ```
 
