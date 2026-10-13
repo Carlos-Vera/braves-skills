@@ -81,7 +81,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       if (v.cue.n !== cue) {
         cue = v.cue.n
         const act = ACTS[v.cue.name as keyof typeof ACTS]
-        if (act) (queue = [...act]), (until = 0)
+        // A celebration arriving with a wave under way leaves Neo's punch alone.
+        if (act && !(v.cue.name === 'celebrate' && waveAt)) (queue = [...act]), (until = 0)
         // The turn's answer is in: the jump and punch up, the wave leaving as it lands.
         if (v.cue.name === 'neo') (queue = [...NEO]), (until = 0), (waveAt = now + NEO[0]![1])
         // /braves-panel scratch: the head scratch from the laptop routine, a few rubs longer.
