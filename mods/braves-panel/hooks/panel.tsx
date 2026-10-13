@@ -23,7 +23,7 @@ const SCENE_COLUMNS = 13
 
 // What it does when idle, in turn; walk and crab cross the stage instead of stepping in place.
 // peek: walks half off one edge to look past it; sit: sits down at an edge for a while.
-// ms per cell walked, one leg frame each, on average.
+// ms per cell walked, one leg frame each: a multiple of TICK_MS, or the steps come uneven.
 const STEP_MS = 100
 const IDLE = ['idle', 'peek', 'sway', 'turning', 'lift', 'halo', 'walk', 'sit', 'crab', 'wrench', 'hammer'] as const
 
@@ -128,8 +128,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         tool++
         idleAt = now + 12000 + Math.random() * 8000
       }
-      // Ticks per backdrop cell: 2 at an even pace, 1 on a surge, 3 while it drops back.
-      let pace = 2
+      // Ticks per backdrop cell: 3 at an even pace, 1 on a surge, 4 while it drops back.
+      let pace = 3
       const stride = v.sprint ? s.stride + 1 : 0
       let pose: Pose = s.look < 0 ? 'look-left' : s.look > 0 ? 'look-right' : 'default'
       if (lift >= 0 && queue.length === 0 && (lift > 0 || now >= until)) {
@@ -149,14 +149,13 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         if (now > leadAt) (lead = Math.round(Math.random() * 7) - 3), (leadAt = now + 4000 + Math.random() * 4000)
         const target = Math.max(0, Math.min(room, Math.round(room / 2) + lead))
         const far = Math.abs(target - x) > 4
-        if (x !== target && stride % (far ? 2 : 4) === 0) x += Math.sign(target - x)
-        pace = target > x ? 1 : target < x ? 3 : 2
+        if (x !== target && stride % (far ? 3 : 6) === 0) x += Math.sign(target - x)
+        pace = target > x ? 1 : target < x ? 4 : 3
         // Counted in ticks, not clock time, so a late tick never skips a step; quicker legs on a surge.
-        pose = ACTS.jog[Math.floor(stride / (pace === 1 ? 2 : 3)) % ACTS.jog.length]![0]
+        pose = ACTS.jog[Math.floor(stride / (pace === 1 ? 3 : 4)) % ACTS.jog.length]![0]
       } else if ((!v.working || rushing) && !v.sprint && goal !== x) {
         // Crossing the stage: a cell and a leg frame every STEP_MS, the editor's pace (the slack absorbs timer jitter).
-        // On a schedule, not from the last step: the 70 ms ticks would round 100 up to 140.
-        if (now >= stepAt) (x += Math.sign(goal - x)), (stepAt = Math.max(stepAt + STEP_MS, now - STEP_MS))
+        if (now >= stepAt) (x += Math.sign(goal - x)), (stepAt = now + STEP_MS - 10)
         pose = `${gait}-${(x & 1) + 1}` as Pose
         idleAt = now + 12000
       } else if (work === undefined && now > blinkAt) (pose = 'blink'), (until = now + 150), (blinkAt = now + 2500 + Math.random() * 3500)
