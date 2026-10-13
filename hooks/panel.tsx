@@ -23,8 +23,8 @@ const SCENE_COLUMNS = 13
 
 // What it does when idle, in turn; walk and crab cross the stage instead of stepping in place.
 // peek: walks half off one edge to look past it; sit: sits down at an edge for a while.
-// ms per cell walked, one leg frame each: his walk timeline's 200.
-const STEP_MS = 200
+// ms per cell walked, one leg frame each, on average.
+const STEP_MS = 100
 const IDLE = ['idle', 'peek', 'sway', 'turning', 'lift', 'halo', 'walk', 'sit', 'crab', 'wrench', 'hammer'] as const
 
 // lift: at the left edge it sticks its face past the border to look into the code, comes out to
@@ -155,7 +155,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         pose = ACTS.jog[Math.floor(stride / (pace === 1 ? 2 : 3)) % ACTS.jog.length]![0]
       } else if ((!v.working || rushing) && !v.sprint && goal !== x) {
         // Crossing the stage: a cell and a leg frame every STEP_MS, the editor's pace (the slack absorbs timer jitter).
-        if (now >= stepAt) (x += Math.sign(goal - x)), (stepAt = now + STEP_MS - 10)
+        // On a schedule, not from the last step: the 70 ms ticks would round 100 up to 140.
+        if (now >= stepAt) (x += Math.sign(goal - x)), (stepAt = Math.max(stepAt + STEP_MS, now - STEP_MS))
         pose = `${gait}-${(x & 1) + 1}` as Pose
         idleAt = now + 12000
       } else if (work === undefined && now > blinkAt) (pose = 'blink'), (until = now + 150), (blinkAt = now + 2500 + Math.random() * 3500)
