@@ -11,7 +11,7 @@ import type { Cell } from './scenery'
 // The whole panel draws here as a Client so the pointer anywhere over it
 // reaches the mascot: it looks toward the pointer, a click makes it hop.
 
-type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number; stride: number; lead: number; leadAt: number; rush: '' | 'point' | 'flee' | 'peek' | 'sit' | 'lift' | 'sleep'; seenAt: number; lift: number; liftAt: number }
+type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number; stride: number; lead: number; leadAt: number; rush: '' | 'point' | 'flee' | 'peek' | 'sit' | 'lift' | 'sleep'; seenAt: number; lift: number; liftAt: number; waveAt: number; wave: number }
 
 let latest: View | undefined
 
@@ -28,6 +28,12 @@ const STEP_MS = 100
 // Asleep on the floor: his lie frames breathing in and out (1 2 3 2), looped with no lying down in between.
 const LIE = [...new Map(ACTS.sleep.map(b => [b[0], b])).values()]
 const SNOOZE: Beat[] = [...LIE, ...LIE.slice(1, -1).reverse()]
+// Neo's punch at the end of a turn: a jump, a fist up, a grin; the wave goes as the jump lands.
+const NEO: Beat[] = [['hop', 180], ['arms-up-one', 600], ['happy', 400]]
+const WAVE_MS = 700
+// The data last drawn while idle, and the copy held from a turn's start until its wave has passed.
+let lastIdle: View | undefined
+let frozen: View | undefined
 const IDLE = ['idle', 'peek', 'sway', 'turning', 'lift', 'halo', 'walk', 'sit', 'crab', 'wrench', 'hammer'] as const
 
 // lift: at the left edge it sticks its face past the border to look into the code, comes out to
@@ -55,14 +61,14 @@ const Panel: ClientModule<View, State> = (view, surface) => {
 
   if (surface.state === undefined) {
     const now = Date.now()
-    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now, reel: 0, x: 0, goal: 0, gait: 'walk', stepAt: 0, trek: 0, stride: 0, lead: 0, leadAt: 0, rush: '', seenAt: view.news[0]?.at ?? 0, lift: -1, liftAt: 0 })
+    surface.setState({ pose: 'default', queue: [...ACTS.hello], until: 0, look: 0, cue: view.cue.n, blinkAt: now + 3000, idleAt: now + 12000, tool: 0, scene: 'laptop', wasWorking: false, restAt: now, reel: 0, x: 0, goal: 0, gait: 'walk', stepAt: 0, trek: 0, stride: 0, lead: 0, leadAt: 0, rush: '', seenAt: view.news[0]?.at ?? 0, lift: -1, liftAt: 0, waveAt: 0, wave: -1 })
 
     surface.every(TICK_MS, () => {
       const s = surface.state
       const v = latest
       if (!s || !v || v.still) return
       const now = Date.now()
-      let { queue, until, cue, blinkAt, idleAt, tool, scene, restAt, goal, gait, stepAt, lead, leadAt, rush, seenAt, lift, liftAt } = s
+      let { queue, until, cue, blinkAt, idleAt, tool, scene, restAt, goal, gait, stepAt, lead, leadAt, rush, seenAt, lift, liftAt, waveAt } = s
       // The floor it can stand on: the region's width less its own.
       const room = Math.max(0, surface.columns - (v.working ? SCENE_COLUMNS : STAGE_COLUMNS))
       // Past the edges only while peeking (or coming back from it), never at the laptop.
@@ -73,6 +79,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         cue = v.cue.n
         const act = ACTS[v.cue.name as keyof typeof ACTS]
         if (act) (queue = [...act]), (until = 0)
+        // The turn's answer is in: the jump and punch up, the wave leaving as it lands.
+        if (v.cue.name === 'neo') (queue = [...NEO]), (until = 0), (waveAt = now + NEO[0]![1])
         // /braves-panel scratch: the head scratch from the laptop routine, a few rubs longer.
         if (v.cue.name === 'scratch') (queue = Array.from({ length: 12 }, (_, i): Beat => [i % 2 ? 'work-7' : 'work-6', 160])), (until = 0)
         // /braves-panel peek | sit: the explore routines on demand.
@@ -167,8 +175,13 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       } else if (work === undefined && now > blinkAt) (pose = 'blink'), (until = now + 150), (blinkAt = now + 2500 + Math.random() * 3500)
       // The ticker crawls a cell every 150 ms while it has news.
       const reel = v.news.length > 0 ? Math.floor(now / 150) : s.reel
+      // The turn just ended: the wave leaves as the jump lands (the panel sees it itself, no cue to race).
+      if (s.wasWorking && !v.working) waveAt = now + NEO[0]![1]
+      // The wave's progress in thousandths while it rises, -1 otherwise.
+      const wave = waveAt && now >= waveAt && now - waveAt < WAVE_MS ? Math.floor(((now - waveAt) / WAVE_MS) * 1000) : -1
+      if (waveAt && now - waveAt >= WAVE_MS) waveAt = 0
       const trek = v.sprint ? s.trek + (stride % pace === 0 ? 1 : 0) : s.trek
-      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel || x !== s.x || goal !== s.goal || stride !== s.stride || rush !== s.rush || seenAt !== s.seenAt || lift !== s.lift) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel, x, goal, gait, stepAt, trek, stride, lead, leadAt, rush, seenAt, lift, liftAt })
+      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel || x !== s.x || goal !== s.goal || stride !== s.stride || rush !== s.rush || seenAt !== s.seenAt || lift !== s.lift || wave !== s.wave) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel, x, goal, gait, stepAt, trek, stride, lead, leadAt, rush, seenAt, lift, liftAt, waveAt, wave })
     })
 
     surface.onPointer(e => {
@@ -237,12 +250,6 @@ const Panel: ClientModule<View, State> = (view, surface) => {
     gemini: { text: `✦ Gemini: ${n.detail}`, color: GEMINI_COLOR },
   })[n.kind]
   const ticker = marquee(view.news.map(headline), surface.columns, view.still ? 0 : surface.state?.reel ?? 0)
-  const Section = (icon: string, title: string, color: string, body: RenderChildren) => (
-    <Box flexDirection="column">
-      <Text color={color} bold>{icon} {title}</Text>
-      {body}
-    </Box>
-  )
   const Row = (label: string, value: RenderChildren) => (
     <Text wrap="truncate-end"><Text dimColor>{'  ' + (label.length >= LABEL ? label.slice(0, LABEL - 2) + '… ' : label.padEnd(LABEL))}</Text>{value}</Text>
   )
@@ -252,61 +259,72 @@ const Panel: ClientModule<View, State> = (view, surface) => {
   const Gauge = (pct: number, warn?: number, crit?: number, cells?: number) => (
     <Text><Text color={colorFor(pct, warn, crit)}>{bar(pct, cells)}</Text> <Text bold>{pct}%</Text></Text>
   )
-  const toolMax = view.tools[0]?.[1] ?? 1
-  const toolCount = view.tools.reduce((n, [, c]) => n + c, 0)
+  // The data as one line per element, so the wave can show one view above it and another below.
+  const rowsOf = (v: View): RenderChildren[] => {
+    const out: RenderChildren[] = [
+      <Text wrap="truncate-end"><Text bold>Claude Code</Text> <Text dimColor>v{v.version}</Text></Text>,
+      <Text wrap="truncate-end" dimColor>{v.model}{v.plan ? ` · ${v.plan}` : ''}</Text>,
+      <Text wrap="truncate-start" dimColor>{v.cwd}</Text>,
+    ]
+    const section = (icon: string, title: string, color: string, rows: (RenderChildren | false | null)[]) =>
+      out.push(<Text> </Text>, <Text color={color} bold>{icon} {title}</Text>, ...rows.filter(r => r !== false && r !== null))
+    const toolMax = v.tools[0]?.[1] ?? 1
+    const toolCount = v.tools.reduce((n, [, c]) => n + c, 0)
+    section('◷', L.session, BRAND, [
+      Row(L.time, <Text bold>{v.time}</Text>),
+      Row(L.branch, <Text color="suggestion">⎇ {v.branch || L.noGit}</Text>),
+    ])
+    section('⇅', L.tokens, BRAND, [
+      Row(L.lastPrompt, v.last ? InOut(v.last) : <Text dimColor>{L.waitAnswer}</Text>),
+      ...v.prev.map((x, i) => Row(`${L.prompt} -${i + 1}`, <Text dimColor>↑ {fmtTokens(x.input)}  ↓ {fmtTokens(x.output)}</Text>)),
+    ])
+    section('◔', L.context, BRAND, v.ctx === null
+      ? [Row(L.used, <Text dimColor>{L.waitResponse}</Text>)]
+      : [Row(L.used, Gauge(v.ctx.percent, 30, 50)), Row(L.tokensRow, <Text>{fmtTokens(v.ctx.tokens)} <Text dimColor>/ {fmtTokens(v.ctx.window)}</Text></Text>)])
+    section('Σ', L.totals, BRAND, [
+      Row(L.sessionRow, <Text><Text bold>{fmtTokens(v.total)}</Text> <Text dimColor>· {v.prompts} {v.prompts === 1 ? L.prompt.toLowerCase() : L.prompts}</Text></Text>),
+      ...v.rates.map(r => Row(r.label, <Text>{Gauge(r.pct, undefined, undefined, 10)}<Text dimColor>{r.reset}</Text></Text>)),
+    ])
+    section('$', L.cost, BRAND, [
+      Row(L.billing, v.billing === 'subscription'
+        ? <Text color="suggestion">◆ {L.subscription}</Text>
+        : v.billing === 'api' ? <Text color="warning">◆ API</Text> : <Text dimColor>{L.detecting}</Text>),
+      v.usd !== null && Row(v.billing === 'subscription' ? L.wouldCost : L.spent,
+        <Text><Text bold color={v.billing === 'api' ? 'warning' : 'success'}>${v.usd.toFixed(2)}</Text>{v.billing === 'subscription' && <Text dimColor> {L.atApi}</Text>}</Text>),
+    ])
+    if (v.gemini) section('✦', v.gemini.isSlow ? `GEMINI · ${L.quiet}` : 'GEMINI', v.gemini.isSlow ? 'warning' : GEMINI_COLOR, [
+      Row(L.model, <Text color={GEMINI_COLOR}>{v.gemini.model}</Text>),
+      !!v.gemini.step && Row(L.step, v.gemini.step),
+      !!v.gemini.doing && Row(L.doing, v.gemini.doing),
+      !!v.gemini.elapsed && Row(L.elapsed, v.gemini.elapsed),
+      v.gemini.pct !== null && Row(L.contextRow, Gauge(v.gemini.pct, 30, 50)),
+      !!v.gemini.tokens && Row(L.tokensRow, <Text dimColor>{v.gemini.tokens}</Text>),
+    ])
+    section('⚙', `${L.tools} · ${toolCount} ${L.calls}`, BRAND, v.tools.length === 0
+      ? [Row('', <Text dimColor>{L.none}</Text>)]
+      : v.tools.slice(0, v.room).map(([name, n]) => Row(name,
+        <Text><Text color="suggestion">{'▪'.repeat(Math.max(1, Math.round((n / toolMax) * 10)))}</Text> {n}</Text>)))
+    return out
+  }
+
+  // Neo: while Claude works the data holds still; when the turn ends a line rises from the stage and
+  // rewrites it, the old view above the line, the new one below (Gemini stays live throughout).
+  const wave = surface.state?.wave ?? -1
+  // Held from the turn's start until the wave has gone (a turn that just ended, or a wave on its way).
+  const holding = view.working || !!surface.state?.wasWorking || !!surface.state?.waveAt
+  if (view.working) frozen ??= lastIdle ?? view
+  else if (!holding) (frozen = undefined), (lastIdle = view)
+  const fresh = rowsOf(view)
+  const stale = holding ? rowsOf({ ...(frozen ?? view), gemini: view.gemini }) : fresh
+  const footer = STAGE_ROWS + 1 + (ticker.length > 0 ? 1 : 0)
+  const line = wave < 0 ? -1 : Math.round(Math.min(fresh.length, surface.rows - footer) * (1 - wave / 1000))
+  const body = wave < 0 ? (holding ? stale : fresh) : fresh.map((row, i) =>
+    i < line ? stale[i] ?? <Text> </Text> : i === line ? <Text color={BRAND} bold>{'━'.repeat(across)}</Text> : row)
 
   return (
     <Box flexDirection="column" flexGrow={1}>
-    <Box flexDirection="column" gap={1} flexGrow={1} flexShrink={1} minHeight={0} overflow="hidden">
-      <Box flexDirection="column">
-        <Text wrap="truncate-end"><Text bold>Claude Code</Text> <Text dimColor>v{view.version}</Text></Text>
-        <Text wrap="truncate-end" dimColor>{view.model}{view.plan ? ` · ${view.plan}` : ''}</Text>
-        <Text wrap="truncate-start" dimColor>{view.cwd}</Text>
-      </Box>
-
-      {Section('◷', L.session, BRAND, <Box flexDirection="column">
-        {Row(L.time, <Text bold>{view.time}</Text>)}
-        {Row(L.branch, <Text color="suggestion">⎇ {view.branch || L.noGit}</Text>)}
-      </Box>)}
-
-      {Section('⇅', L.tokens, BRAND, <Box flexDirection="column">
-        {Row(L.lastPrompt, view.last ? InOut(view.last) : <Text dimColor>{L.waitAnswer}</Text>)}
-        {view.prev.map((x, i) => Row(`${L.prompt} -${i + 1}`, <Text dimColor>↑ {fmtTokens(x.input)}  ↓ {fmtTokens(x.output)}</Text>))}
-      </Box>)}
-
-      {Section('◔', L.context, BRAND, view.ctx === null
-        ? Row(L.used, <Text dimColor>{L.waitResponse}</Text>)
-        : <Box flexDirection="column">
-          {Row(L.used, Gauge(view.ctx.percent, 30, 50))}
-          {Row(L.tokensRow, <Text>{fmtTokens(view.ctx.tokens)} <Text dimColor>/ {fmtTokens(view.ctx.window)}</Text></Text>)}
-        </Box>)}
-
-      {Section('Σ', L.totals, BRAND, <Box flexDirection="column">
-        {Row(L.sessionRow, <Text><Text bold>{fmtTokens(view.total)}</Text> <Text dimColor>· {view.prompts} {view.prompts === 1 ? L.prompt.toLowerCase() : L.prompts}</Text></Text>)}
-        {view.rates.map(r => Row(r.label, <Text>{Gauge(r.pct, undefined, undefined, 10)}<Text dimColor>{r.reset}</Text></Text>))}
-      </Box>)}
-
-      {Section('$', L.cost, BRAND, <Box flexDirection="column">
-        {Row(L.billing, view.billing === 'subscription'
-          ? <Text color="suggestion">◆ {L.subscription}</Text>
-          : view.billing === 'api' ? <Text color="warning">◆ API</Text> : <Text dimColor>{L.detecting}</Text>)}
-        {view.usd !== null && Row(view.billing === 'subscription' ? L.wouldCost : L.spent,
-          <Text><Text bold color={view.billing === 'api' ? 'warning' : 'success'}>${view.usd.toFixed(2)}</Text>{view.billing === 'subscription' && <Text dimColor> {L.atApi}</Text>}</Text>)}
-      </Box>)}
-
-      {view.gemini && Section('✦', view.gemini.isSlow ? `GEMINI · ${L.quiet}` : 'GEMINI', view.gemini.isSlow ? 'warning' : GEMINI_COLOR, <Box flexDirection="column">
-        {Row(L.model, <Text color={GEMINI_COLOR}>{view.gemini.model}</Text>)}
-        {view.gemini.step && Row(L.step, view.gemini.step)}
-        {view.gemini.doing && Row(L.doing, view.gemini.doing)}
-        {view.gemini.elapsed && Row(L.elapsed, view.gemini.elapsed)}
-        {view.gemini.pct !== null && Row(L.contextRow, Gauge(view.gemini.pct, 30, 50))}
-        {view.gemini.tokens && Row(L.tokensRow, <Text dimColor>{view.gemini.tokens}</Text>)}
-      </Box>)}
-
-      {Section('⚙', `${L.tools} · ${toolCount} ${L.calls}`, BRAND, view.tools.length === 0
-        ? Row('', <Text dimColor>{L.none}</Text>)
-        : view.tools.slice(0, view.room).map(([name, n]) => Row(name,
-          <Text><Text color="suggestion">{'▪'.repeat(Math.max(1, Math.round((n / toolMax) * 10)))}</Text> {n}</Text>)))}
+    <Box flexDirection="column" flexGrow={1} flexShrink={1} minHeight={0} overflow="hidden">
+      {body}
     </Box>
     <Box flexDirection="column" flexShrink={0}>
       {stage.map(line => <Text wrap="truncate-end">{line.map(r => <Text color={r.color} backgroundColor={r.bg}>{r.text}</Text>)}</Text>)}

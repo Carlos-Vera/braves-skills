@@ -105,8 +105,8 @@ export const register: Register = on => {
       void $.clock.sleep(80000).then(() => update($, sprint, () => false))
       return { text: L.sprintDemo }
     }
-    if (['peek', 'sit', 'lift', 'scratch', 'sleep'].includes(e.args.trim())) {
-      const act = e.args.trim() as 'peek' | 'sit' | 'lift' | 'scratch' | 'sleep'
+    if (['peek', 'sit', 'lift', 'scratch', 'sleep', 'neo'].includes(e.args.trim())) {
+      const act = e.args.trim() as 'peek' | 'sit' | 'lift' | 'scratch' | 'sleep' | 'neo'
       say($, act)
       return { text: L[act] }
     }
@@ -172,7 +172,7 @@ export const register: Register = on => {
   on('turn.complete', async ($, e, next) => {
     if (!e.agentId) {
       await update($, isWorking, () => false)
-      if (e.reason === 'answer') say($, 'celebrate')
+      if (e.reason === 'answer') say($, 'neo')
       else if (e.reason === 'aborted') say($, 'disappointed')
       else if (e.reason === 'error') say($, 'facepalm')
     }
