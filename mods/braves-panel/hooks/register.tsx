@@ -209,6 +209,7 @@ export const register: Register = on => {
     const ctx = usage.context.percent
     // The terminal's rows (taller) only until the engine reports the body's.
     const rows = body ?? e.viewport?.rows ?? 30
+    const fresh = headlines.filter(n => t - n.at < NEWS_TTL)
     const view: View = {
       lang: lg,
       still: motion.still,
@@ -235,9 +236,9 @@ export const register: Register = on => {
       usd: usage.cost?.usd ?? null,
       gemini: gem,
       tools: Object.entries(used).sort((a, b) => b[1] - a[1]),
-      // The data above the tools takes 28 rows (36 with Gemini); the footer, the stage, its floor and the ticker.
-      room: Math.max(1, rows - (gem ? 36 : 28) - STAGE_ROWS - 2),
-      news: headlines.filter(n => t - n.at < NEWS_TTL),
+      // The data above the tools takes 28 rows (36 with Gemini); the footer, the stage, its floor and the ticker (with news).
+      room: Math.max(1, rows - (gem ? 36 : 28) - STAGE_ROWS - (fresh.length ? 2 : 1)),
+      news: fresh,
     }
 
     return (
