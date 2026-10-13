@@ -25,6 +25,9 @@ const SCENE_COLUMNS = 13
 // peek: walks half off one edge to look past it; sit: sits down at an edge for a while.
 // ms per cell walked: a multiple of TICK_MS, or the steps come uneven.
 const STEP_MS = 100
+// Asleep on the floor: his lie frames breathing in and out (1 2 3 2), looped with no lying down in between.
+const LIE = [...new Map(ACTS.sleep.map(b => [b[0], b])).values()]
+const SNOOZE: Beat[] = [...LIE, ...LIE.slice(1, -1).reverse()]
 const IDLE = ['idle', 'peek', 'sway', 'turning', 'lift', 'halo', 'walk', 'sit', 'crab', 'wrench', 'hammer'] as const
 
 // lift: at the left edge it sticks its face past the border to look into the code, comes out to
@@ -93,7 +96,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       if (rush && x === goal) {
         if (rush === 'point') queue = [...queue, ...POINT]
         if (rush === 'sit') queue = [...queue, ...SIT]
-        if (rush === 'sleep') queue = [...queue, ...ACTS.sleep]
+        if (rush === 'sleep') queue = [...queue, ...SNOOZE]
         if (rush === 'lift') (lift = 0), (liftAt = 0)
         if (rush === 'peek') (queue = [...queue, ...peekAt(x > 0)]), (goal = x > 0 ? room - PEEK : PEEK), (gait = 'walk')
         rush = ''
@@ -106,7 +109,9 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       if (v.working) (idleAt = now + 12000), (restAt = now)
       const free = !v.working && !v.sprint && lift < 0 && queue.length === 0 && now > until
       // Nothing going on: after a minute it meditates, after three it walks to the nearer corner and lies down to sleep.
-      if (free && now - restAt > 180000) (goal = x < room / 2 ? 0 : room), (gait = 'walk'), (rush = 'sleep')
+      // Already lying there, the next breath queues on this same tick, so it never stands up between loops.
+      if (free && now - restAt > 180000 && s.pose.startsWith('lie')) queue = [...SNOOZE]
+      else if (free && now - restAt > 180000) (goal = x < room / 2 ? 0 : room), (gait = 'walk'), (rush = 'sleep')
       else if (free && now - restAt > 60000) queue = [...ACTS.meditate]
       // Idle long enough: a little routine, dizzy instead once the context is past 80%.
       else if (free && now > idleAt) {
