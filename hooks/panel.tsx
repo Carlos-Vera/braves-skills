@@ -23,7 +23,7 @@ const SCENE_COLUMNS = 13
 
 // What it does when idle, in turn; walk and crab cross the stage instead of stepping in place.
 // peek: walks half off one edge to look past it; sit: sits down at an edge for a while.
-// ms per cell walked, one leg frame each: a multiple of TICK_MS, or the steps come uneven.
+// ms per cell walked: a multiple of TICK_MS, or the steps come uneven.
 const STEP_MS = 100
 const IDLE = ['idle', 'peek', 'sway', 'turning', 'lift', 'halo', 'walk', 'sit', 'crab', 'wrench', 'hammer'] as const
 
@@ -156,7 +156,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       } else if ((!v.working || rushing) && !v.sprint && goal !== x) {
         // Crossing the stage: a cell and a leg frame every STEP_MS, the editor's pace (the slack absorbs timer jitter).
         if (now >= stepAt) (x += Math.sign(goal - x)), (stepAt = now + STEP_MS - 10)
-        pose = `${gait}-${(x & 1) + 1}` as Pose
+        // A leg frame every two cells (200 ms, the editor's): swapped every 100 ms step they shimmer.
+        pose = `${gait}-${((x >> 1) & 1) + 1}` as Pose
         idleAt = now + 12000
       } else if (work === undefined && now > blinkAt) (pose = 'blink'), (until = now + 150), (blinkAt = now + 2500 + Math.random() * 3500)
       // The ticker crawls a cell every 150 ms while it has news.
