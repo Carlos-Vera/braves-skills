@@ -168,8 +168,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       const s = surface.state
       if (!s || latest?.still) return
       if (e.type === 'leave') return s.look !== 0 && surface.setState({ ...s, look: 0 })
-      // The stage is the footer: STAGE_ROWS rows above the floor line and the ticker.
-      const top = surface.rows - STAGE_ROWS - 2
+      // The stage is the footer: STAGE_ROWS rows above the floor line and the ticker, when there is news.
+      const top = surface.rows - STAGE_ROWS - (latest?.news.length ? 2 : 1)
       const onStage = e.y >= top && e.y < top + STAGE_ROWS
       // A click on it makes it hop; a click on the floor elsewhere sends it there.
       if (e.type === 'down' && onStage && e.x >= s.x && e.x < s.x + STAGE_COLUMNS) return surface.setState({ ...s, queue: [...ACTS.poke], until: 0, restAt: Date.now() })
@@ -304,7 +304,8 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       {floor
         ? <Text wrap="truncate-end">{floor.map(r => <Text color={r.color} backgroundColor={r.bg}>{r.text}</Text>)}</Text>
         : <Text dimColor>{'▔'.repeat(across)}</Text>}
-      <Text wrap="truncate-end">{ticker.map(r => <Text color={r.color}>{r.text}</Text>)}{ticker.length === 0 && <Text dimColor>◆ {L.noNews}</Text>}</Text>
+      {/* The ticker shows only while there is news. */}
+      {ticker.length > 0 && <Text wrap="truncate-end">{ticker.map(r => <Text color={r.color}>{r.text}</Text>)}</Text>}
     </Box>
     </Box>
   )
