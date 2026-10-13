@@ -73,6 +73,15 @@ ejecuta `/reload-plugins` para cargarla de inmediato). En la primera sesión,
 un hook detecta que aún no hay configuración y ofrece ejecutar
 `/braves-setup`.
 
+Opcional: un panel lateral con el uso de la sesión y una mascota animada
+(bravesline sigue siendo la barra). `/braves-setup` lo instala si lo
+quieres, o a mano:
+
+```bash
+claude plugin marketplace add ~/.claude/skills/braves-skills
+claude plugin install braves-panel@braves-skills
+```
+
 **¿Dudas?** Pregunta en
 [Discussions](https://github.com/Carlos-Vera/braves-skills/discussions) — el
 foro es en español. Los bugs, a
