@@ -38,10 +38,19 @@ export function workAt(ms: number, scene: Scene = 'laptop'): number {
 
 export type Run = { text: string; color?: string }
 
-/** The sprite for `pose`, or with `work` set, that step of `scene`'s routine. */
-export function toRuns(pose: Pose, work?: number, scene: Scene = 'laptop'): Run[][] {
+// Each quadrant block and its mirror image, so a sprite drawn facing right can face left.
+const MIRROR: Record<string, string> = { '▐': '▌', '▌': '▐', '▛': '▜', '▜': '▛', '▙': '▟', '▟': '▙', '▘': '▝', '▝': '▘', '▖': '▗', '▗': '▖', '▞': '▚', '▚': '▞' }
+
+/** A sprite flipped left to right: each row reversed, each block swapped for its mirror. */
+export function mirror({ rows, ink }: { rows: readonly string[]; ink: readonly string[] }) {
+  return { rows: rows.map(r => [...r].reverse().map(ch => MIRROR[ch] ?? ch).join('')), ink: ink.map(i => [...i].reverse().join('')) }
+}
+
+/** The sprite for `pose`, or with `work` set, that step of `scene`'s routine; `flip` faces it left. */
+export function toRuns(pose: Pose, work?: number, scene: Scene = 'laptop', flip = false): Run[][] {
   const steps = SCENES[scene]
-  const sprite = SPRITES[work === undefined ? pose : steps[work % steps.length]![0]]
+  const drawn = SPRITES[work === undefined ? pose : steps[work % steps.length]![0]]
+  const sprite = flip ? mirror(drawn) : drawn
   // Sprites without an effects row sit on the floor: an empty row on top keeps the stage still.
   const pad = STAGE_ROWS - sprite.rows.length
   const rows = [...Array<string>(pad).fill(' '), ...sprite.rows]
