@@ -399,12 +399,15 @@ OUT=$(AGY="$STUB" GEMINI_STATE="$STATE" GEMINI_TIMEOUT=600 GEMINI_IDLE=2 \
   sh "$SCRIPT" "$PROJECT21" "MAGIC_IDLE" 2>/dev/null)
 STATUS=$?
 IDLE_WALL=$(( $(date +%s) - IDLE_START ))
+# The cut must reach agy itself, not just the subshell around it: an orphaned
+# agy keeps writing into the next dispatch's stream.
+ORPHAN=$(pgrep -f "agy-stub.sh.*MAGIC_IDLE" || true)
 
-if [ "$STATUS" -ne 0 ] && [ "$IDLE_WALL" -lt 15 ]; then
-  pass "a dispatch that stops taking steps is cut long before the ceiling"
+if [ "$STATUS" -ne 0 ] && [ "$IDLE_WALL" -lt 15 ] && [ -z "$ORPHAN" ]; then
+  pass "a dispatch that stops taking steps is cut long before the ceiling, agy included"
 else
-  fail "a dispatch that stops taking steps is cut long before the ceiling" \
-    "status=$STATUS wall=${IDLE_WALL}s (ceiling was 600s) out: $OUT"
+  fail "a dispatch that stops taking steps is cut long before the ceiling, agy included" \
+    "status=$STATUS wall=${IDLE_WALL}s (ceiling was 600s) orphan=[$ORPHAN] out: $OUT"
 fi
 
 # --- 22: --status carries the model, the -y mark, the elapsed time and the
