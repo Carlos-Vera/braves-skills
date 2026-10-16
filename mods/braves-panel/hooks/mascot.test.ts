@@ -73,3 +73,12 @@ test('the sunglasses arms are black over the teal face, on both sides and in the
   expect(arms(toRuns('default')[1]!)).toEqual([])
   expect(arms(zoomed('shades', 9, 0, 1, 4)[1]!)).toEqual([['▀', black, teal], ['▀', black, teal]])
 })
+
+test('zoomed with lens 0 equals zoomed shades, and with lens > 0 sits higher', () => {
+  expect(zoomed('default', 9, 0, 4, 4, 0)).toEqual(zoomed('shades', 9, 0, 4, 4))
+  expect(zoomed('default', 9, 0, 1, 4, 0)).toEqual(zoomed('shades', 9, 0, 1, 4))
+  const eyeRow = zoomed('default', 9, 0, 1, 4, 2)[1]!
+  expect(eyeRow.some(r => r.color === PALETTE[7])).toBe(false)
+  const topRow = zoomed('default', 9, 0, 1, 4, 2)[0]!
+  expect(topRow.some(r => r.color === PALETTE[7])).toBe(true)
+})
