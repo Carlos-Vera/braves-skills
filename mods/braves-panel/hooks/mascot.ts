@@ -45,27 +45,27 @@ type Drawn = { rows: readonly string[]; ink: readonly string[]; back?: readonly 
 // balance arm stub, sunglasses on. Frame 2 shifts 1 pixel up (half a cell) for an energy-building tremble.
 export const KNEEL: Record<NeoPose, Drawn> = {
   'neo-kneel': {
-    rows: ['         ', '         ', '▀▀██▀██▀▀', '▗███████▄'],
+    rows: ['         ', '         ', '▄▄██▄██▄▄', '▗███████▄'],
     ink: ['         ', '         ', '777777777', '000000000'],
     back: ['         ', '         ', ' 0  0  00', '         '],
   },
   'neo-kneel-2': {
-    rows: ['         ', '▄▄▄▄▄▄▄▄▄', ' █▀▀█▀▀█▀', '▗▛▀▀▀▀▀▜▄'],
-    ink: ['         ', '777777777', ' 07707700', '000000000'],
-    back: ['         ', '         ', '  00 00  ', '         '],
+    rows: ['         ', ' ▄▄▄▄▄▄▄▄', '▀▀▀▀▀▀▀▀▀', '▗▛▀▀▀▀▀▜▄'],
+    ink: ['         ', ' 07707700', '777777777', '000000000'],
+    back: ['         ', '         ', ' 0000000 ', '         '],
   },
 }
 
 // ponytail: the editor gives each cell one color, but the frame of the sunglasses is black over the
 // teal face, so the glasses row is painted here: lenses, a bridge between them and arms that stick
-// out past the face, the frame as an upper half block in black over a teal cell background.
+// out past the face, along the lower half of the lenses: a lower half block in black over teal.
 const ARMS = new Set<string>(['shades', 'shades-shine'])
 function drawn(pose: Pose): Drawn {
   if (pose in KNEEL) return KNEEL[pose as NeoPose]
   const { rows, ink } = SPRITES[pose as keyof typeof SPRITES]
   if (!ARMS.has(pose)) return { rows, ink }
   return {
-    rows: rows.map((r, i) => (i === 1 ? '▀▀██▀██▀▀' : r)),
+    rows: rows.map((r, i) => (i === 1 ? '▄▄██▄██▄▄' : r)),
     ink: ink.map((r, i) => (i === 1 ? '777777777' : r)),
     back: rows.map((r, i) => (i === 1 ? ' 0  0  0 ' : ' '.repeat([...r].length))),
   }
@@ -120,9 +120,11 @@ const EYES = { x: 9, y: 3.5 }
  * middle of the stage. Nearest-pixel sampling: the quadrant blocks are the pixels.
  */
 export function zoomed(pose: Pose, across: number, x: number, scale: number, top: number, lens?: number): Run[][] {
-  const base = drawn(lens !== undefined ? 'default' : pose)
-  const shades = lens !== undefined ? drawn('shades') : undefined
-  const sample = ({ rows, ink, back }: Drawn, px: number, py: number): string | undefined => {
+  // Landed (lens 0) is simply the shades pose; in flight, the lenses ride over the bare face.
+  const base = drawn(lens === undefined ? pose : lens > 0 ? 'default' : 'shades')
+  const shades = lens ? drawn('shades') : undefined
+  type Hit = { color: string; back: boolean } | undefined
+  const sample = ({ rows, ink, back }: Drawn, px: number, py: number): Hit => {
     const pad = STAGE_ROWS - rows.length
     const r = Math.floor(py / 2) - pad
     const c = Math.floor(px / 2)
@@ -130,10 +132,10 @@ export function zoomed(pose: Pose, across: number, x: number, scale: number, top
     if (ch === undefined) return undefined
     if (!((BITS[ch] ?? 0) >> ((py & 1) * 2 + (px & 1)) & 1)) {
       const b = back?.[r]?.[c]
-      return b === undefined || b === ' ' ? undefined : PALETTE[Number(b)]
+      return b === undefined || b === ' ' ? undefined : { color: PALETTE[Number(b)]!, back: true }
     }
     const i = [...ink[r]!][c]
-    return i === undefined || i === ' ' ? undefined : PALETTE[Number(i)]
+    return i === undefined || i === ' ' ? undefined : { color: PALETTE[Number(i)]!, back: false }
   }
   // Where the eyes land on screen: from where it stands toward the middle as the camera closes in.
   const k = (scale - 1) / Math.max(1, top - 1)
@@ -142,22 +144,21 @@ export function zoomed(pose: Pose, across: number, x: number, scale: number, top
   return Array.from({ length: STAGE_ROWS }, (_, r) => {
     const runs: Run[] = []
     for (let c = 0; c < across; c++) {
+      const hits = [0, 1, 2, 3].map((q): Hit => {
+        const sx = EYES.x + (2 * c + (q & 1) + 0.5 - ax) / scale
+        const sy = EYES.y + (2 * r + (q >> 1) + 0.5 - ay) / scale
+        const lensHit = shades && sample(shades, Math.floor(sx), Math.floor(sy + lens!))
+        return lensHit?.color === PALETTE[7] && !lensHit.back ? lensHit : sample(base, Math.floor(sx), Math.floor(sy))
+      })
+      // Two colors in a cell (the frame of the glasses): the glyph takes the drawn color, the
+      // background the cell-background color, as in the sprite itself.
+      const color = (hits.find(h => h && !h.back) ?? hits.find(h => h))?.color
       let bits = 0
-      let color: string | undefined
       let bg: string | undefined
-      for (let q = 0; q < 4; q++) {
-        const ox = 2 * c + (q & 1) + 0.5
-        const oy = 2 * r + (q >> 1) + 0.5
-        const sx = EYES.x + (ox - ax) / scale
-        const sy = EYES.y + (oy - ay) / scale
-        const hit = shades && lens !== undefined && sample(shades, Math.floor(sx), Math.floor(sy + lens)) === PALETTE[7]
-          ? PALETTE[7]
-          : sample(base, Math.floor(sx), Math.floor(sy))
-        color ??= hit
-        // Two colors in a cell (the arms of the lenses): the first is the glyph, the other its background.
-        if (hit && hit === color) bits |= 1 << q
-        else if (hit) bg ??= hit
-      }
+      hits.forEach((h, q) => {
+        if (h && h.color === color) bits |= 1 << q
+        else if (h) bg ??= h.color
+      })
       const text = QUADS[bits]!
       const prev = runs.at(-1)
       if (prev && prev.color === color && prev.bg === bg) prev.text += text
