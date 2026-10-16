@@ -274,7 +274,7 @@ The model actually running, a `-y` mark when the dispatch was given full
 tool approval, the step number, the tool it is on with the seconds it has
 spent there, how long the whole dispatch has been going, and how full its
 context window is right now — the last step's input plus cache-read
-tokens, scaled against the running model's own window (`gemini-3.x`: 1M,
+tokens, scaled against the running model's own window (`gemini-3.x` and `gemini-4.x`: 1M,
 `claude-*`: 200k, `gpt-oss-*`: 131072; an unrecognised model gets no bar at
 all rather than an invented scale). `GEMINI_BUDGET` overrides that scale —
 set it to pin a different one, or to `0` to drop the bar entirely. It
