@@ -36,33 +36,53 @@ export function workAt(ms: number, scene: Scene = 'laptop'): number {
   return 0
 }
 
-export type Run = { text: string; color?: string }
+export type Run = { text: string; color?: string; bg?: string }
+
+type Drawn = { rows: readonly string[]; ink: readonly string[]; back?: readonly string[] }
+
+// ponytail: the editor gives each cell one color, but a sunglasses arm is black over the teal face,
+// so the arms are painted here: an upper half block in black over a teal cell background.
+const ARMS = new Set<string>(['shades', 'shades-shine'])
+function drawn(pose: Pose): Drawn {
+  const { rows, ink } = SPRITES[pose]
+  if (!ARMS.has(pose)) return { rows, ink }
+  const at = (line: string, c: string, i: number) => [...line].map((ch, j) => (j === i || j === 8 - i ? c : ch)).join('')
+  return {
+    rows: rows.map((r, i) => (i === 1 ? at(r, '▀', 1) : r)),
+    ink: ink.map((r, i) => (i === 1 ? at(r, '7', 1) : r)),
+    back: rows.map((r, i) => (i === 1 ? at(' '.repeat([...r].length), '0', 1) : ' '.repeat([...r].length))),
+  }
+}
 
 // Each quadrant block and its mirror image, so a sprite drawn facing right can face left.
 const MIRROR: Record<string, string> = { '▐': '▌', '▌': '▐', '▛': '▜', '▜': '▛', '▙': '▟', '▟': '▙', '▘': '▝', '▝': '▘', '▖': '▗', '▗': '▖', '▞': '▚', '▚': '▞' }
 
 /** A sprite flipped left to right: each row reversed, each block swapped for its mirror. */
-export function mirror({ rows, ink }: { rows: readonly string[]; ink: readonly string[] }) {
-  return { rows: rows.map(r => [...r].reverse().map(ch => MIRROR[ch] ?? ch).join('')), ink: ink.map(i => [...i].reverse().join('')) }
+export function mirror({ rows, ink, back }: Drawn) {
+  const flip = (line: string) => [...line].reverse().join('')
+  return { rows: rows.map(r => [...r].reverse().map(ch => MIRROR[ch] ?? ch).join('')), ink: ink.map(flip), ...(back && { back: back.map(flip) }) }
 }
 
 /** The sprite for `pose`, or with `work` set, that step of `scene`'s routine; `flip` faces it left. */
 export function toRuns(pose: Pose, work?: number, scene: Scene = 'laptop', flip = false): Run[][] {
   const steps = SCENES[scene]
-  const drawn = SPRITES[work === undefined ? pose : steps[work % steps.length]![0]]
-  const sprite = flip ? mirror(drawn) : drawn
+  const art = drawn(work === undefined ? pose : steps[work % steps.length]![0])
+  const sprite = flip ? mirror(art) : art
   // Sprites without an effects row sit on the floor: an empty row on top keeps the stage still.
   const pad = STAGE_ROWS - sprite.rows.length
   const rows = [...Array<string>(pad).fill(' '), ...sprite.rows]
   const ink = [...Array<string>(pad).fill(' '), ...sprite.ink]
+  const back = [...Array<string>(pad).fill(' '), ...(sprite.back ?? [])]
   return rows.map((line, r) => {
     const runs: Run[] = []
     ;[...line].forEach((text, c) => {
       const i = ink[r]![c]
       const color = i === undefined || i === ' ' ? undefined : PALETTE[Number(i)]
+      const b = back[r]?.[c]
+      const bg = b === undefined || b === ' ' ? undefined : PALETTE[Number(b)]
       const prev = runs.at(-1)
-      if (prev && prev.color === color) prev.text += text
-      else runs.push({ text, color })
+      if (prev && prev.color === color && prev.bg === bg) prev.text += text
+      else runs.push(bg ? { text, color, bg } : { text, color })
     })
     return runs
   })
@@ -83,13 +103,17 @@ const EYES = { x: 9, y: 3.5 }
  * middle of the stage. Nearest-pixel sampling: the quadrant blocks are the pixels.
  */
 export function zoomed(pose: Pose, across: number, x: number, scale: number, top: number): Run[][] {
-  const { rows, ink } = SPRITES[pose]
+  const { rows, ink, back } = drawn(pose)
   const pad = STAGE_ROWS - rows.length
   const pixel = (px: number, py: number): string | undefined => {
     const r = Math.floor(py / 2) - pad
     const c = Math.floor(px / 2)
     const ch = [...(rows[r] ?? '')][c]
-    if (ch === undefined || !((BITS[ch] ?? 0) >> ((py & 1) * 2 + (px & 1)) & 1)) return undefined
+    if (ch === undefined) return undefined
+    if (!((BITS[ch] ?? 0) >> ((py & 1) * 2 + (px & 1)) & 1)) {
+      const b = back?.[r]?.[c]
+      return b === undefined || b === ' ' ? undefined : PALETTE[Number(b)]
+    }
     const i = [...ink[r]!][c]
     return i === undefined || i === ' ' ? undefined : PALETTE[Number(i)]
   }
@@ -102,16 +126,20 @@ export function zoomed(pose: Pose, across: number, x: number, scale: number, top
     for (let c = 0; c < across; c++) {
       let bits = 0
       let color: string | undefined
+      let bg: string | undefined
       for (let q = 0; q < 4; q++) {
         const ox = 2 * c + (q & 1) + 0.5
         const oy = 2 * r + (q >> 1) + 0.5
         const hit = pixel(Math.floor(EYES.x + (ox - ax) / scale), Math.floor(EYES.y + (oy - ay) / scale))
-        if (hit) (bits |= 1 << q), (color ??= hit)
+        color ??= hit
+        // Two colors in a cell (the arms of the lenses): the first is the glyph, the other its background.
+        if (hit && hit === color) bits |= 1 << q
+        else if (hit) bg ??= hit
       }
       const text = QUADS[bits]!
       const prev = runs.at(-1)
-      if (prev && prev.color === color) prev.text += text
-      else runs.push({ text, color })
+      if (prev && prev.color === color && prev.bg === bg) prev.text += text
+      else runs.push(bg ? { text, color, bg } : { text, color })
     }
     return runs
   })
