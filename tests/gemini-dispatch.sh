@@ -534,5 +534,25 @@ else
     "parent=[$OUT27] sibling=[$OUT_SIBLING]"
 fi
 
+# --- 28: an old finished stream for the folder itself does not hide a live
+#         dispatch to a subfolder (a mod inside the repo)
+
+PARENT28="$TMP/proj-mods"
+mkdir -p "$PARENT28/mods/panel"
+STATE="$TMP/state-mods"
+mkdir -p "$STATE"
+OLD28="$STATE/$(state_key "$PARENT28").stream"
+printf '{"event":"result","result":{"status":"SUCCESS"}}\n' > "$OLD28"
+touch -t 202001010000 "$OLD28"
+printf '{"event":"step_update","step_update":{"step_index":3,"state":"ACTIVE","step_type":"tool","tool_name":"view_file","tool_info":{"parameters":{"AbsolutePath":"/abs/hooks/panel.tsx"}}}}\n' \
+  > "$STATE/$(state_key "$PARENT28/mods/panel").stream"
+OUT28=$(AGY="$STUB" GEMINI_STATE="$STATE" sh "$SCRIPT" --status "$PARENT28" 2>&1)
+
+if [ "$(printf '%s' "$OUT28" | cut -f1)" = "run" ]; then
+  pass "--status: an old stream for the folder itself does not hide a live one below it"
+else
+  fail "--status: an old stream for the folder itself does not hide a live one below it" "out=[$OUT28]"
+fi
+
 printf '\n%s passed, %s failed\n' "$PASSED" "$FAILED"
 [ "$FAILED" -eq 0 ]

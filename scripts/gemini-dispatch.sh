@@ -203,18 +203,15 @@ if [ "$MODE" = "status" ]; then
   # One line for a statusline: what the live dispatch is doing right now, or
   # nothing at all. It runs on every terminal repaint, so it stays quiet and
   # cheap — no errors, no output once the run is over.
-  if [ ! -f "$STREAM" ]; then
-    # Dispatches target the repo root; the terminal is often in a subdirectory.
-    ROOT=$(git -C "$ABS_DIR" rev-parse --show-toplevel 2>/dev/null || true)
-    [ -n "$ROOT" ] && STREAM="$GEMINI_STATE/$(printf '%s' "$ROOT" | tr '/ ' '__').stream"
-  fi
-  if [ ! -f "$STREAM" ]; then
-    # Or the session sits above the repo, in a folder that holds several: take
-    # the freshest dispatch below it. Keys carry no whitespace, so ls is safe.
-    # ponytail: keys flatten spaces too, so "/a/b c" can pass for "/a/b/c".
-    # shellcheck disable=SC2012
-    STREAM=$(ls -t "$GEMINI_STATE/${KEY}_"*.stream 2>/dev/null | head -1)
-  fi
+  # The freshest of: this folder's dispatch, its repo root's (the terminal is
+  # often in a subdirectory), and any below it (a mod inside the repo, or a
+  # folder that holds several repos). An old stream for this exact folder must
+  # not hide a live one below it. Keys carry no whitespace, so ls is safe.
+  # ponytail: keys flatten spaces too, so "/a/b c" can pass for "/a/b/c".
+  ROOT=$(git -C "$ABS_DIR" rev-parse --show-toplevel 2>/dev/null || true)
+  RKEY=$(printf '%s' "${ROOT:-$ABS_DIR}" | tr '/ ' '__')
+  # shellcheck disable=SC2012
+  STREAM=$(ls -t "$STREAM" "$GEMINI_STATE/$RKEY.stream" "$GEMINI_STATE/${KEY}_"*.stream 2>/dev/null | head -1)
   [ -f "$STREAM" ] || exit 0
 
   NOW=$(date +%s)
