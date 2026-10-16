@@ -357,8 +357,11 @@ while kill -0 "$AGY_PID" 2>/dev/null; do
   if [ "$NOW" -ge "$DEADLINE" ] || [ "$(( NOW - QUIET_SINCE ))" -ge "$GEMINI_IDLE" ]; then
     # Killed, not abandoned: the stream stays on disk, so --watch still shows
     # which step it died on.
-    kill "$AGY_PID" 2>/dev/null || true
+    # Children first: agy runs under the backgrounded subshell, and once that
+    # subshell is gone agy is reparented to init and pkill -P misses it. The
+    # orphan then keeps writing into the next dispatch's stream.
     pkill -P "$AGY_PID" 2>/dev/null || true
+    kill "$AGY_PID" 2>/dev/null || true
     break
   fi
   sleep 1
