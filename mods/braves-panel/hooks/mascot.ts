@@ -45,29 +45,29 @@ type Drawn = { rows: readonly string[]; ink: readonly string[]; back?: readonly 
 // balance arm stub, sunglasses on. Frame 2 shifts 1 pixel up (half a cell) for an energy-building tremble.
 export const KNEEL: Record<NeoPose, Drawn> = {
   'neo-kneel': {
-    rows: ['         ', '         ', ' ▀█████▀▞', '▗███████▄'],
-    ink: ['         ', '         ', ' 77707770', '000000000'],
-    back: ['         ', '         ', ' 0     0 ', '         '],
+    rows: ['         ', '         ', '▀▀██▀██▀▀', '▗███████▄'],
+    ink: ['         ', '         ', '777777777', '000000000'],
+    back: ['         ', '         ', ' 0  0  00', '         '],
   },
   'neo-kneel-2': {
-    rows: ['         ', ' ▄▄▄▄▄▄▄▗', ' █▀▀█▀▀█▘', '▗▛▀▀▀▀▀▜▄'],
-    ink: ['         ', ' 77707770', ' 07707700', '000000000'],
+    rows: ['         ', '▄▄▄▄▄▄▄▄▄', ' █▀▀█▀▀█▀', '▗▛▀▀▀▀▀▜▄'],
+    ink: ['         ', '777777777', ' 07707700', '000000000'],
     back: ['         ', '         ', '  00 00  ', '         '],
   },
 }
 
-// ponytail: the editor gives each cell one color, but a sunglasses arm is black over the teal face,
-// so the arms are painted here: an upper half block in black over a teal cell background.
+// ponytail: the editor gives each cell one color, but the frame of the sunglasses is black over the
+// teal face, so the glasses row is painted here: lenses, a bridge between them and arms that stick
+// out past the face, the frame as an upper half block in black over a teal cell background.
 const ARMS = new Set<string>(['shades', 'shades-shine'])
 function drawn(pose: Pose): Drawn {
   if (pose in KNEEL) return KNEEL[pose as NeoPose]
   const { rows, ink } = SPRITES[pose as keyof typeof SPRITES]
   if (!ARMS.has(pose)) return { rows, ink }
-  const at = (line: string, c: string, i: number) => [...line].map((ch, j) => (j === i || j === 8 - i ? c : ch)).join('')
   return {
-    rows: rows.map((r, i) => (i === 1 ? at(r, '▀', 1) : r)),
-    ink: ink.map((r, i) => (i === 1 ? at(r, '7', 1) : r)),
-    back: rows.map((r, i) => (i === 1 ? at(' '.repeat([...r].length), '0', 1) : ' '.repeat([...r].length))),
+    rows: rows.map((r, i) => (i === 1 ? '▀▀██▀██▀▀' : r)),
+    ink: ink.map((r, i) => (i === 1 ? '777777777' : r)),
+    back: rows.map((r, i) => (i === 1 ? ' 0  0  0 ' : ' '.repeat([...r].length))),
   }
 }
 
