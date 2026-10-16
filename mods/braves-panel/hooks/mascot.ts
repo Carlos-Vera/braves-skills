@@ -67,3 +67,52 @@ export function toRuns(pose: Pose, work?: number, scene: Scene = 'laptop', flip 
     return runs
   })
 }
+
+// ── Camera ──────────────────────────────────────────────────────────────────
+// Each quadrant block as its four pixels (top-left, top-right, bottom-left, bottom-right);
+// legs and other partial blocks count as their nearest quadrants, effects glyphs drop out.
+const QUADS = ' ▘▝▀▖▌▞▛▗▚▐▜▄▙▟█'
+const BITS: Record<string, number> = { ...Object.fromEntries([...QUADS].map((ch, i) => [ch, i])), '▆': 12, '▅': 12, '▂': 12, '▁': 12, '▃': 12, '▇': 15 }
+
+// The eyes on the 18 x 8 pixel grid of a padded sprite: between the two notches of the face row.
+const EYES = { x: 9, y: 3.5 }
+
+/**
+ * The stage `across` cells wide with the camera zoomed `scale` times on the mascot's eyes.
+ * At scale 1 it matches the sprite drawn at column `x`; as the scale grows the eyes slide to the
+ * middle of the stage. Nearest-pixel sampling: the quadrant blocks are the pixels.
+ */
+export function zoomed(pose: Pose, across: number, x: number, scale: number, top: number): Run[][] {
+  const { rows, ink } = SPRITES[pose]
+  const pad = STAGE_ROWS - rows.length
+  const pixel = (px: number, py: number): string | undefined => {
+    const r = Math.floor(py / 2) - pad
+    const c = Math.floor(px / 2)
+    const ch = [...(rows[r] ?? '')][c]
+    if (ch === undefined || !((BITS[ch] ?? 0) >> ((py & 1) * 2 + (px & 1)) & 1)) return undefined
+    const i = [...ink[r]!][c]
+    return i === undefined || i === ' ' ? undefined : PALETTE[Number(i)]
+  }
+  // Where the eyes land on screen: from where it stands toward the middle as the camera closes in.
+  const k = (scale - 1) / Math.max(1, top - 1)
+  const ax = (2 * x + EYES.x) * (1 - k) + across * k
+  const ay = EYES.y * (1 - k) + STAGE_ROWS * k
+  return Array.from({ length: STAGE_ROWS }, (_, r) => {
+    const runs: Run[] = []
+    for (let c = 0; c < across; c++) {
+      let bits = 0
+      let color: string | undefined
+      for (let q = 0; q < 4; q++) {
+        const ox = 2 * c + (q & 1) + 0.5
+        const oy = 2 * r + (q >> 1) + 0.5
+        const hit = pixel(Math.floor(EYES.x + (ox - ax) / scale), Math.floor(EYES.y + (oy - ay) / scale))
+        if (hit) (bits |= 1 << q), (color ??= hit)
+      }
+      const text = QUADS[bits]!
+      const prev = runs.at(-1)
+      if (prev && prev.color === color) prev.text += text
+      else runs.push({ text, color })
+    }
+    return runs
+  })
+}
