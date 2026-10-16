@@ -10,7 +10,8 @@ export const STAGE_ROWS = 4
 // 50 so a 100 ms walk step is exactly two ticks (at 70 they alternated 70/140 and the legs shimmered).
 export const TICK_MS = 50
 
-export type Pose = keyof typeof SPRITES
+export type NeoPose = 'neo-kneel' | 'neo-kneel-2'
+export type Pose = keyof typeof SPRITES | NeoPose
 
 /** A step in a short performance: show `pose` for `ms`. */
 export type Beat = readonly [Pose, number]
@@ -40,11 +41,27 @@ export type Run = { text: string; color?: string; bg?: string }
 
 type Drawn = { rows: readonly string[]; ink: readonly string[]; back?: readonly string[] }
 
+// Neo's three-point landing/launch stance: body low, one fist planted on the floor, one knee flat,
+// balance arm stub, sunglasses on. Frame 2 shifts 1 pixel up (half a cell) for an energy-building tremble.
+export const KNEEL: Record<NeoPose, Drawn> = {
+  'neo-kneel': {
+    rows: ['         ', '         ', ' ▀█████▀▞', '▗███████▄'],
+    ink: ['         ', '         ', ' 77707770', '000000000'],
+    back: ['         ', '         ', ' 0     0 ', '         '],
+  },
+  'neo-kneel-2': {
+    rows: ['         ', ' ▄▄▄▄▄▄▄▗', ' █▀▀█▀▀█▘', '▗▛▀▀▀▀▀▜▄'],
+    ink: ['         ', ' 77707770', ' 07707700', '000000000'],
+    back: ['         ', '         ', '  00 00  ', '         '],
+  },
+}
+
 // ponytail: the editor gives each cell one color, but a sunglasses arm is black over the teal face,
 // so the arms are painted here: an upper half block in black over a teal cell background.
 const ARMS = new Set<string>(['shades', 'shades-shine'])
 function drawn(pose: Pose): Drawn {
-  const { rows, ink } = SPRITES[pose]
+  if (pose in KNEEL) return KNEEL[pose as NeoPose]
+  const { rows, ink } = SPRITES[pose as keyof typeof SPRITES]
   if (!ARMS.has(pose)) return { rows, ink }
   const at = (line: string, c: string, i: number) => [...line].map((ch, j) => (j === i || j === 8 - i ? c : ch)).join('')
   return {
@@ -92,7 +109,7 @@ export function toRuns(pose: Pose, work?: number, scene: Scene = 'laptop', flip 
 // Each quadrant block as its four pixels (top-left, top-right, bottom-left, bottom-right);
 // legs and other partial blocks count as their nearest quadrants, effects glyphs drop out.
 const QUADS = ' ▘▝▀▖▌▞▛▗▚▐▜▄▙▟█'
-const BITS: Record<string, number> = { ...Object.fromEntries([...QUADS].map((ch, i) => [ch, i])), '▆': 12, '▅': 12, '▂': 12, '▁': 12, '▃': 12, '▇': 15 }
+export const BITS: Record<string, number> = { ...Object.fromEntries([...QUADS].map((ch, i) => [ch, i])), '▆': 12, '▅': 12, '▂': 12, '▁': 12, '▃': 12, '▇': 15 }
 
 // The eyes on the 18 x 8 pixel grid of a padded sprite: between the two notches of the face row.
 const EYES = { x: 9, y: 3.5 }

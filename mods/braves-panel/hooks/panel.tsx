@@ -28,8 +28,17 @@ const STEP_MS = 100
 // Asleep on the floor: his lie frames breathing in and out (1 2 3 2), looped with no lying down in between.
 const LIE = [...new Map(ACTS.sleep.map(b => [b[0], b])).values()]
 const SNOOZE: Beat[] = [...LIE, ...LIE.slice(1, -1).reverse()]
-// Neo's punch at the end of a turn, his "neo" timeline in the editor; the wave goes as its first frame ends.
-const NEO = ACTS.neo
+// Neo's three-point landing/launch stance before flight: 700 ms tremble alternating every 100 ms.
+const NEO_KNEEL: readonly Beat[] = [
+  ['neo-kneel', 100],
+  ['neo-kneel-2', 100],
+  ['neo-kneel', 100],
+  ['neo-kneel-2', 100],
+  ['neo-kneel', 100],
+  ['neo-kneel-2', 100],
+  ['neo-kneel', 100],
+]
+const NEO: readonly Beat[] = [...NEO_KNEEL, ...ACTS.neo.slice(1)]
 // Before it: camera zooms on the eyes, sunglasses drop from above, glint, and camera pulls back.
 const ZOOM = 4 // how close the camera gets
 const ZOOM_MS = 400 // to close in, and to pull back
