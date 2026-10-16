@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { ACTS, SCENES, STAGE_COLUMNS, STAGE_ROWS, mirror, toRuns, workAt } from './mascot'
+import { ACTS, SCENES, STAGE_COLUMNS, STAGE_ROWS, mirror, toRuns, workAt, zoomed } from './mascot'
 import type { Pose } from './mascot'
 import { SEQUENCES, SPRITES } from './sprites'
 
@@ -56,4 +56,11 @@ test('a mirrored walk faces left, and mirroring twice gives the drawing back', (
   const walk = SPRITES['walk-1']
   expect(mirror(walk).rows[1]).toBe(' ▟▜██▛█▌ ')
   expect(mirror(mirror(walk))).toEqual({ rows: [...walk.rows], ink: [...walk.ink] })
+})
+
+test('the camera at scale 1 draws the sprite where it stands', () => {
+  const at = (runs: { text: string }[][]) => runs.map(r => r.map(x => x.text).join(''))
+  const flat = at(zoomed('default', 20, 3, 1, 4))
+  const drawn = at(toRuns('default'))
+  for (const r of [1, 2]) expect(flat[r]).toBe(`   ${drawn[r]}`.padEnd(20))
 })
