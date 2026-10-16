@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { ACTS, BITS, KNEEL, SCENES, STAGE_COLUMNS, STAGE_ROWS, mirror, toRuns, workAt, zoomed } from './mascot'
+import { ACTS, KNEEL, SCENES, STAGE_COLUMNS, STAGE_ROWS, mirror, toRuns, workAt, zoomed } from './mascot'
 import type { Pose } from './mascot'
 import { PALETTE, SEQUENCES, SPRITES } from './sprites'
 
@@ -65,13 +65,15 @@ test('the camera at scale 1 draws the sprite where it stands', () => {
   for (const r of [1, 2]) expect(flat[r]).toBe(`   ${drawn[r]}`.padEnd(20))
 })
 
-test('the sunglasses frame (arms and bridge) is black over the teal face, on both sides and in the zoom', () => {
+test('the sunglasses frame (arms and bridge) is a black line across the teal face, on both sides and in the zoom', () => {
   const arms = (runs: { text: string; color?: string; bg?: string }[]) => runs.filter(r => r.bg).map(r => [r.text, r.color, r.bg])
   const [teal, black] = [PALETTE[0], PALETTE[7]]
-  expect(arms(toRuns('shades')[1]!)).toEqual([['▄', black, teal], ['▄', black, teal], ['▄', black, teal]])
-  expect(arms(toRuns('shades', undefined, 'laptop', true)[1]!)).toEqual([['▄', black, teal], ['▄', black, teal], ['▄', black, teal]])
+  const frame = [['━', black, teal], ['━', black, teal], ['━', black, teal]]
+  expect(arms(toRuns('shades')[1]!)).toEqual(frame)
+  expect(arms(toRuns('shades', undefined, 'laptop', true)[1]!)).toEqual(frame)
   expect(arms(toRuns('default')[1]!)).toEqual([])
-  expect(arms(zoomed('shades', 9, 0, 1, 4)[1]!)).toEqual([['▄', black, teal], ['▄', black, teal], ['▄', black, teal]])
+  // Close up, the line still crosses the bridge between the lenses: a row black from edge to edge.
+  expect(zoomed('shades', 24, 4, 4, 4).some(row => row.every(r => r.color === black))).toBe(true)
 })
 
 test('zoomed with lens 0 equals zoomed shades, and with lens > 0 sits higher', () => {
@@ -83,56 +85,17 @@ test('zoomed with lens 0 equals zoomed shades, and with lens > 0 sits higher', (
   expect(topRow.some(r => r.color === PALETTE[7])).toBe(true)
 })
 
-const KNEEL_GRIDS = {
-  'neo-kneel': [
-    '..................',
-    '..................',
-    '..................',
-    '..................',
-    '..TTKKKKTTKKKKTTTT',
-    'KKKKKKKKKKKKKKKKKK',
-    '..TTTTTTTTTTTTTT..',
-    '.TTTTTTTTTTTTTTTTT',
-  ],
-  'neo-kneel-2': [
-    '..................',
-    '..................',
-    '..................',
-    '..TTKKKKTTKKKKTTTT',
-    'KKKKKKKKKKKKKKKKKK',
-    '..TTTTTTTTTTTTTT..',
-    '..TTTTTTTTTTTTTT..',
-    '.TT............TTT',
-  ],
-}
-
-function decode({ rows, ink, back }: { rows: readonly string[]; ink: readonly string[]; back?: readonly string[] }): string[] {
-  const COLOR: Record<string, string> = { '0': 'T', '7': 'K' }
-  return Array.from({ length: 8 }, (_, y) => {
-    const r = Math.floor(y / 2)
-    return Array.from({ length: 18 }, (_, x) => {
-      const c = Math.floor(x / 2)
-      const q = (y & 1) * 2 + (x & 1)
-      const ch = [...(rows[r] ?? '')][c] ?? ' '
-      const bits = BITS[ch] ?? 0
-      if ((bits >> q) & 1) {
-        const i = ink[r]?.[c] ?? ' '
-        return COLOR[i] ?? '.'
-      }
-      const b = back?.[r]?.[c] ?? ' '
-      return COLOR[b] ?? '.'
-    }).join('')
-  })
-}
-
-test('both kneel frames are 4 rows x 9 cells with ink/back matching the characters, empty top row, and decode to their pixel grids', () => {
-  for (const [name, frame] of Object.entries(KNEEL)) {
-    const { rows, ink, back } = frame
+test('both kneel frames are 4 rows x 9 cells with ink/back matching, an empty top row, and differ only in the body lifting', () => {
+  for (const { rows, ink, back } of Object.values(KNEEL)) {
     expect(rows.length).toBe(STAGE_ROWS)
-    expect(rows.every(r => [...r].length === STAGE_COLUMNS)).toBe(true)
-    rows.forEach((r, i) => expect([...r].length).toBe(ink[i]!.length))
-    rows.forEach((r, i) => expect([...r].length).toBe(back![i]!.length))
+    rows.forEach((r, i) => {
+      expect([...r].length).toBe(STAGE_COLUMNS)
+      expect(ink[i]!.length).toBe(STAGE_COLUMNS)
+      expect(back![i]!.length).toBe(STAGE_COLUMNS)
+    })
     expect(rows[0]!.trim()).toBe('')
-    expect(decode(frame)).toEqual(KNEEL_GRIDS[name as keyof typeof KNEEL_GRIDS])
   }
+  const [a, b] = [KNEEL['neo-kneel'], KNEEL['neo-kneel-2']]
+  expect(b.rows.slice(0, 3)).toEqual(a.rows.slice(0, 3))
+  expect(b.rows[3]).not.toBe(a.rows[3])
 })

@@ -42,30 +42,31 @@ export type Run = { text: string; color?: string; bg?: string }
 type Drawn = { rows: readonly string[]; ink: readonly string[]; back?: readonly string[] }
 
 // Neo's three-point landing/launch stance: body low, one fist planted on the floor, one knee flat,
-// balance arm stub, sunglasses on. Frame 2 shifts 1 pixel up (half a cell) for an energy-building tremble.
+// sunglasses on. Frame 2 lifts the body off the floor by an eighth of a cell, for an energy-building tremble.
 export const KNEEL: Record<NeoPose, Drawn> = {
   'neo-kneel': {
-    rows: ['         ', '         ', '▄▄██▄██▄▄', '▗███████▄'],
+    rows: ['         ', '         ', '━━██━██━━', '▗███████▄'],
     ink: ['         ', '         ', '777777777', '000000000'],
-    back: ['         ', '         ', ' 0  0  00', '         '],
+    back: ['         ', '         ', ' 0  0  0 ', '         '],
   },
   'neo-kneel-2': {
-    rows: ['         ', ' ▄▄▄▄▄▄▄▄', '▀▀▀▀▀▀▀▀▀', '▗▛▀▀▀▀▀▜▄'],
-    ink: ['         ', ' 07707700', '777777777', '000000000'],
-    back: ['         ', '         ', ' 0000000 ', '         '],
+    rows: ['         ', '         ', '━━██━██━━', '▗▇▇▇▇▇▇▇▄'],
+    ink: ['         ', '         ', '777777777', '000000000'],
+    back: ['         ', '         ', ' 0  0  0 ', '         '],
   },
 }
 
 // ponytail: the editor gives each cell one color, but the frame of the sunglasses is black over the
 // teal face, so the glasses row is painted here: lenses, a bridge between them and arms that stick
-// out past the face, along the lower half of the lenses: a lower half block in black over teal.
+// out past the face, across the middle of the lenses: a heavy line (━, drawn centred in the cell)
+// in black over a teal cell background.
 const ARMS = new Set<string>(['shades', 'shades-shine'])
 function drawn(pose: Pose): Drawn {
   if (pose in KNEEL) return KNEEL[pose as NeoPose]
   const { rows, ink } = SPRITES[pose as keyof typeof SPRITES]
   if (!ARMS.has(pose)) return { rows, ink }
   return {
-    rows: rows.map((r, i) => (i === 1 ? '▄▄██▄██▄▄' : r)),
+    rows: rows.map((r, i) => (i === 1 ? '━━██━██━━' : r)),
     ink: ink.map((r, i) => (i === 1 ? '777777777' : r)),
     back: rows.map((r, i) => (i === 1 ? ' 0  0  0 ' : ' '.repeat([...r].length))),
   }
@@ -109,7 +110,7 @@ export function toRuns(pose: Pose, work?: number, scene: Scene = 'laptop', flip 
 // Each quadrant block as its four pixels (top-left, top-right, bottom-left, bottom-right);
 // legs and other partial blocks count as their nearest quadrants, effects glyphs drop out.
 const QUADS = ' ▘▝▀▖▌▞▛▗▚▐▜▄▙▟█'
-export const BITS: Record<string, number> = { ...Object.fromEntries([...QUADS].map((ch, i) => [ch, i])), '▆': 12, '▅': 12, '▂': 12, '▁': 12, '▃': 12, '▇': 15 }
+const BITS: Record<string, number> = { ...Object.fromEntries([...QUADS].map((ch, i) => [ch, i])), '▆': 12, '▅': 12, '▂': 12, '▁': 12, '▃': 12, '▇': 15 }
 
 // The eyes on the 18 x 8 pixel grid of a padded sprite: between the two notches of the face row.
 const EYES = { x: 9, y: 3.5 }
@@ -124,13 +125,17 @@ export function zoomed(pose: Pose, across: number, x: number, scale: number, top
   const base = drawn(lens === undefined ? pose : lens > 0 ? 'default' : 'shades')
   const shades = lens ? drawn('shades') : undefined
   type Hit = { color: string; back: boolean } | undefined
-  const sample = ({ rows, ink, back }: Drawn, px: number, py: number): Hit => {
+  const sample = ({ rows, ink, back }: Drawn, sx: number, sy: number): Hit => {
+    const px = Math.floor(sx)
+    const py = Math.floor(sy)
     const pad = STAGE_ROWS - rows.length
     const r = Math.floor(py / 2) - pad
     const c = Math.floor(px / 2)
     const ch = [...(rows[r] ?? '')][c]
     if (ch === undefined) return undefined
-    if (!((BITS[ch] ?? 0) >> ((py & 1) * 2 + (px & 1)) & 1)) {
+    // The heavy line (the frame of the glasses) sits across the middle of its cell, at any zoom.
+    const on = ch === '━' ? Math.abs(sy / 2 - Math.floor(sy / 2) - 0.5) < 0.15 : (BITS[ch] ?? 0) >> ((py & 1) * 2 + (px & 1)) & 1
+    if (!on) {
       const b = back?.[r]?.[c]
       return b === undefined || b === ' ' ? undefined : { color: PALETTE[Number(b)]!, back: true }
     }
@@ -147,8 +152,8 @@ export function zoomed(pose: Pose, across: number, x: number, scale: number, top
       const hits = [0, 1, 2, 3].map((q): Hit => {
         const sx = EYES.x + (2 * c + (q & 1) + 0.5 - ax) / scale
         const sy = EYES.y + (2 * r + (q >> 1) + 0.5 - ay) / scale
-        const lensHit = shades && sample(shades, Math.floor(sx), Math.floor(sy + lens!))
-        return lensHit?.color === PALETTE[7] && !lensHit.back ? lensHit : sample(base, Math.floor(sx), Math.floor(sy))
+        const lensHit = shades && sample(shades, sx, sy + lens!)
+        return lensHit?.color === PALETTE[7] && !lensHit.back ? lensHit : sample(base, sx, sy)
       })
       // Two colors in a cell (the frame of the glasses): the glyph takes the drawn color, the
       // background the cell-background color, as in the sprite itself.
