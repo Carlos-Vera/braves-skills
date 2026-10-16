@@ -102,10 +102,11 @@ const EYES = { x: 9, y: 3.5 }
  * At scale 1 it matches the sprite drawn at column `x`; as the scale grows the eyes slide to the
  * middle of the stage. Nearest-pixel sampling: the quadrant blocks are the pixels.
  */
-export function zoomed(pose: Pose, across: number, x: number, scale: number, top: number): Run[][] {
-  const { rows, ink, back } = drawn(pose)
-  const pad = STAGE_ROWS - rows.length
-  const pixel = (px: number, py: number): string | undefined => {
+export function zoomed(pose: Pose, across: number, x: number, scale: number, top: number, lens?: number): Run[][] {
+  const base = drawn(lens !== undefined ? 'default' : pose)
+  const shades = lens !== undefined ? drawn('shades') : undefined
+  const sample = ({ rows, ink, back }: Drawn, px: number, py: number): string | undefined => {
+    const pad = STAGE_ROWS - rows.length
     const r = Math.floor(py / 2) - pad
     const c = Math.floor(px / 2)
     const ch = [...(rows[r] ?? '')][c]
@@ -130,7 +131,11 @@ export function zoomed(pose: Pose, across: number, x: number, scale: number, top
       for (let q = 0; q < 4; q++) {
         const ox = 2 * c + (q & 1) + 0.5
         const oy = 2 * r + (q >> 1) + 0.5
-        const hit = pixel(Math.floor(EYES.x + (ox - ax) / scale), Math.floor(EYES.y + (oy - ay) / scale))
+        const sx = EYES.x + (ox - ax) / scale
+        const sy = EYES.y + (oy - ay) / scale
+        const hit = shades && lens !== undefined && sample(shades, Math.floor(sx), Math.floor(sy + lens)) === PALETTE[7]
+          ? PALETTE[7]
+          : sample(base, Math.floor(sx), Math.floor(sy))
         color ??= hit
         // Two colors in a cell (the arms of the lenses): the first is the glyph, the other its background.
         if (hit && hit === color) bits |= 1 << q
