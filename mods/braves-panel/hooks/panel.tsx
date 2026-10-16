@@ -30,6 +30,8 @@ const LIE = [...new Map(ACTS.sleep.map(b => [b[0], b])).values()]
 const SNOOZE: Beat[] = [...LIE, ...LIE.slice(1, -1).reverse()]
 // Neo's punch at the end of a turn, his "neo" timeline in the editor; the wave goes as its first frame ends.
 const NEO = ACTS.neo
+// The wave leaves with the punch: the first arms-up frame, after the crouch and the launch.
+const NEO_WAVE = NEO.slice(0, Math.max(1, NEO.findIndex(b => b[0].startsWith('arms-up')))).reduce((t, b) => t + b[1], 0)
 const WAVE_MS = 700
 // The least time between two waves: a calibration knob for how often it happens.
 const NEO_GAP_MS = 5 * 60000
@@ -84,7 +86,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
         // A celebration arriving with a wave under way leaves Neo's punch alone.
         if (act && !(v.cue.name === 'celebrate' && waveAt)) (queue = [...act]), (until = 0)
         // The turn's answer is in: the jump and punch up, the wave leaving as it lands.
-        if (v.cue.name === 'neo') (queue = [...NEO]), (until = 0), (waveAt = now + NEO[0]![1])
+        if (v.cue.name === 'neo') (queue = [...NEO]), (until = 0), (waveAt = now + NEO_WAVE)
         // /braves-panel scratch: the head scratch from the laptop routine, a few rubs longer.
         if (v.cue.name === 'scratch') (queue = Array.from({ length: 12 }, (_, i): Beat => [i % 2 ? 'work-7' : 'work-6', 160])), (until = 0)
         // /braves-panel peek | sit: the explore routines on demand.
@@ -181,7 +183,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       const reel = v.news.length > 0 ? Math.floor(now / 150) : s.reel
       // The turn just ended: now and then (a coin flip, five minutes apart at least) the jump, the punch and the wave.
       if (s.wasWorking && !v.working && now - neoAt > NEO_GAP_MS && Math.random() < 0.5)
-        (queue = [...NEO]), (until = 0), (waveAt = now + NEO[0]![1]), (neoAt = now)
+        (queue = [...NEO]), (until = 0), (waveAt = now + NEO_WAVE), (neoAt = now)
       // The wave's progress in thousandths while it rises, -1 otherwise.
       const wave = waveAt && now >= waveAt && now - waveAt < WAVE_MS ? Math.floor(((now - waveAt) / WAVE_MS) * 1000) : -1
       if (waveAt && now - waveAt >= WAVE_MS) waveAt = 0
