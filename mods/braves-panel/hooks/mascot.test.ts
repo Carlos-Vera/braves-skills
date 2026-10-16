@@ -68,7 +68,7 @@ test('the camera at scale 1 draws the sprite where it stands', () => {
 test('the sunglasses frame (arms and bridge) is a black line across the teal face, on both sides and in the zoom', () => {
   const arms = (runs: { text: string; color?: string; bg?: string }[]) => runs.filter(r => r.bg).map(r => [r.text, r.color, r.bg])
   const [teal, black] = [PALETTE[0], PALETTE[7]]
-  const frame = [['━', black, teal], ['━', black, teal], ['━', black, teal]]
+  const frame = [['▬', black, teal], ['━', black, teal], ['▬', black, teal]]
   expect(arms(toRuns('shades')[1]!)).toEqual(frame)
   expect(arms(toRuns('shades', undefined, 'laptop', true)[1]!)).toEqual(frame)
   expect(arms(toRuns('default')[1]!)).toEqual([])
