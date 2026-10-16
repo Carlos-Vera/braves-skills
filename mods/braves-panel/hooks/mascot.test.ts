@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 
 import { ACTS, SCENES, STAGE_COLUMNS, STAGE_ROWS, mirror, toRuns, workAt, zoomed } from './mascot'
 import type { Pose } from './mascot'
-import { SEQUENCES, SPRITES } from './sprites'
+import { PALETTE, SEQUENCES, SPRITES } from './sprites'
 
 test('every sprite is up to 4 rows (effects on top; toRuns pads shorter ones), 9 cells wide (13 for the work scenes), ink matching its characters', () => {
   for (const [name, { rows, ink }] of Object.entries(SPRITES)) {
@@ -63,4 +63,13 @@ test('the camera at scale 1 draws the sprite where it stands', () => {
   const flat = at(zoomed('default', 20, 3, 1, 4))
   const drawn = at(toRuns('default'))
   for (const r of [1, 2]) expect(flat[r]).toBe(`   ${drawn[r]}`.padEnd(20))
+})
+
+test('the sunglasses arms are black over the teal face, on both sides and in the zoom', () => {
+  const arms = (runs: { text: string; color?: string; bg?: string }[]) => runs.filter(r => r.bg).map(r => [r.text, r.color, r.bg])
+  const [teal, black] = [PALETTE[0], PALETTE[7]]
+  expect(arms(toRuns('shades')[1]!)).toEqual([['▀', black, teal], ['▀', black, teal]])
+  expect(arms(toRuns('shades', undefined, 'laptop', true)[1]!)).toEqual([['▀', black, teal], ['▀', black, teal]])
+  expect(arms(toRuns('default')[1]!)).toEqual([])
+  expect(arms(zoomed('shades', 9, 0, 1, 4)[1]!)).toEqual([['▀', black, teal], ['▀', black, teal]])
 })

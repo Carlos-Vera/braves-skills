@@ -244,14 +244,15 @@ const Panel: ClientModule<View, State> = (view, surface) => {
   const stage: (Run & { bg?: string })[][] = zoom > 1 ? zoomed(surface.state?.pose ?? 'default', across, surface.state?.x ?? 0, zoom, ZOOM) : sprite.map((line, r) => {
     const row = ground[r]!
     const x = surface.state?.x ?? 0
-    const cells = line.flatMap(run => [...run.text].map(ch => ({ ch, color: run.color })))
+    const cells = line.flatMap(run => [...run.text].map(ch => ({ ch, color: run.color, back: run.bg })))
     // Between its first and last glyph the mascot hides the backdrop, so the legs never merge into a building.
     const from = cells.findIndex(cell => cell.ch !== ' ')
     const to = cells.findLastIndex(cell => cell.ch !== ' ')
     // The sky stays behind it: the mascot's cells keep the row's background.
     for (let i = from; from >= 0 && i <= to; i++) if (x + i >= 0 && x + i < across) {
       const bg = row[x + i]!.bg
-      row[x + i] = cells[i]!.ch === ' ' ? { ch: ' ', bg } : { ...cells[i]!, bg }
+      const { ch, color, back } = cells[i]!
+      row[x + i] = ch === ' ' ? { ch: ' ', bg } : { ch, color, bg: back ?? bg }
     }
     return toLine(row)
   })
