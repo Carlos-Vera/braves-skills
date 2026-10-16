@@ -428,12 +428,13 @@ STREAM22="$STATE/$(state_key "$PROJECT22").stream"
   printf '{"event":"step_update","step_update":{"step_index":34,"state":"ACTIVE","step_type":"tool","tool_name":"replace_file_content","tool_info":{"parameters":{"TargetFile":"/x/src/acting-banner.tsx"}}}}\n'
   printf '{"event":"step_update","step_update":{"step_index":35,"state":"DONE","step_type":"agent_response","usage":{"input_tokens":3331,"cache_read_tokens":203465,"total_tokens":5064}}}\n'
 } > "$STREAM22"
+# ponytail: prefix match, the clock can tick between writing .start and reading it
 echo "$(( $(date +%s) - 252 ))" > "$STREAM22.start"
 OUT=$(AGY="$STUB" GEMINI_STATE="$STATE" sh "$SCRIPT" --status "$PROJECT22" 2>&1)
 TEXT=$(printf '%s' "$OUT" | cut -f3)
 
 MISSING=""
-for want in "3.7-flash-high" "-y" "#34" "acting-banner.tsx" "4m12s" "tok:▰▰▱▱▱▱▱▱▱▱ 206.7k / 1M"; do
+for want in "3.7-flash-high" "-y" "#34" "acting-banner.tsx" "4m1" "tok:▰▰▱▱▱▱▱▱▱▱ 206.7k / 1M"; do
   case "$TEXT" in *"$want"*) ;; *) MISSING="$MISSING [$want]" ;; esac
 done
 
