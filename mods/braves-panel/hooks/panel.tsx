@@ -11,7 +11,7 @@ import type { Cell } from './scenery'
 // The whole panel draws here as a Client so the pointer anywhere over it
 // reaches the mascot: it looks toward the pointer, a click makes it hop.
 
-type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number; stride: number; lead: number; leadAt: number; rush: '' | 'point' | 'flee' | 'peek' | 'sit' | 'lift' | 'sleep'; seenAt: number; lift: number; liftAt: number; waveAt: number; wave: number; zoomAt: number; zoom: number }
+type State = { pose: Pose; queue: Beat[]; until: number; look: -1 | 0 | 1; cue: number; blinkAt: number; idleAt: number; tool: number; work?: number; scene: Scene; wasWorking: boolean; restAt: number; reel: number; x: number; goal: number; gait: 'walk' | 'crab'; stepAt: number; trek: number; stride: number; lead: number; leadAt: number; rush: '' | 'point' | 'flee' | 'peek' | 'sit' | 'lift' | 'sleep'; seenAt: number; lift: number; liftAt: number; waveAt: number; wave: number; zoomAt: number; zoom: number; lens?: number }
 
 let latest: View | undefined
 
@@ -30,11 +30,19 @@ const LIE = [...new Map(ACTS.sleep.map(b => [b[0], b])).values()]
 const SNOOZE: Beat[] = [...LIE, ...LIE.slice(1, -1).reverse()]
 // Neo's punch at the end of a turn, his "neo" timeline in the editor; the wave goes as its first frame ends.
 const NEO = ACTS.neo
-// Before it: the camera closes in on its eyes while it puts the glasses on, then pulls back.
-const INTRO = ACTS['neo-intro']
-const INTRO_MS = INTRO.reduce((t, b) => t + b[1], 0)
+// Before it: camera zooms on the eyes, sunglasses drop from above, glint, and camera pulls back.
 const ZOOM = 4 // how close the camera gets
 const ZOOM_MS = 400 // to close in, and to pull back
+const DROP_MS = 700 // sunglasses drop onto eyes
+const GLINT_MS = 300 // short shine glint
+const LENS_START = 2 // source pixels above eyes, begins just out of frame at ZOOM
+const INTRO: readonly Beat[] = [
+  ['default', ZOOM_MS],
+  ['default', DROP_MS],
+  ['shades-shine', GLINT_MS],
+  ['shades', ZOOM_MS],
+]
+const INTRO_MS = INTRO.reduce((t, b) => t + b[1], 0)
 // The wave leaves with the punch: the first arms-up frame, after the crouch and the launch.
 const NEO_WAVE = NEO.slice(0, Math.max(1, NEO.findIndex(b => b[0].startsWith('arms-up')))).reduce((t, b) => t + b[1], 0)
 const WAVE_MS = 700
@@ -196,9 +204,11 @@ const Panel: ClientModule<View, State> = (view, surface) => {
       const shot = now - zoomAt
       const closeness = zoomAt && shot < INTRO_MS ? Math.min(1, shot / ZOOM_MS, (INTRO_MS - shot) / ZOOM_MS) : 0
       const zoom = Math.round((1 + (ZOOM - 1) * (1 - Math.cos(Math.PI * Math.max(0, closeness))) / 2) * 20) / 20
+      const dropping = zoomAt && shot >= ZOOM_MS && shot < ZOOM_MS + DROP_MS
+      const lens = dropping ? Math.round(LENS_START * (1 + Math.cos(Math.PI * (shot - ZOOM_MS) / DROP_MS)) / 2 * 20) / 20 : undefined
       if (zoomAt && shot >= INTRO_MS) zoomAt = 0
       const trek = v.sprint ? s.trek + (stride % pace === 0 ? 1 : 0) : s.trek
-      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel || x !== s.x || goal !== s.goal || stride !== s.stride || rush !== s.rush || seenAt !== s.seenAt || lift !== s.lift || wave !== s.wave || zoom !== s.zoom) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel, x, goal, gait, stepAt, trek, stride, lead, leadAt, rush, seenAt, lift, liftAt, waveAt, wave, zoomAt, zoom })
+      if (pose !== s.pose || work !== s.work || cue !== s.cue || queue !== s.queue || v.working !== s.wasWorking || reel !== s.reel || x !== s.x || goal !== s.goal || stride !== s.stride || rush !== s.rush || seenAt !== s.seenAt || lift !== s.lift || wave !== s.wave || zoom !== s.zoom || lens !== s.lens) surface.setState({ ...s, pose, queue, until, cue, blinkAt, idleAt, tool, work, scene, wasWorking: v.working, restAt, reel, x, goal, gait, stepAt, trek, stride, lead, leadAt, rush, seenAt, lift, liftAt, waveAt, wave, zoomAt, zoom, lens })
     })
 
     surface.onPointer(e => {
@@ -241,7 +251,7 @@ const Panel: ClientModule<View, State> = (view, surface) => {
     return runs
   }
   const zoom = surface.state?.zoom ?? 1
-  const stage: (Run & { bg?: string })[][] = zoom > 1 ? zoomed(surface.state?.pose ?? 'default', across, surface.state?.x ?? 0, zoom, ZOOM) : sprite.map((line, r) => {
+  const stage: (Run & { bg?: string })[][] = zoom > 1 ? zoomed(surface.state?.pose ?? 'default', across, surface.state?.x ?? 0, zoom, ZOOM, surface.state?.lens) : sprite.map((line, r) => {
     const row = ground[r]!
     const x = surface.state?.x ?? 0
     const cells = line.flatMap(run => [...run.text].map(ch => ({ ch, color: run.color, back: run.bg })))
