@@ -88,7 +88,7 @@ fmt_k() {
 # all (0) rather than a made-up scale.
 window_for_model() {
   case "$1" in
-    gemini-3*) printf '%s' 1000000 ;;
+    gemini-3*|gemini-4*) printf '%s' 1000000 ;;
     claude-*)  printf '%s' 200000 ;;
     gpt-oss-*) printf '%s' 131072 ;;
     *)         printf '%s' 0 ;;
@@ -110,7 +110,7 @@ GEMINI_TIMEOUT (default 900) is the hard ceiling in whole seconds; GEMINI_IDLE
 has from outside. Both are enforced here, in whole seconds. GEMINI_BUDGET is
 not enforced at all: it is the scale --status fills its context-occupancy bar
 towards. Left unset, that scale is the running model's own context window
-(gemini-3.x: 1M, claude-*: 200k, gpt-oss-*: 131072 — any other model gets no
+(gemini-3.x and 4.x: 1M, claude-*: 200k, gpt-oss-*: 131072 — any other model gets no
 bar). Set it to a whole number of tokens to pin a different scale, or to 0 to
 drop the bar entirely.
 
