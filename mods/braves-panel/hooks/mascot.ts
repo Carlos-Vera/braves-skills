@@ -45,12 +45,12 @@ type Drawn = { rows: readonly string[]; ink: readonly string[]; back?: readonly 
 // sunglasses on. Frame 2 lifts the body off the floor by an eighth of a cell, for an energy-building tremble.
 export const KNEEL: Record<NeoPose, Drawn> = {
   'neo-kneel': {
-    rows: ['         ', '         ', '━━██━██━━', '▗███████▄'],
+    rows: ['         ', '         ', '▬▬██━██▬▬', '▗███████▄'],
     ink: ['         ', '         ', '777777777', '000000000'],
     back: ['         ', '         ', ' 0  0  0 ', '         '],
   },
   'neo-kneel-2': {
-    rows: ['         ', '         ', '━━██━██━━', '▗▇▇▇▇▇▇▇▄'],
+    rows: ['         ', '         ', '▬▬██━██▬▬', '▗▇▇▇▇▇▇▇▄'],
     ink: ['         ', '         ', '777777777', '000000000'],
     back: ['         ', '         ', ' 0  0  0 ', '         '],
   },
@@ -58,15 +58,15 @@ export const KNEEL: Record<NeoPose, Drawn> = {
 
 // ponytail: the editor gives each cell one color, but the frame of the sunglasses is black over the
 // teal face, so the glasses row is painted here: lenses, a bridge between them and arms that stick
-// out past the face, across the middle of the lenses: a heavy line (━, drawn centred in the cell)
-// in black over a teal cell background.
+// out past the face, across the middle of the lenses: a heavy line (━, drawn centred in the cell) for
+// the bridge and a thicker bar (▬) for the arms, in black over a teal cell background.
 const ARMS = new Set<string>(['shades', 'shades-shine'])
 function drawn(pose: Pose): Drawn {
   if (pose in KNEEL) return KNEEL[pose as NeoPose]
   const { rows, ink } = SPRITES[pose as keyof typeof SPRITES]
   if (!ARMS.has(pose)) return { rows, ink }
   return {
-    rows: rows.map((r, i) => (i === 1 ? '━━██━██━━' : r)),
+    rows: rows.map((r, i) => (i === 1 ? '▬▬██━██▬▬' : r)),
     ink: ink.map((r, i) => (i === 1 ? '777777777' : r)),
     back: rows.map((r, i) => (i === 1 ? ' 0  0  0 ' : ' '.repeat([...r].length))),
   }
@@ -110,6 +110,8 @@ export function toRuns(pose: Pose, work?: number, scene: Scene = 'laptop', flip 
 // Each quadrant block as its four pixels (top-left, top-right, bottom-left, bottom-right);
 // legs and other partial blocks count as their nearest quadrants, effects glyphs drop out.
 const QUADS = ' ▘▝▀▖▌▞▛▗▚▐▜▄▙▟█'
+// Half the thickness of the centred bars, as a fraction of the cell's height.
+const BANDS: Record<string, number> = { '━': 0.15, '▬': 0.25 }
 const BITS: Record<string, number> = { ...Object.fromEntries([...QUADS].map((ch, i) => [ch, i])), '▆': 12, '▅': 12, '▂': 12, '▁': 12, '▃': 12, '▇': 15 }
 
 // The eyes on the 18 x 8 pixel grid of a padded sprite: between the two notches of the face row.
@@ -133,8 +135,9 @@ export function zoomed(pose: Pose, across: number, x: number, scale: number, top
     const c = Math.floor(px / 2)
     const ch = [...(rows[r] ?? '')][c]
     if (ch === undefined) return undefined
-    // The heavy line (the frame of the glasses) sits across the middle of its cell, at any zoom.
-    const on = ch === '━' ? Math.abs(sy / 2 - Math.floor(sy / 2) - 0.5) < 0.15 : (BITS[ch] ?? 0) >> ((py & 1) * 2 + (px & 1)) & 1
+    // The frame of the glasses sits across the middle of its cell, at any zoom: ━ thin, ▬ thicker.
+    const band = BANDS[ch]
+    const on = band ? Math.abs(sy / 2 - Math.floor(sy / 2) - 0.5) < band : (BITS[ch] ?? 0) >> ((py & 1) * 2 + (px & 1)) & 1
     if (!on) {
       const b = back?.[r]?.[c]
       return b === undefined || b === ' ' ? undefined : { color: PALETTE[Number(b)]!, back: true }
