@@ -68,10 +68,10 @@ test('the camera at scale 1 draws the sprite where it stands', () => {
 test('the sunglasses frame (arms and bridge) is black over the teal face, on both sides and in the zoom', () => {
   const arms = (runs: { text: string; color?: string; bg?: string }[]) => runs.filter(r => r.bg).map(r => [r.text, r.color, r.bg])
   const [teal, black] = [PALETTE[0], PALETTE[7]]
-  expect(arms(toRuns('shades')[1]!)).toEqual([['▀', black, teal], ['▀', black, teal], ['▀', black, teal]])
-  expect(arms(toRuns('shades', undefined, 'laptop', true)[1]!)).toEqual([['▀', black, teal], ['▀', black, teal], ['▀', black, teal]])
+  expect(arms(toRuns('shades')[1]!)).toEqual([['▄', black, teal], ['▄', black, teal], ['▄', black, teal]])
+  expect(arms(toRuns('shades', undefined, 'laptop', true)[1]!)).toEqual([['▄', black, teal], ['▄', black, teal], ['▄', black, teal]])
   expect(arms(toRuns('default')[1]!)).toEqual([])
-  expect(arms(zoomed('shades', 9, 0, 1, 4)[1]!)).toEqual([['▀', black, teal], ['▀', black, teal], ['▀', black, teal]])
+  expect(arms(zoomed('shades', 9, 0, 1, 4)[1]!)).toEqual([['▄', black, teal], ['▄', black, teal], ['▄', black, teal]])
 })
 
 test('zoomed with lens 0 equals zoomed shades, and with lens > 0 sits higher', () => {
@@ -89,8 +89,8 @@ const KNEEL_GRIDS = {
     '..................',
     '..................',
     '..................',
-    'KKKKKKKKKKKKKKKKKK',
     '..TTKKKKTTKKKKTTTT',
+    'KKKKKKKKKKKKKKKKKK',
     '..TTTTTTTTTTTTTT..',
     '.TTTTTTTTTTTTTTTTT',
   ],
@@ -98,8 +98,8 @@ const KNEEL_GRIDS = {
     '..................',
     '..................',
     '..................',
-    'KKKKKKKKKKKKKKKKKK',
     '..TTKKKKTTKKKKTTTT',
+    'KKKKKKKKKKKKKKKKKK',
     '..TTTTTTTTTTTTTT..',
     '..TTTTTTTTTTTTTT..',
     '.TT............TTT',
