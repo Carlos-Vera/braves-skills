@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { ACTS, KNEEL, SCENES, STAGE_COLUMNS, STAGE_ROWS, mirror, toRuns, workAt, zoomed } from './mascot'
+import { ACTS, KNEEL, LOOK, MINI, MORE, SCENES, STAGE_COLUMNS, STAGE_ROWS, mirror, toRuns, workAt, zoomed } from './mascot'
 import type { Pose } from './mascot'
 import { PALETTE, SEQUENCES, SPRITES } from './sprites'
 
@@ -68,7 +68,7 @@ test('the camera at scale 1 draws the sprite where it stands', () => {
 test('the sunglasses frame (arms and bridge) is a black line across the teal face, on both sides and in the zoom', () => {
   const arms = (runs: { text: string; color?: string; bg?: string }[]) => runs.filter(r => r.bg).map(r => [r.text, r.color, r.bg])
   const [teal, black] = [PALETTE[0], PALETTE[7]]
-  const frame = [['▬', black, teal], ['━', black, teal], ['▬', black, teal]]
+  const frame = [['▀', black, teal], ['▀', black, teal], ['▀', black, teal]]
   expect(arms(toRuns('shades')[1]!)).toEqual(frame)
   expect(arms(toRuns('shades', undefined, 'laptop', true)[1]!)).toEqual(frame)
   expect(arms(toRuns('default')[1]!)).toEqual([])
@@ -98,4 +98,19 @@ test('both kneel frames are 4 rows x 9 cells with ink/back matching, an empty to
   const [a, b] = [KNEEL['neo-kneel'], KNEEL['neo-kneel-2']]
   expect(b.rows.slice(0, 3)).toEqual(a.rows.slice(0, 3))
   expect(b.rows[3]).not.toBe(a.rows[3])
+})
+
+test('looking up and down moves the eyes a pixel, and looking up is not the happy face', () => {
+  const art = (p: Pose) => toRuns(p).map(l => l.map(r => r.text).join(''))
+  expect(art('look-up')).not.toEqual(art('happy'))
+  expect(art('look-down')).not.toEqual(art('default'))
+  for (const p of ['look-up', 'look-up-left', 'look-up-right', 'look-down', 'look-down-left', 'look-down-right'] as const) expect(art(p).every(r => [...r].length === STAGE_COLUMNS)).toBe(true)
+})
+
+test('the poses drawn in code are 9 cells wide on the 4-row stage, ink matching; the helper is 4 x 2', () => {
+  for (const { rows, ink } of [...Object.values(LOOK), ...Object.values(MORE)]) {
+    expect(rows.length).toBe(STAGE_ROWS)
+    rows.forEach((r, i) => (expect([...r].length).toBe(STAGE_COLUMNS), expect(ink[i]!.length).toBe(STAGE_COLUMNS)))
+  }
+  for (const frame of MINI) expect(frame.every(r => [...r].length === 4)).toBe(true)
 })

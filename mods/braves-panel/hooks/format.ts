@@ -17,7 +17,7 @@ export const LABELS = {
     quiet: 'en silencio', model: 'Modelo', step: 'Paso', doing: 'Haciendo', elapsed: 'Tiempo', contextRow: 'Contexto',
     tools: 'HERRAMIENTAS', calls: 'usos', none: 'ninguna todavía',
     opened: 'Panel de Braves abierto.', closed: 'Panel de Braves cerrado.',
-    plan: 'Plan listo para revisar', failed: 'falló', denied: 'denegado', commit: 'Commit', ship: 'Merge / release publicado', sprintDemo: 'Trotando 80 s por los cuatro paisajes.', peek: 'Se asoma por el borde.', sit: 'Se sienta en la orilla.', lift: 'Se asoma a revisar el código.', scratch: 'Se rasca la cabeza.', sleep: 'Se va a una esquina a dormir.', neo: 'Golpe arriba y onda expansiva.',
+    plan: 'Plan listo para revisar', failed: 'falló', denied: 'denegado', commit: 'Commit', ship: 'Merge / release publicado', sprintDemo: 'Trotando 80 s por los cuatro paisajes.', peek: 'Se asoma por el borde.', sit: 'Se sienta en la orilla.', lift: 'Se asoma a revisar el código.', scratch: 'Se rasca la cabeza.', sleep: 'Se va a una esquina a dormir.', neo: 'Golpe arriba y onda expansiva.', shy: 'Se asoma tímido, como el primer día.', morning: 'Se despierta y se estira.', helper: 'Silba y sale corriendo un ayudante.', spin: 'Da vueltas hasta marearse.', 'tests-pass': 'Pulgar arriba: tests en verde.', push: 'Lanza un avioncito de papel.', scared: 'Se tapa los ojos.', search: 'Saca la lupa.', pet: 'Se sonroja.', party: 'Gorro de fiesta y confeti.', dance: 'Baila con lentes.', birthday: 'Pastel de aniversario.', smoke: 'Echa humo y se cae.', notes: 'Toma notas del plan.', read: 'Se acerca a leer.', box: 'Le cae una caja encima.', stare: 'Te sostiene la mirada.', coffee: 'Un café nocturno.', fish: 'Se pone a pescar.', sneeze: 'Estornuda.',
   },
   en: {
     session: 'SESSION', time: 'Time', branch: 'Branch', noGit: 'No Git',
@@ -30,7 +30,7 @@ export const LABELS = {
     quiet: 'quiet', model: 'Model', step: 'Step', doing: 'Doing', elapsed: 'Elapsed', contextRow: 'Context',
     tools: 'TOOLS', calls: 'calls', none: 'none yet',
     opened: 'Braves panel opened.', closed: 'Braves panel closed.',
-    plan: 'Plan ready to review', failed: 'failed', denied: 'denied', commit: 'Commit', ship: 'Merge / release shipped', sprintDemo: 'Jogging 80 s through the four backdrops.', peek: 'Peeking past the edge.', sit: 'Sitting at the edge.', lift: 'Peeking into the code.', scratch: 'Scratching its head.', sleep: 'Off to a corner to sleep.', neo: 'A punch up and a shockwave.',
+    plan: 'Plan ready to review', failed: 'failed', denied: 'denied', commit: 'Commit', ship: 'Merge / release shipped', sprintDemo: 'Jogging 80 s through the four backdrops.', peek: 'Peeking past the edge.', sit: 'Sitting at the edge.', lift: 'Peeking into the code.', scratch: 'Scratching its head.', sleep: 'Off to a corner to sleep.', neo: 'A punch up and a shockwave.', shy: 'Peeking in shyly, like on day one.', morning: 'Waking up with a stretch.', helper: 'Whistles and a helper runs off.', spin: 'Spinning until it gets dizzy.', 'tests-pass': 'Thumbs up: tests are green.', push: 'Throws a paper plane.', scared: 'Covers its eyes.', search: 'Out comes the magnifying glass.', pet: 'Blushes.', party: 'Party hat and confetti.', dance: 'Dances in its sunglasses.', birthday: 'Anniversary cake.', smoke: 'Fumes and falls over.', notes: 'Takes notes on the plan.', read: 'Leans in to read.', box: 'A box lands on it.', stare: 'Holds your gaze.', coffee: 'A late-night coffee.', fish: 'Goes fishing.', sneeze: 'Sneezes.',
   },
 } satisfies Record<Lang, Record<string, string>>
 
