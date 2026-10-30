@@ -68,7 +68,19 @@ async function refreshGemini($: EngineInterface) {
 }
 
 // What Zeus should do next; kept for the image-sheet mascot.
-const motion = { still: false, typedAt: 0, failedAt: 0, }
+const motion = { still: false, typedAt: 0, failedAt: 0, fails: 0, searches: [] as number[], searchedAt: 0, notedAt: 0, readAt: 0 }
+const MET = [
+  'f="$HOME/.claude/braves-panel-met"; d=$(date +%F)',
+  'if [ ! -f "$f" ]; then printf "%s\\n%s\\n" "$d" "$d" > "$f"; echo shy; exit 0; fi',
+  'last=$(sed -n 1p "$f"); born=$(sed -n 2p "$f"); [ -n "$born" ] || born=$d; say=',
+  'if [ "$last" != "$d" ]; then',
+  '  if [ "${born#*-}" = "${d#*-}" ] && [ "$born" != "$d" ]; then say=birthday; last=$d',
+  '  elif [ "$(date +%H)" -lt 12 ]; then say=morning; last=$d; fi',
+  'fi',
+  'printf "%s\\n%s\\n" "$last" "$born" > "$f"; echo $say',
+].join('\n')
+// ponytail: dangerous commands told by their text: a forced push, a hard reset, rm -rf, git clean -f, DROP.
+const DANGER = /\brm\s+-[a-z]*r[a-z]*f|\brm\s+-[a-z]*f[a-z]*r|\bgit reset --hard\b|\bgit push\b.*(--force(?!-with-lease)|\s-f\b)|\bgit clean -[a-z]*f|\bdrop (table|database)\b/i
 
 // The ticker keeps the latest few, newest first.
 function tell($: EngineInterface, kind: News['kind'], detail = '') {
@@ -92,6 +104,13 @@ export const register: Register = on => {
     $.clock.every(3000, () => void refreshGemini($))
     $.clock.every(2000, () => void refreshCrowd($))
     motion.still = (await $.settings.read()).prefersReducedMotion === true
+    // The first session ever (no marker yet): the mascot meets you shyly instead of waving.
+    // The marker's two lines: the last day it greeted you specially, and the day it was installed
+    // (markers from before the second line date the install from today). Once a day at most: on the
+    // install's anniversary the cake, else before noon the morning stretch.
+    const met = await $.process.run(['sh', '-c', MET], { timeoutMs: 2000 })
+    const first = met.stdout.trim()
+    if (first === 'shy' || first === 'morning' || first === 'birthday') await update($, cue, c => ({ name: first, n: c.n + 1 }))
     await update($, isOpen, () => true)
     void $.ui.open({ id: PANE, title: TITLE, columns: WIDTH })
     return next(e)
@@ -105,8 +124,8 @@ export const register: Register = on => {
       void $.clock.sleep(80000).then(() => update($, sprint, () => false))
       return { text: L.sprintDemo }
     }
-    if (['peek', 'sit', 'lift', 'scratch', 'sleep', 'neo'].includes(e.args.trim())) {
-      const act = e.args.trim() as 'peek' | 'sit' | 'lift' | 'scratch' | 'sleep' | 'neo'
+    if (['peek', 'sit', 'lift', 'scratch', 'sleep', 'neo', 'shy', 'morning', 'helper', 'spin', 'tests-pass', 'push', 'scared', 'search', 'pet', 'party', 'dance', 'birthday', 'smoke', 'notes', 'read', 'box', 'stare', 'coffee', 'fish', 'sneeze'].includes(e.args.trim())) {
+      const act = e.args.trim() as 'peek' | 'sit' | 'lift' | 'scratch' | 'sleep' | 'neo' | 'shy' | 'morning' | 'helper' | 'spin' | 'tests-pass' | 'push' | 'scared' | 'search' | 'pet' | 'party' | 'dance' | 'birthday' | 'smoke' | 'notes' | 'read' | 'box' | 'stare' | 'coffee' | 'fish' | 'sneeze'
       say($, act)
       return { text: L[act] }
     }
@@ -126,16 +145,34 @@ export const register: Register = on => {
     // Claude needs you (a question) or has a plan ready: the mascot says so before it shows.
     if (e.tool === 'AskUserQuestion') say($, 'point'), tell($, 'ask', e.questions?.[0]?.question ?? '')
     if (e.tool === 'ExitPlanMode') say($, 'lightbulb'), tell($, 'plan')
+    // A burst of searching (three reads or searches within 5 s, then 8 s quiet): the magnifying glass.
+    if (['Grep', 'Glob', 'Read', 'WebSearch', 'WebFetch'].includes(e.tool)) {
+      const t = Date.now()
+      motion.searches = [...motion.searches.filter(at => t - at < 5000), t]
+      if (motion.searches.length >= 3 && t - motion.searchedAt > 8000) (motion.searchedAt = t), say($, 'search')
+    }
+    // Claude writing the plan (plan mode keeps it in ~/.claude/plans/), or a PLAN.md: it takes notes.
+    if ((e.tool === 'Write' || e.tool === 'Edit') && /\/\.claude\/plans\/|PLAN\.md$/i.test(e.file_path) && Date.now() - motion.notedAt > 20000)
+      (motion.notedAt = Date.now()), say($, 'notes')
+    const danger = e.tool === 'Bash' && DANGER.test(e.command)
+    if (danger) say($, 'scared')
+    // One or two subagents: the helper runs off with the job (three or more is a sprint).
+    if (e.tool === 'Agent' && (await read($, crowd)) < SPRINT - 1) say($, 'helper')
     const r = await next(e)
     // Answered or reviewed: the headline has nothing left to say.
     if (e.tool === 'AskUserQuestion' || e.tool === 'ExitPlanMode') {
       const kind = e.tool === 'AskUserQuestion' ? 'ask' : 'plan'
       void update($, news, list => list.filter(n => n.kind !== kind))
     }
+    // ponytail: a test run is told by its command; a pass gets a thumbs up, a failure the head scratch.
+    const testing = e.tool === 'Bash' && /\b(pytest|vitest|jest|mocha|rspec|phpunit)\b|\b(go|cargo|npm|pnpm|yarn|bun|deno|plugin) test\b|\btests?\/\S+\.sh\b/.test(e.command)
     if (r.deny !== undefined) say($, 'disappointed'), tell($, 'deny', e.tool)
+    else if (testing) say($, r.isError ? 'scratch' : 'tests-pass')
+    else if (danger && !r.isError) say($, 'relief')
     else if (r.isError) {
-      // A second failure within a minute is no longer a facepalm.
-      say($, Date.now() - motion.failedAt < 60000 ? 'angry' : 'facepalm')
+      // A second failure within a minute is no longer a facepalm; a third one blows its top.
+      motion.fails = Date.now() - motion.failedAt < 60000 ? motion.fails + 1 : 1
+      say($, motion.fails >= 3 ? 'smoke' : motion.fails === 2 ? 'angry' : 'facepalm')
       tell($, 'error', e.tool)
       motion.failedAt = Date.now()
     }
@@ -143,6 +180,7 @@ export const register: Register = on => {
       // ponytail: reads the command text; a commit or a merge/release that went through.
       if (/\bgh (pr merge|release create)\b/.test(e.command)) say($, 'confetti'), tell($, 'ship')
       else if (/\bgit commit\b/.test(e.command)) say($, 'excited'), tell($, 'commit', commitTitle(e.command))
+      else if (/\bgit push\b/.test(e.command)) say($, 'push')
     }
     return r
   })
@@ -150,6 +188,9 @@ export const register: Register = on => {
   // Zeus watches you type; one cue per 400 ms keeps the panel from redrawing on every key.
   on('prompt.edit', async ($, e, next) => {
     const t = Date.now()
+    // A huge paste lands on it like a box; a long prompt, it leans in to read (once every 15 s).
+    if (!motion.still && e.inputText.length > 1000) say($, 'box')
+    else if (!motion.still && e.text.length + e.inputText.length > 400 && t - motion.readAt > 15000) (motion.readAt = t), say($, 'read')
     if (!motion.still && t - motion.typedAt > 400) {
       motion.typedAt = t
       say($, 'typing')
