@@ -41,7 +41,7 @@ Puedes ejecutarlo así:
 | `/braves-opinion` | Décimo Hombre: crítica constructiva sin adulación. Veredicto SHIP / SHIP WITH CHANGES / RETHINK / KILL. |
 | `/braves-gemini` | Le pasas una tarea a Gemini y la resuelve aparte, sin gastar el contexto de tu sesión. Ves en la barra qué está haciendo mientras lo hace. El frontend y la UI van aquí por defecto. Necesitas suscripción de Gemini, además de la de Claude. |
 | `/braves-security` | El Candado: realiza una auditoría de infraestructura (secretos, proxy de API, RLS, pooling, cache, rate limits, pruebas de carga con k6/Artillery) + código (OWASP). |
-| `/braves-audit` | Auditoría Global (seguridad + sobre-ingeniería + rendimiento). Escribe un `braves-audit-DATE.md` ejecutable en la raíz del repo. |
+| `/braves-audit` | Auditoría Global (seguridad + sobre-ingeniería + rendimiento + accesibilidad). Escribe un `braves-audit-DATE.md` ejecutable en la raíz del repo. Con `diff` revisa a fondo solo los cambios de la rama. |
 | `/braves-fix` | Arregla bugs con evidencia obligatoria; ejecuta el runbook `braves-audit-DATE.md` si existe uno. |
 | `/braves-ship` | Cierre profesional: chequeos previos, commit con tu firma, PR/merge según tu configuración, checklist de release. |
 | `/braves-save` | Cierre de sesión: memorias + entrada de log al notebook AI Brain (Gemini Notebook). Se ofrece solo al pasar el umbral de contexto, y si quedan tareas le deja el traspaso preparado a la siguiente sesión que abras en ese proyecto, sin que copies nada. Cada bitácora lleva el tag del proyecto delante (`PRJ-…`) y va al cuaderno de ese proyecto, nunca al de otro. |
@@ -168,6 +168,12 @@ mantenedor:
   Gebert), redistribuido con cambios: fuera los niveles wenyan,
   disparadores en español, un límite de idioma explícito y la salvaguarda
   de seguridad reforzada.
+- El modo `diff` de `braves-audit` adapta las rúbricas de
+  [Thermos](https://github.com/cursor/plugins/tree/main/thermos) (MIT,
+  Cursor), y la pasada de accesibilidad, el checklist y el script de
+  contraste de `antislop-human` de
+  [anti-slop](https://github.com/miqdadbadjuber/anti-slop) (MIT, Miqdad
+  Badjuber). Sus copyrights van en el [LICENSE](LICENSE).
 - `braves-save` y `braves-notebook` son ports de
   [BrainClaude](https://github.com/Carlos-Vera/BrainClaude) (Carlos Vera).
 

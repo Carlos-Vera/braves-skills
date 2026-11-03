@@ -4,19 +4,29 @@ description: >
   Use when the user says "/braves-audit", "auditoría completa" (full
   audit), "audita todo el proyecto" (audit the whole project), "audita
   el repo" (audit the repo), "braves-global", or wants the real state of
-  the project (security + over-engineering + performance) with an
-  executable remediation plan written to the root.
+  the project (security + over-engineering + performance +
+  accessibility) with an executable remediation plan written to the
+  root. Also "/braves-audit diff", "revisa la rama" (review the
+  branch), "revisa el diff" (review the diff), "thermos": a deep review
+  of only the current branch's changes.
 license: MIT
 ---
 
 # Braves Audit
 
-Full project audit in three passes. ALWAYS ends by writing
-`braves-audit-YYYY-MM-DD.md` to the project root: a runbook a fresh
-agent can run in a brand-new conversation with no prior context
-(braves-fix runs it).
+Two modes:
 
-## The three passes
+- **Full mode** (default): the whole project in four passes. ALWAYS
+  ends by writing `braves-audit-YYYY-MM-DD.md` to the project root: a
+  runbook a fresh agent can run in a brand-new conversation with no
+  prior context (braves-fix runs it).
+- **Diff mode** (`/braves-audit diff`): a deep review of only the
+  current branch's changes. NEVER writes a runbook; the findings go in
+  the conversation. See **Diff mode** below.
+
+Everything up to **Diff mode** is full mode.
+
+## The four passes
 
 1. **Security** — REQUIRED SUB-SKILL: full braves-security (Pass A
    infra + Pass B code).
@@ -35,6 +45,12 @@ agent can run in a brand-new conversation with no prior context
    filtered/joined columns, bloated bundle (heavy deps for one
    function), sequential request waterfalls that could be
    parallelized, unoptimized images, obvious re-render/hot-loop issues.
+4. **Accessibility** — only if the project ships a UI (HTML, JSX/TSX,
+   Vue, Svelte, templates). Audit against
+   `${CLAUDE_SKILL_DIR}/a11y/CHECKLIST.md`; its contrast script is
+   `python3 "${CLAUDE_SKILL_DIR}/a11y/contrast-check.py" "#777" "#fff"`
+   (quote the colours: an unquoted `#` starts a shell comment). No UI →
+   skip the pass and say so in one line.
 
 ## The runbook (mandatory)
 
@@ -97,10 +113,11 @@ confirm which one is being audited BEFORE starting. Structure:
   observable expected result. A step without verification doesn't make
   it into the plan.
 - Ordered by severity: CRITICAL → HIGH → MEDIUM → LOW.
-- Over-engineering and performance severity: never exceeds MEDIUM —
-  MEDIUM if it causes bugs or costs money today (N+1 in a hot path,
-  incorrect logic), LOW otherwise. CRITICAL and HIGH are exclusive to
-  security.
+- Over-engineering, performance and accessibility severity: never
+  exceeds MEDIUM — MEDIUM if it causes bugs, costs money or locks people
+  out today (N+1 in a hot path, incorrect logic, a form keyboard users
+  can't submit, body text under 4.5:1), LOW otherwise. CRITICAL and
+  HIGH are exclusive to security.
 - braves-security findings get folded into the findings table (one row
   each); its `exposure: ...` line only goes in the conversation
   summary, not duplicated in the file.
@@ -113,14 +130,52 @@ confirm which one is being audited BEFORE starting. Structure:
   it and ask whether to replace it or generate a new one with a
   different date.
 
-## Conversation output
+## Full mode output
 
 Short summary: total findings by severity, the 3 most serious ones in
 one line each, and the path to the generated runbook. The detail lives
 in the file, don't duplicate it in the chat.
 
+## Diff mode
+
+1. **Scope.** Base = the PR's base if there is one
+   (`gh pr view --json baseRefName -q .baseRefName`), else the default
+   branch (`git symbolic-ref --short refs/remotes/origin/HEAD`, minus
+   its `origin/` prefix). Run `git fetch` and compare against
+   `origin/<base>` so a stale local branch doesn't drag in upstream
+   commits. Changes =
+   `git diff $(git merge-base origin/<base> HEAD)` (commits, staged and
+   unstaged) plus every untracked file from
+   `git ls-files --others --exclude-standard`, read in full. Nothing in
+   either → say so and stop.
+2. **Two reviewers in parallel**, launched in the same message as
+   background `general-purpose` subagents on `opus`. Each brief carries
+   the base, the diff command, the list of changed and untracked files,
+   and the absolute path of its rubric, to read first and follow:
+   - `${CLAUDE_SKILL_DIR}/diff/correctness.md`: bugs, breakage, devex,
+     feature-flag leaks, and security via braves-security Pass B
+     (pass `${CLAUDE_SKILL_DIR}/../braves-security/SKILL.md` too).
+   - `${CLAUDE_SKILL_DIR}/diff/quality.md`: missed simplifications,
+     spaghetti growth, files past 1k lines, wrong layer, muddy contracts.
+   If the diff touches UI, the quality brief also carries
+   `${CLAUDE_SKILL_DIR}/a11y/CHECKLIST.md` and the contrast script
+   `${CLAUDE_SKILL_DIR}/a11y/contrast-check.py`, as absolute paths,
+   and tells it to audit the UI changes against them.
+   Neither reviewer spawns further subagents or edits files.
+3. **Synthesize.** Deduplicate across both; a finding both reported
+   weighs more. Verify every HIGH yourself against the code before
+   reporting it, and settle disagreements with your own judgment.
+
+Severity is about the branch: correctness findings use HIGH / MEDIUM /
+LOW, and a change that breaks existing behaviour can be HIGH even if it
+isn't security. Quality and `a11y:` findings never exceed MEDIUM.
+
+Output: a one-line verdict (ready / needs changes), then the findings
+most severe first, each with `file:line`, the defect and a concrete
+failure scenario. Fixes are applied only if the user asks (braves-fix).
+
 ## Limits
 
-Audits and writes the runbook; does NOT apply the fixes (that's
-braves-fix, or a fresh agent with the runbook). Analysis by reading
+Audits and reports; does NOT apply the fixes (that's braves-fix, or a
+fresh agent with the runbook). Analysis by reading
 code only: no exploits, no production data.
