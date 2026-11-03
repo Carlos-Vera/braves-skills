@@ -43,8 +43,9 @@ BRAVES SKILLS — BravesLab toolbox (full lifecycle)
                   pooling, cache, rate limits, load) + code (OWASP).
                   Report only.
  /braves-audit    Global audit (security + over-engineering +
-                  performance). Writes an executable braves-audit-DATE.md
-                  at the repo root.
+                  performance + accessibility). Writes an executable
+                  braves-audit-DATE.md at the repo root. "diff" mode:
+                  deep review of only the branch's changes.
  /braves-fix      Fixes bugs with mandatory evidence. If a
                   braves-audit-DATE.md exists at the root, executes it
                   step by step.
