@@ -18,7 +18,8 @@ Plugin root: `~/.claude/skills/braves-skills` (a git clone).
 1. `git -C <root> fetch --tags --quiet origin`
 2. Latest version = highest `v*` tag. Installed version = `version` in
    `<root>/.claude-plugin/plugin.json`.
-3. Equal → tell the user they're up to date (vX.Y.Z) and stop.
+3. Equal → tell the user they're up to date (vX.Y.Z), run **Panel**
+   below, and stop.
 4. Newer → show what's new: `gh release view v<latest>` if `gh` is
    available, otherwise list the tags between installed and latest.
 
@@ -28,8 +29,23 @@ Plugin root: `~/.claude/skills/braves-skills` (a git clone).
    STOP — never stomp the user's modifications.
 2. Ask before applying, unless the user already asked to update.
 3. `git -C <root> pull --ff-only origin master`
-4. Confirm the new version from plugin.json and remind the user to restart
+4. Run **Panel** below.
+5. Confirm the new version from plugin.json and remind the user to restart
    Claude Code (or run /reload-plugins) so the new version loads.
+
+## Panel
+
+The optional braves-panel is a separate plugin: Claude Code runs it from
+an installed copy that the pull above doesn't refresh. Only if
+`claude plugin list` shows `braves-panel@braves-skills`:
+
+```bash
+claude plugin marketplace update braves-skills
+claude plugin update braves-panel@braves-skills
+```
+
+Report the old → new version it prints (or "already up to date"); a new
+version needs a Claude Code restart. Not installed → skip silently.
 
 ## After updating
 
