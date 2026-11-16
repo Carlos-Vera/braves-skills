@@ -1,6 +1,8 @@
 # Accessibility checklist (braves-audit)
 
-> Condensed from antislop-human (MIT, Miqdad Badjuber; see the root LICENSE).
+> Condensed from antislop-human at commit 941b153 (MIT, Miqdad Badjuber), whose
+> WCAG and pattern references adapt web-quality-skills (MIT, Addy Osmani); see
+> the root LICENSE.
 
 Each check: what to look for in the code, and the fix to report. Tag
 every finding `a11y:`.
