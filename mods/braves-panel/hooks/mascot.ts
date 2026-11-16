@@ -5,6 +5,10 @@
 
 import { PALETTE, SEQUENCES, SPRITES } from './sprites'
 
+// The sunglasses as Carlos drew them on the 'shades' keyframe (its face row). The editor paints one
+// color per cell, so the lens black (PALETTE 7) goes behind every unset pixel across the face.
+const GLASSES = { row: SPRITES.shades.rows[1]!, ink: SPRITES.shades.ink[1]!, back: ' 7777777 ' }
+
 export const STAGE_COLUMNS = 9
 export const STAGE_ROWS = 4
 // 50 so a 100 ms walk step is exactly two ticks (at 70 they alternated 70/140 and the legs shimmered).
@@ -46,14 +50,14 @@ type Drawn = { rows: readonly string[]; ink: readonly string[]; back?: readonly 
 // sunglasses on. Frame 2 lifts the body off the floor by an eighth of a cell, for an energy-building tremble.
 export const KNEEL: Record<NeoPose, Drawn> = {
   'neo-kneel': {
-    rows: ['         ', '         ', '▝▀██▀██▀▘', '▗███████▄'],
-    ink: ['         ', '         ', '777777777', '000000000'],
-    back: ['         ', '         ', ' 0  0  0 ', '         '],
+    rows: ['         ', '         ', GLASSES.row, '▗███████▄'],
+    ink: ['         ', '         ', GLASSES.ink, '000000000'],
+    back: ['         ', '         ', GLASSES.back, '         '],
   },
   'neo-kneel-2': {
-    rows: ['         ', '         ', '▝▀██▀██▀▘', '▗▇▇▇▇▇▇▇▄'],
-    ink: ['         ', '         ', '777777777', '000000000'],
-    back: ['         ', '         ', ' 0  0  0 ', '         '],
+    rows: ['         ', '         ', GLASSES.row, '▗▇▇▇▇▇▇▇▄'],
+    ink: ['         ', '         ', GLASSES.ink, '000000000'],
+    back: ['         ', '         ', GLASSES.back, '         '],
   },
 }
 
@@ -76,24 +80,19 @@ export const LOOK: Record<LookPose, Drawn> = {
 // Ink digits index PALETTE: 2 white, 3 yellow, 6 blue.
 const at = (row: string, ink: string) => ({ rows: [row, ...FACE.slice(1)], ink: [ink, ...FACE_INK.slice(1)] })
 const FACE = ['         ', ' ▐▛███▜▌ ', ' ▜█████▛ ', '  ▆   ▆  ']
-// The sunglasses row (see drawn() below) and its teal background, for the poses here that wear them.
-const GLASSES = { row: '▝▀██▀██▀▘', ink: '777777777', back: ' 0  0  0 ' }
-// Swaying, its face a pixel off centre: the same glasses a pixel left (or right), the lens and
-// bar edges falling inside cells (▜ ▛: bar on top, lens on one side, teal on the other).
-const SWAY_GLASSES = { row: '▀▜█▛▜█▛▀ ', ink: '77777777 ', back: ' 0 00 0  ' }
+// The poses here that wear the sunglasses: GLASSES replaces their face row.
 const shaded = (rows: string[], ink: string[], g = GLASSES): Drawn => ({
   rows: rows.map((r, i) => (i === 1 ? g.row : r)),
   ink: ink.map((r, i) => (i === 1 ? g.ink : r)),
   back: rows.map((_, i) => (i === 1 ? g.back : '         ')),
 })
-const mirrored = (g: typeof GLASSES) => ({ row: ' ▀▜█▛▜█▛▀', ink: [...g.ink].reverse().join(''), back: [...g.back].reverse().join('') })
 export const MORE = {
   // Neo in his sunglasses: the launch from the kneel, the punch up (the raised arm keeps its cells),
   // and a dance on Friday afternoons.
   'neo-hop': shaded(['         ', '', ' ▝█▀▀▀█▘ ', '         '], ['         ', '', ' 0000000 ', '         ']),
-  'neo-punch': { rows: ['         ', '▝▀██▀██▙▞', ' ▜█████▌ ', '  ▆   ▆  '], ink: ['         ', '777777700', ' 0000000 ', '  0   0  '], back: ['         ', ' 0  0    ', '         ', '         '] },
-  'dance-left': shaded(['         ', '', '▝██████▘ ', ' ▐▌  ▐▌  '], ['         ', '', '00000000 ', ' 00  00  '], SWAY_GLASSES),
-  'dance-right': shaded(['         ', '', ' ▝██████▘', '  ▐▌  ▐▌ '], ['         ', '', ' 00000000', '  00  00 '], mirrored(SWAY_GLASSES)),
+  'neo-punch': { rows: ['         ', `${GLASSES.row.slice(0, 7)}▙▞`, ' ▜█████▌ ', '  ▆   ▆  '], ink: ['         ', `${GLASSES.ink.slice(0, 7)}00`, ' 0000000 ', '  0   0  '], back: ['         ', `${GLASSES.back.slice(0, 7)}  `, '         ', '         '] },
+  'dance-left': shaded(['         ', '', '▝██████▘ ', ' ▐▌  ▐▌  '], ['         ', '', '00000000 ', ' 00  00  ']),
+  'dance-right': shaded(['         ', '', ' ▝██████▘', '  ▐▌  ▐▌ '], ['         ', '', ' 00000000', '  00  00 ']),
   'sleepy': face(' ▐▀███▀▌ ', ' ▜█████▛ '),
   'yawn': { rows: ['      o  ', ' ▐▀███▀▌ ', ' ▜█████▛ ', '  ▆   ▆  '], ink: ['      2  ', ...FACE_INK.slice(1)] },
   'yawn-2': { rows: ['      O  ', ' ▐▀███▀▌ ', ' ▜█████▛ ', '  ▆   ▆  '], ink: ['      2  ', ...FACE_INK.slice(1)] },
@@ -164,9 +163,9 @@ function drawn(pose: Pose): Drawn {
   const { rows, ink } = SPRITES[pose as keyof typeof SPRITES]
   if (!ARMS.has(pose)) return { rows, ink }
   return {
-    rows: rows.map((r, i) => (i === 1 ? '▝▀██▀██▀▘' : r)),
-    ink: ink.map((r, i) => (i === 1 ? '777777777' : r)),
-    back: rows.map((r, i) => (i === 1 ? ' 0  0  0 ' : ' '.repeat([...r].length))),
+    rows: rows.map((r, i) => (i === 1 ? GLASSES.row : r)),
+    ink: ink.map((r, i) => (i === 1 ? GLASSES.ink : r)),
+    back: rows.map((r, i) => (i === 1 ? GLASSES.back : ' '.repeat([...r].length))),
   }
 }
 
@@ -250,7 +249,7 @@ export function zoomed(pose: Pose, across: number, x: number, scale: number, top
         const sx = EYES.x + (2 * c + (q & 1) + 0.5 - ax) / scale
         const sy = EYES.y + (2 * r + (q >> 1) + 0.5 - ay) / scale
         const lensHit = shades && sample(shades, sx, sy + lens!)
-        return lensHit?.color === PALETTE[7] && !lensHit.back ? lensHit : sample(base, sx, sy)
+        return lensHit?.color === PALETTE[7] ? lensHit : sample(base, sx, sy)
       })
       // Two colors in a cell (the frame of the glasses): the glyph takes the drawn color, the
       // background the cell-background color, as in the sprite itself.
