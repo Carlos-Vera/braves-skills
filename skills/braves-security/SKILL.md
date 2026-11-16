@@ -12,16 +12,48 @@ license: MIT
 
 # Braves Security
 
+> Finding gate, severity anchors and "Not a finding" adapted from Cloudflare security-audit-skill (MIT; see the root LICENSE).
+
 The lock. Two-pass security audit: infrastructure and code. Single-pass
 report: one line per finding, ranked by severity. Applies nothing.
+
+## Finding gate
+
+A finding names four things: the less-trusted principal (anonymous
+visitor, other tenant, low-role user), the control it defeats, the
+boundary crossed, and the concrete result. Missing one → not a finding.
+
+If the verdict hinges on something not in the repo (proxy or CDN
+config, dashboard setting, platform default), don't guess it either
+way: no severity, mark it `needs_validation: <exact missing fact>`. In
+a braves-audit runbook these go to "Requires platform access".
 
 ## Finding format
 
 `<SEVERITY> <tag> <what>. <recommended fix>. [path:line]`
 
-Severities: `CRITICAL` (data/money leak already possible) → `HIGH`
-(abuse that burns money or takes down the service) → `MEDIUM` (falls
-over under load) → `LOW` (unknown capacity).
+Severities:
+- `CRITICAL`: an unauthenticated actor reads or writes the whole data
+  store, takes over arbitrary accounts, runs code, or spends your money
+  (secret key in the client, table without RLS).
+- `HIGH`: an explicit control fully defeated with real consequences:
+  auth bypass, cross-tenant read/write, stored XSS hitting other users,
+  an unauthenticated request that stops or bankrupts the service.
+- `MEDIUM`: real boundary violation with limited blast radius or
+  uncommon preconditions; falls over under realistic load.
+- `LOW`: non-secret internals disclosed, unknown capacity.
+
+HIGH vs MEDIUM: does it fully nullify an explicit control, or only
+weaken it? Severity never exceeds the demonstrated impact; if you can't
+state the damage, it's lower than it feels.
+
+## Not a finding
+
+- A checklist item or missing best practice with no affected principal.
+- Defense-in-depth advice with no reachable violation.
+- Self-impact: a user doing to their own data what they're allowed to.
+- An effect inflated past what the code shows (crash ≠ code execution).
+- Guessed proxy, platform or browser behaviour (→ `needs_validation`).
 
 ## Pass A — Infrastructure
 
@@ -71,8 +103,17 @@ over under load) → `LOW` (unknown capacity).
   `pnpm audit` / `pip-audit` / `osv-scanner`. High/critical are
   findings; moderate/low go in a separate watchlist at the end of the
   report (not lost, don't block).
+- `logic:` business rules enforced only in the happy path: skippable
+  workflow steps, double spend or replayed redemptions, negative or
+  overflowing quantities/prices.
+- `abuse:` legitimate features turned against the data: bulk export as
+  exfiltration, search or "user exists" errors as an enumeration oracle.
+- `redirect:` open redirect, a `next=`/`returnTo` param followed without
+  an allowlist.
+- `cookie:` session cookies missing `HttpOnly`, `Secure` or `SameSite`.
 - `leak:` errors that return stack traces/SQL to the client; CORS `*`
-  with credentials; `.git`/backup directories being served.
+  with credentials; `.git`/backup directories, `/.env`, debug or admin
+  consoles (`/debug`, Django debug, Spring actuator) being served.
 - `upload:` uploaded files without type/size/path validation (path
   traversal), served from the same origin.
 

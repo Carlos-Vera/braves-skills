@@ -14,6 +14,8 @@ license: MIT
 
 # Braves Audit
 
+> Refuter adapted from Cloudflare security-audit-skill (MIT; see the root LICENSE).
+
 Two modes:
 
 - **Full mode** (default): the whole project in four passes. ALWAYS
@@ -40,7 +42,14 @@ Everything up to **Diff mode** is full mode.
      type="date">` > custom picker).
    - `yagni:` abstraction with a single implementation, config nobody
      changes, layer with a single caller.
+   - `reuse:` existing code in the repo, or the stdlib, already does
+     it (name the path).
    - `shrink:` same logic in fewer lines — show the short form.
+
+   Every finding needs a concrete case (this input or situation → this
+   wrong result or waste); no case, no finding. Before calling anything
+   dead, grep the whole tree for it: tests, fixtures, config, and string
+   or dynamic references.
 3. **Basic performance** — N+1 queries, missing indexes on
    filtered/joined columns, bloated bundle (heavy deps for one
    function), sequential request waterfalls that could be
@@ -51,6 +60,31 @@ Everything up to **Diff mode** is full mode.
    `python3 "${CLAUDE_SKILL_DIR}/a11y/contrast-check.py" "#777" "#fff"`
    (quote the colours: an unquoted `#` starts a shell comment). No UI →
    skip the pass and say so in one line.
+
+## Refuter (both modes)
+
+Before reporting, every CRITICAL/HIGH goes to a fresh refuter: one
+background `general-purpose` subagent per finding (launch them in the
+same message), that did not find it and whose only job is to disprove
+it. Brief:
+
+```text
+You did not write this finding. Try to refute it by reading the code.
+Finding: <severity> <tag> <what> [path:line]. Repo root: <abs path>.
+1. Trace the path from the less-trusted entry point to the claimed
+   effect. Confirm both ends exist.
+2. Look for whatever stops it: auth/ownership check, validation,
+   framework default, middleware, RLS policy, unreachable route.
+3. If the outcome depends on a fact not in the repo (proxy, dashboard,
+   platform setting), say which fact.
+Read only. No exploits, no network, no edits, no subagents.
+Reply with one line: confirmed | refuted | needs_validation, then the
+evidence (path:line of the guard or of the open path, or the missing fact).
+```
+
+Refuted → drop it, or downgrade if a weaker issue remains.
+`needs_validation` → no severity, goes to "Requires platform access"
+(diff mode: listed separately). Only `confirmed` keeps its severity.
 
 ## The runbook (mandatory)
 
@@ -163,8 +197,8 @@ in the file, don't duplicate it in the chat.
    and tells it to audit the UI changes against them.
    Neither reviewer spawns further subagents or edits files.
 3. **Synthesize.** Deduplicate across both; a finding both reported
-   weighs more. Verify every HIGH yourself against the code before
-   reporting it, and settle disagreements with your own judgment.
+   weighs more. Run every HIGH through the **Refuter** before reporting
+   it, and settle the remaining disagreements with your own judgment.
 
 Severity is about the branch: correctness findings use HIGH / MEDIUM /
 LOW, and a change that breaks existing behaviour can be HIGH even if it

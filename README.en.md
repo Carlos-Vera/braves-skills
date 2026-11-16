@@ -175,6 +175,10 @@ not just the maintainer:
   Badjuber), which in turn adapts
   [web-quality-skills](https://github.com/addyosmani/web-quality-skills) (MIT,
   Addy Osmani). Their copyrights are in the [LICENSE](LICENSE).
+- The finding gate, severity anchors and refuter in `braves-security`
+  and `braves-audit` adapt
+  [security-audit-skill](https://github.com/cloudflare/security-audit-skill)
+  (MIT, Cloudflare). Its copyright is in the [LICENSE](LICENSE).
 - `braves-save` and `braves-notebook` are ports of
   [BrainClaude](https://github.com/Carlos-Vera/BrainClaude) (Carlos Vera).
 
