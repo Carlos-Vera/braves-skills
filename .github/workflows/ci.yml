@@ -43,6 +43,16 @@ jobs:
           diff <(ls -d skills/*/ | xargs -n1 basename | sort) \
                <(jq -r '.skills[]' .claude-plugin/plugin.json | sed 's#^\./skills/##' | sort)
 
+      # agy skips a skill whose SKILL.md lacks frontmatter (Claude Code is lenient and hid it).
+      - name: Every skill has name and description frontmatter
+        run: |
+          for f in skills/*/SKILL.md; do
+            head -1 "$f" | grep -qx -- '---' || { echo "::error file=$f::missing frontmatter"; exit 1; }
+            fm=$(awk 'NR>1 && /^---$/ {exit} NR>1' "$f")
+            printf '%s\n' "$fm" | grep -q '^name: ' || { echo "::error file=$f::frontmatter has no name"; exit 1; }
+            printf '%s\n' "$fm" | grep -q '^description:' || { echo "::error file=$f::frontmatter has no description"; exit 1; }
+          done
+
       - name: Hook behaviour tests
         run: sh tests/hooks.sh
 

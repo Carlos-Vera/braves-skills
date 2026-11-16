@@ -1,3 +1,14 @@
+---
+name: humanizar
+description: >
+  Use when the user says "/humanizar", "humaniza esto" (humanize this),
+  "quítale el olor a IA" (remove the AI smell), "pásalo por la voz de la
+  marca" (run it through the brand voice), or asks to rewrite Spanish copy
+  (posts, emails, landing text, GitHub comments) so it doesn't sound
+  AI-written. Applies the BravesLab voice, or the user's own voice file
+  when one is configured.
+license: MIT
+---
 # Humanizer Lite: BravesLab Voice (v3.0)
 
 **Custom voice:** read `~/.claude/braves-skills.json` first. If
