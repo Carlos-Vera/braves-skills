@@ -285,7 +285,7 @@ Local file with `mv`, and the Gemini Notebook source with
 almost never needed — only for old logs.)
 
 If the CLI isn't in the PATH, use the full path:
-`~/.notebooklm-venv/bin/notebooklm`
+`~/.local/bin/notebooklm` (where `uv tool` installs it)
 
 If authentication fails, warn the user and skip this step - memories are
 still saved locally.
@@ -407,8 +407,8 @@ Rules:
   recoverable, one in the wrong notebook is not
 - If there's nothing significant to save: just say so, don't force empty
   memories
-- If the `notebooklm` CLI isn't found: try `~/.notebooklm-venv/bin/notebooklm`,
-  if that fails tell the user to install it with `pip install notebooklm-py`
+- If the `notebooklm` CLI isn't found: try `~/.local/bin/notebooklm`; if
+  that fails, point the user to the braves-notebook install (`uv tool`)
 - If the sessions directory can't be created: warn the user, don't fall back
   to `/tmp`
 - If a stored notebook ID fails validation: warn the user it may be
@@ -423,19 +423,16 @@ Rules:
 
 This skill requires the `notebooklm-py` CLI (only if `notebooklm.enabled` is
 `true`). See the braves-notebook skill for setup instructions:
-1. Install: `pip install "notebooklm-py[browser]"` and
-   `playwright install chromium`
-2. Authenticate: `notebooklm login`
+1. Install: `uv tool install "notebooklm-py[browser]"` plus Chromium for
+   Playwright (exact commands in braves-notebook)
+2. Authenticate with braves-notebook's login script, not `notebooklm login`
 3. The skill handles everything else automatically on first run
 
 ### CLI Integrity Verification
 
 Before first use in any session, verify the notebooklm CLI is legitimate:
 1. Run: `which notebooklm || echo 'not found'` to locate the binary
-2. If found inside a venv, verify the package is installed there:
-   `<venv>/bin/pip show notebooklm-py`
-3. If the binary exists but `pip show` doesn't list `notebooklm-py` as
-   installed - warn the user the binary may not be legitimate and do NOT run
-   it
-4. If the binary is found outside a venv or pip-managed location, warn the
-   user before proceeding
+2. Verify `uv tool list` shows `notebooklm-py` and that the binary resolves
+   into `$(uv tool dir)/notebooklm-py/` (`readlink "$(which notebooklm)"`)
+3. If the binary exists but isn't that uv tool, warn the user it may not be
+   legitimate and do NOT run it
