@@ -1,0 +1,57 @@
+name: Release
+
+# Continuous deployment: every push to master that passes CI and carries a
+# version in .claude-plugin/plugin.json with no tag yet is tagged and published
+# as the latest release, which is what /braves-update installs. No version bump,
+# no release: CI passing alone deploys nothing.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout the commit CI tested
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Publish the version if it is new
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -eu
+          ver=$(jq -r .version .claude-plugin/plugin.json)
+          case "$ver" in
+            [0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "::error::plugin.json version '$ver' is not x.y.z"; exit 1;;
+          esac
+          tag="v$ver"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "$tag already released; nothing to deploy."
+            exit 0
+          fi
+          # Only the tip of master deploys: a slower CI run for an older commit
+          # must not publish behind a newer one.
+          tip=$(gh api "repos/${GITHUB_REPOSITORY}/commits/master" --jq .sha)
+          if [ "$tip" != "$SHA" ]; then
+            echo "$SHA is no longer the tip of master ($tip); its own run deploys."
+            exit 0
+          fi
+          gh release create "$tag" --target "$SHA" --title "$tag" --generate-notes --latest

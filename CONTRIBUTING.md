@@ -49,11 +49,11 @@ se dispare sin importar en qué idioma escriba el usuario.
 
 ## Releases
 
-Las actualizaciones salen como releases de GitHub:
-
-1. Sube `version` en `.claude-plugin/plugin.json` (semver).
-2. Etiqueta el commit: `git tag vX.Y.Z && git push origin vX.Y.Z`.
-3. Publica: `gh release create vX.Y.Z --title "..." --notes "..."`.
+Las actualizaciones salen solas como releases de GitHub: basta con subir
+`version` en `.claude-plugin/plugin.json` (semver) dentro del PR. Cuando
+ese commit llega a `master` y el CI pasa entero, `release.yml` crea el tag
+`vX.Y.Z` y publica la release con las notas generadas, sin nadie de por
+medio. Sin subir la versión no se publica nada; si el CI falla, tampoco.
 
 Los usuarios se enteran solos: un hook de SessionStart chequea una vez al
 día si hay tag nuevo, y `/braves-update` verifica y actualiza en cualquier

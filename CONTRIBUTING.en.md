@@ -48,11 +48,11 @@ fires regardless of which language the user writes in.
 
 ## Releases
 
-Updates ship as GitHub releases:
-
-1. Bump `version` in `.claude-plugin/plugin.json` (semver).
-2. Tag the commit: `git tag vX.Y.Z && git push origin vX.Y.Z`.
-3. Publish: `gh release create vX.Y.Z --title "..." --notes "..."`.
+Updates ship as GitHub releases on their own: just bump `version` in
+`.claude-plugin/plugin.json` (semver) inside the PR. When that commit lands
+on `master` and CI passes in full, `release.yml` creates the `vX.Y.Z` tag
+and publishes the release with generated notes, no human in the loop.
+No version bump, no release; a failing CI publishes nothing either.
 
 Users find out on their own: a SessionStart hook checks once a day for a
 new tag, and `/braves-update` verifies and updates at any moment (or
