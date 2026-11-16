@@ -234,35 +234,39 @@ good name = fast search in both places.
 If directory creation or file writing fails due to permissions, warn the
 user and do NOT fall back to `/tmp`.
 
-## Step 4: Upload to the Gemini Notebook Brain (with confirmation)
+## Step 4: Upload to the Gemini Notebook Brain
 
-### 4a. Show Where It Goes
+### 4a. Known Project: Upload Without Asking
 
-Before uploading, show where the log lands — not the log itself. The user
-just lived the session; replaying it back at them burns tokens and tells
-them nothing they don't already know.
+Running `/braves-save` on a project already in `projects` IS the consent:
+the user chose that notebook when the project was registered, and asking
+again on every save is noise. Upload straight away and report the
+destination in Step 5.
+
+Stop and ask only when one of these holds:
+
+- the project was registered during this very save (Step 0.4), so the
+  destination is brand new
+- the Step 0 consistency check failed (the upload would leave the
+  project's registered notebook)
+- the user's own message asked for it: "show", "preview", "don't upload",
+  "edit", another notebook, and so on. Do exactly what it says.
+
+When you do ask, show where the log lands, not the log itself:
 
 > **Project:** [name] (`[TAG]`) → notebook **[notebook title]**, label **[label]**
 > **File:** `[TAG]-[topics]-[date].md`
 >
 > **Send it to that notebook?** (yes/no/edit/show)
 
-The project/notebook line is not decoration: it's the last chance to catch a
-log about to land in the wrong brain.
+- **yes:** upload. **no:** skip it; memories stay saved locally.
+- **show:** print the full summary, then ask again.
+- **edit:** ask what to change, regenerate, show the destination again.
 
-The full text stays one word away: `show` prints it before deciding. Print
-the whole summary only then, or when the user asked for the preview up
-front.
+### 4b. Never Upload Somewhere Unconfirmed
 
-### 4b. Wait for Confirmation
-
-- **If "yes":** proceed with the upload
-- **If "no":** skip the upload, confirm that memories were saved locally
-- **If "show":** print the full summary, then ask again
-- **If "edit":** ask what they want to change, regenerate, and show the
-  destination line again
-
-Never upload without explicit consent in the current session.
+A notebook the user has not confirmed (in `projects` or in this
+conversation) never receives a log.
 
 ### 4c. Upload with Safe CLI Invocation
 
