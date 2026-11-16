@@ -65,14 +65,14 @@ test('the camera at scale 1 draws the sprite where it stands', () => {
   for (const r of [1, 2]) expect(flat[r]).toBe(`   ${drawn[r]}`.padEnd(20))
 })
 
-test('the sunglasses frame (arms and bridge) is a black line across the teal face, on both sides and in the zoom', () => {
-  const arms = (runs: { text: string; color?: string; bg?: string }[]) => runs.filter(r => r.bg).map(r => [r.text, r.color, r.bg])
+test('the sunglasses are the drawn face row over lens black, on both sides and in the zoom', () => {
+  const lens = (runs: { text: string; color?: string; bg?: string }[]) => runs.filter(r => r.bg).map(r => [r.text, r.color, r.bg])
   const [teal, black] = [PALETTE[0], PALETTE[7]]
-  const frame = [['▀', black, teal], ['▀', black, teal], ['▀', black, teal]]
-  expect(arms(toRuns('shades')[1]!)).toEqual(frame)
-  expect(arms(toRuns('shades', undefined, 'laptop', true)[1]!)).toEqual(frame)
-  expect(arms(toRuns('default')[1]!)).toEqual([])
-  // Close up, the line still crosses the bridge between the lenses: a row black from edge to edge.
+  const frame = [[SPRITES.shades.rows[1]!.trim(), teal, black]]
+  expect(lens(toRuns('shades')[1]!)).toEqual(frame)
+  expect(lens(toRuns('shades', undefined, 'laptop', true)[1]!)).toEqual(frame)
+  expect(lens(toRuns('default')[1]!)).toEqual([])
+  // Close up, the lenses still darken the eye line: a row black from edge to edge.
   expect(zoomed('shades', 24, 4, 4, 4).some(row => row.every(r => r.color === black))).toBe(true)
 })
 
