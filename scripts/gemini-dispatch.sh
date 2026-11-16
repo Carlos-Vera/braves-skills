@@ -20,7 +20,7 @@ command -v jq >/dev/null 2>&1 || {
 }
 
 AGY=${AGY:-$HOME/.local/bin/agy}
-GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.7-flash-medium}
+GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.8-flash-medium}
 # Whole seconds. agy honours its own --print-timeout — measured at a steady
 # 5 poll iterations per second, with 60s and 1m both ending at exactly 300
 # polls — so this is not here to compensate for it. It is here because the

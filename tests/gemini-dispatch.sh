@@ -72,7 +72,7 @@ run_dispatch "$PROJECT" "hello there"
 if [ "$STATUS" -eq 0 ] &&
    grep -Fxq -- "--add-dir" "$ARGS_FILE" &&
    grep -Fxq -- "$PROJECT" "$ARGS_FILE" &&
-   grep -Fxq -- "gemini-3.7-flash-medium" "$ARGS_FILE" &&
+   grep -Fxq -- "gemini-3.8-flash-medium" "$ARGS_FILE" &&
    grep -Fxq -- "--mode" "$ARGS_FILE" &&
    grep -Fxq -- "accept-edits" "$ARGS_FILE"; then
   pass "new dispatch: --add-dir (absolute), model slug and --mode accept-edits"

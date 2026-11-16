@@ -29,11 +29,20 @@ export N8N_API_URL N8N_API_KEY MCP_MODE=stdio
 # The version is pinned in a JSON the user owns, never floating `latest`: this
 # process is exec'd with N8N_API_KEY already in its environment, so `latest`
 # would hand the live key to whatever was published today. The pin is refreshed
-# at most once a day, in the background, and only ever moves forward.
+# at most once a day, in the background, only ever moves forward, and only to a
+# release that has been public for at least 24 h: a hijacked publish is usually
+# caught and pulled within that window, before it ever sees the key.
 VER_FILE="$INST_DIR/mcp-version.json"
 STAMP="$INST_DIR/.mcp-version-check"
 NOTICE="$INST_DIR/.mcp-update-notice"
-DEFAULT_VER=2.67.1
+DEFAULT_VER=2.102.0
+MIN_AGE_HOURS=24
+
+# MCP servers start with a bare PATH that often lacks pnpm's global bin dir.
+for d in "${PNPM_HOME:-}" "$HOME/Library/pnpm" "$HOME/.local/share/pnpm"; do
+  [ -n "$d" ] && PATH="$d/bin:$d:$PATH"
+done
+command -v pnpm >/dev/null 2>&1 || { echo "ERROR: pnpm not found in PATH (install it with corepack)." >&2; exit 1; }
 
 [ -f "$VER_FILE" ] || printf '{"version":"%s"}\n' "$DEFAULT_VER" > "$VER_FILE"
 MCP_VER=$(read_json "$VER_FILE" version 2>/dev/null) || MCP_VER=""
@@ -46,25 +55,41 @@ if [ -s "$NOTICE" ]; then
   rm -f "$NOTICE"
 fi
 
-# Backgrounded: an MCP launch must not wait on the npm registry.
+# Newest stable x.y.z published at least MIN_AGE_HOURS ago, from the registry's
+# publish times on stdin. Prints nothing if none qualifies or the input is bad.
+newest_aged() {
+  python3 -c '
+import json, sys, datetime as dt
+try:
+    times = json.load(sys.stdin)
+except ValueError:
+    sys.exit(0)
+cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=float(sys.argv[1]))
+ok = []
+for ver, ts in times.items():
+    parts = ver.split(".")
+    if len(parts) != 3 or not all(p.isdigit() for p in parts):
+        continue  # created/modified keys, prereleases
+    if dt.datetime.fromisoformat(ts.replace("Z", "+00:00")) <= cutoff:
+        ok.append(tuple(map(int, parts)))
+if ok:
+    print(".".join(map(str, max(ok))))
+' "$1"
+}
+
+# Backgrounded: an MCP launch must not wait on the registry.
 if [ -z "$(find "$STAMP" -mtime -1 2>/dev/null)" ]; then
   touch "$STAMP"
   (
-    latest=$(npm view n8n-mcp version 2>/dev/null | tr -d '[:space:]')
-    # Registry unreachable or answer isn't a bare version: keep the current pin.
-    case "$latest" in ''|*[!0-9.]*) exit 0;; esac
-    if [ "$latest" != "$MCP_VER" ] &&
-       [ "$(printf '%s\n%s\n' "$MCP_VER" "$latest" | sort -V | tail -1)" = "$latest" ]; then
-      printf '{"version":"%s"}\n' "$latest" > "$VER_FILE"
-      printf 'n8n-mcp: pin moved %s -> %s (npm registry). Active from this launch.\n' \
-        "$MCP_VER" "$latest" > "$NOTICE"
+    target=$(pnpm view n8n-mcp time --json 2>/dev/null | newest_aged "$MIN_AGE_HOURS")
+    case "$target" in ''|*[!0-9.]*) exit 0;; esac
+    if [ "$target" != "$MCP_VER" ] &&
+       [ "$(printf '%s\n%s\n' "$MCP_VER" "$target" | sort -V | tail -1)" = "$target" ]; then
+      printf '{"version":"%s"}\n' "$target" > "$VER_FILE"
+      printf 'n8n-mcp: pin moved %s -> %s (public for %sh+). Active from this launch.\n' \
+        "$MCP_VER" "$target" "$MIN_AGE_HOURS" > "$NOTICE"
     fi
   ) >/dev/null 2>&1 &
 fi
 
-MCP_PKG="n8n-mcp@$MCP_VER"
-if command -v pnpm >/dev/null 2>&1; then
-  exec pnpm dlx "$MCP_PKG"
-else
-  exec npx -y "$MCP_PKG"
-fi
+exec pnpm dlx "n8n-mcp@$MCP_VER"

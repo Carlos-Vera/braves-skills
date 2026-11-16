@@ -172,7 +172,9 @@ not just the maintainer:
   Cursor), and its accessibility pass, checklist and contrast script come
   from `antislop-human` in
   [anti-slop](https://github.com/miqdadbadjuber/anti-slop) (MIT, Miqdad
-  Badjuber). Their copyrights are in the [LICENSE](LICENSE).
+  Badjuber), which in turn adapts
+  [web-quality-skills](https://github.com/addyosmani/web-quality-skills) (MIT,
+  Addy Osmani). Their copyrights are in the [LICENSE](LICENSE).
 - `braves-save` and `braves-notebook` are ports of
   [BrainClaude](https://github.com/Carlos-Vera/BrainClaude) (Carlos Vera).
 
