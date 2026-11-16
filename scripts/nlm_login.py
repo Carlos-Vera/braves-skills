@@ -6,9 +6,10 @@ navigate to Gemini Notebook. Waits for a signal file (/tmp/nlm_save_signal) befo
 capturing the authenticated session to wherever the CLI expects it.
 
 Invoked by the braves-notebook skill (skills/braves-notebook/SKILL.md) during
-its Authenticate step, because the built-in `notebooklm login` command needs
-interactive terminal input that Claude Code's bash tool cannot provide. Run it
-with the CLI's own interpreter (the skill activates ~/.notebooklm-venv first).
+its Authenticate step, because the built-in `notebooklm login`, run from Claude
+Code's non-interactive bash, saves a session missing __Secure-1PSIDTS (still
+true on 0.8.6). Run it with the CLI's own interpreter:
+"$(uv tool dir)/notebooklm-py/bin/python3".
 
 Paths are asked of the CLI, never hardcoded: notebooklm-py stores the session
 per profile under ~/.notebooklm/profiles/<name>/, and only falls back to the
@@ -27,7 +28,7 @@ try:
 except ImportError:  # pragma: no cover - environment error, not a code path
     raise SystemExit(
         "Cannot import notebooklm. Run this with the CLI's interpreter:\n"
-        "  source ~/.notebooklm-venv/bin/activate && python3 <this script>"
+        "  \"$(uv tool dir)/notebooklm-py/bin/python3\" <this script>"
     )
 
 STORAGE_PATH = get_storage_path()

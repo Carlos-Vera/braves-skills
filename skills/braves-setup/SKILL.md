@@ -57,8 +57,8 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
    from (braves-notebook). Uses the unofficial notebooklm-py library
    with your Google account." Ask if they want to enable it.
    - If YES: follow "Step 0: Setup (Runs Automatically on First Use)"
-     from the braves-notebook skill (install the CLI in a venv +
-     browser-assisted login) and once done verify with
+     from the braves-notebook skill (install the CLI as a global `uv`
+     tool + browser-assisted login) and once done verify with
      `notebooklm auth check`. Save `enabled: true`.
    - If NO: save `enabled: false`. braves-save will work locally only.
    - Either way, don't ask for project tags or notebooks here: braves-save

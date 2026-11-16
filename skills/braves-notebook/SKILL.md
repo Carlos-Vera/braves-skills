@@ -2,7 +2,7 @@
 name: braves-notebook
 description: Full API for Gemini Notebook (formerly NotebookLM) - complete programmatic access including features not available in the web interface. Create notebooks, add sources, generate every artifact type, download in multiple formats. Triggers on explicit /braves-notebook or /notebooklm, or on intent such as "crea un podcast sobre X" (create a podcast about X), "instalar notebooklm" (install notebooklm)
 ---
-<!-- notebooklm-py v0.8.1 | Ported from BrainClaude: https://github.com/Carlos-Vera/BrainClaude -->
+<!-- notebooklm-py v0.8.6 | Ported from BrainClaude: https://github.com/Carlos-Vera/BrainClaude -->
 
 # Gemini Notebook Automation
 
@@ -20,70 +20,29 @@ type, and download results in multiple formats.
 When this skill activates and `notebooklm` isn't installed or authenticated
 yet, complete setup first.
 
-### Preflight: Check Python Version
-
-`notebooklm-py` requires **Python 3.10+**. Check the available version
-before installing:
-
-```bash
-python3 --version
-```
-
-If Python is below 3.10 (e.g. 3.9.x, macOS's default), install a compatible
-version:
-
-**macOS (Homebrew):**
-```bash
-brew install python@3.12
-```
-Then use `/opt/homebrew/bin/python3.12` (Apple Silicon) or
-`/usr/local/bin/python3.12` (Intel) for the venv below.
-
-**Linux (apt):**
-```bash
-sudo apt update && sudo apt install -y python3.12 python3.12-venv
-```
-
 ### Install the CLI
 
-Always use a virtual environment to avoid "externally-managed-environment"
-errors and PATH issues.
-
-Determine which Python to use - if the system's `python3` is 3.10+, use it
-directly. Otherwise use the newly installed one (e.g. `python3.12`):
+Installed globally as a `uv` tool: one isolated environment that `uv`
+manages, its own Python included (no manual venv, no
+"externally-managed-environment" errors). Ask before installing.
 
 ```bash
-# Set PYTHON to the correct binary (adjust if needed)
-PYTHON=$(command -v python3.12 2>/dev/null || command -v python3.11 2>/dev/null || command -v python3.10 2>/dev/null || command -v python3)
-
-# Verify it's 3.10+
-$PYTHON -c "import sys; assert sys.version_info >= (3,10), f'Python {sys.version} is too old - 3.10+ required'; print(f'Using Python {sys.version}')"
-
-# Create venv and install
-$PYTHON -m venv ~/.notebooklm-venv
-source ~/.notebooklm-venv/bin/activate
-pip install "notebooklm-py[browser]"
-playwright install chromium
-```
-
-Then create a symlink so it's always in the PATH:
-```bash
-mkdir -p ~/bin
-ln -sf ~/.notebooklm-venv/bin/notebooklm ~/bin/notebooklm
-export PATH="$HOME/bin:$PATH"
-```
-
-Verify the CLI works:
-```bash
+command -v uv || brew install uv   # or: curl -LsSf https://astral.sh/uv/install.sh | sh
+uv tool install --python 3.12 "notebooklm-py[browser]"
+"$(uv tool dir)/notebooklm-py/bin/playwright" install chromium
 notebooklm --help
 ```
 
+`uv` puts `notebooklm` in `~/.local/bin`; if that isn't in the PATH, run
+`uv tool update-shell`. Upgrade later with `uv tool upgrade notebooklm-py`.
+
 ### Authenticate
 
-**IMPORTANT:** The built-in `notebooklm login` command requires interactive
-terminal input (pressing Enter after logging in). Claude Code's bash tool
-does NOT support interactive input, so `notebooklm login` will fail - the
-browser opens and closes instantly. Instead, use this custom login script.
+**IMPORTANT:** don't use the built-in `notebooklm login` from Claude Code.
+Run from a non-interactive shell it reports success but saves a session
+without `__Secure-1PSIDTS` (verified on 0.8.6), and the rotation it
+triggers invalidates the previous one. Use this plugin's login script
+instead, which waits for an explicit save signal.
 
 Tell the user:
 
@@ -95,8 +54,7 @@ Then run the login script (`scripts/nlm_login.py` in this plugin) in the
 background:
 
 ```bash
-source ~/.notebooklm-venv/bin/activate
-python3 "${CLAUDE_SKILL_DIR}/../../scripts/nlm_login.py" > /tmp/nlm_login_output.txt 2>&1 &
+PYTHONUNBUFFERED=1 "$(uv tool dir)/notebooklm-py/bin/python3" "${CLAUDE_SKILL_DIR}/../../scripts/nlm_login.py" > /tmp/nlm_login_output.txt 2>&1 &
 echo "Login started (PID=$!). The browser should open in a few seconds..."
 ```
 
@@ -115,7 +73,6 @@ cat /tmp/nlm_login_output.txt
 Then verify authentication:
 
 ```bash
-export PATH="$HOME/bin:$PATH"
 notebooklm auth check
 notebooklm list
 ```
@@ -135,7 +92,7 @@ If authentication fails (SID cookie absent), the user may not have
 completed login. Remove the browser profile and retry:
 
 ```bash
-python3 -c 'import shutil; from notebooklm.paths import get_browser_profile_dir, get_storage_path; shutil.rmtree(get_browser_profile_dir(), ignore_errors=True); get_storage_path().unlink(missing_ok=True); print("cleared")'
+"$(uv tool dir)/notebooklm-py/bin/python3" -c 'import shutil; from notebooklm.paths import get_browser_profile_dir, get_storage_path; shutil.rmtree(get_browser_profile_dir(), ignore_errors=True); get_storage_path().unlink(missing_ok=True); print("cleared")'
 ```
 
 Then run the login script again from the start.
