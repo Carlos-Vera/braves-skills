@@ -176,6 +176,10 @@ mantenedor:
   Badjuber), que a su vez adapta
   [web-quality-skills](https://github.com/addyosmani/web-quality-skills) (MIT,
   Addy Osmani). Sus copyrights van en el [LICENSE](LICENSE).
+- El filtro de hallazgos, las anclas de severidad y el refutador de
+  `braves-security` y `braves-audit` adaptan
+  [security-audit-skill](https://github.com/cloudflare/security-audit-skill)
+  (MIT, Cloudflare). Su copyright va en el [LICENSE](LICENSE).
 - `braves-save` y `braves-notebook` son ports de
   [BrainClaude](https://github.com/Carlos-Vera/BrainClaude) (Carlos Vera).
 
