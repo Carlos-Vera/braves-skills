@@ -69,7 +69,9 @@ jobs:
 
       # Pinned, like every dependency here: bump it by hand to a release that
       # has been public for at least 24 h.
-      - name: Panel mod tests
+      - name: Mod tests
         run: |
           corepack enable pnpm
           pnpm dlx @anthropic-ai/claude-code@2.1.325 plugin test mods/braves-panel
+          pnpm dlx @anthropic-ai/claude-code@2.1.325 plugin test mods/image-preview
+          pnpm dlx @anthropic-ai/claude-code@2.1.325 plugin test mods/quick-peek

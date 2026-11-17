@@ -9,6 +9,18 @@
       "description": "Usage panel beside the conversation (session, tokens, context, cost, Gemini, tools) with an animated mascot. Optional: bravesline stays the status bar.",
       "source": "./mods/braves-panel",
       "category": "productivity"
+    },
+    {
+      "name": "image-preview",
+      "description": "Hover a pasted [Image #N] to preview the picture. Ported from midudev/better-claude (MIT, Miguel Ángel Durán).",
+      "source": "./mods/image-preview",
+      "category": "productivity"
+    },
+    {
+      "name": "quick-peek",
+      "description": "The paths in Claude's replies become links: hover one to preview it, click it to show it in Finder. Ported from midudev/better-claude (MIT, Miguel Ángel Durán).",
+      "source": "./mods/quick-peek",
+      "category": "productivity"
     }
   ]
 }
