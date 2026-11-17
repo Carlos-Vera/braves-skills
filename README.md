@@ -82,6 +82,20 @@ claude plugin marketplace add ~/.claude/skills/braves-skills
 claude plugin install braves-panel@braves-skills
 ```
 
+También opcional: `image-preview` te deja ver una imagen pegada al pasar
+el puntero sobre su `[Image #N]`:
+
+```bash
+claude plugin install image-preview@braves-skills
+```
+
+Y `quick-peek` convierte en enlaces las rutas que Claude escribe: al pasar
+el puntero ves el archivo y con un clic lo abres en Finder:
+
+```bash
+claude plugin install quick-peek@braves-skills
+```
+
 **¿Dudas?** Pregunta en
 [Discussions](https://github.com/Carlos-Vera/braves-skills/discussions) — el
 foro es en español. Los bugs, a
@@ -105,6 +119,7 @@ momento para cambiar valores luego). Pregunta una cosa a la vez:
 11. MCPs opcionales, con configuración guiada: Perplexity (búsqueda web con IA), Firecrawl (rastreo/scraping de sitios), Chrome DevTools (debugging frontend), Playwright (automatización y pruebas de navegador), Codebase memory (grafo de conocimiento del código), n8n (construcción de workflows), Context7 (docs actualizadas de librerías).
 12. Adopción de tus propias skills, MCPs y plugins en la caja: las skills se copian al plugin, los MCPs extra entran al set curado, y los plugins se registran como parte de tu kit estándar para máquinas nuevas.
 13. Chequeo de uso (en re-ejecuciones): audita cada MCP, skill y plugin contra los transcripts de sesión y te dice los días sin uso — siempre con número: si algo nunca se usó, muestra cuándo se instaló y cuántos días de historial cubre el análisis. Antes de retirar algo te dice con qué choca y qué cubre el hueco; nunca desinstala sin tu sí explícito.
+14. Modern Web Guidance: te recomienda la skill oficial de Google Chrome para trabajo web (APIs modernas, accesibilidad y compatibilidad Baseline, consultadas con un CLI local, sin API key) y, si dices que sí, la instala y deja su CLI en tus permisos para que no te pregunte en cada consulta.
 
 La configuración vive en `~/.claude/braves-skills.json`:
 
@@ -180,6 +195,14 @@ mantenedor:
   `braves-security` y `braves-audit` adaptan
   [security-audit-skill](https://github.com/cloudflare/security-audit-skill)
   (MIT, Cloudflare). Su copyright va en el [LICENSE](LICENSE).
+- El mod `image-preview` es un port de
+  [better-claude](https://github.com/midudev/better-claude/tree/main/plugins/image-preview)
+  (MIT, Miguel Ángel Durán). Su copyright va en
+  [mods/image-preview/LICENSE](mods/image-preview/LICENSE).
+- El mod `quick-peek` es un port de
+  [better-claude](https://github.com/midudev/better-claude/tree/main/plugins/quick-peek)
+  (MIT, Miguel Ángel Durán). Su copyright va en
+  [mods/quick-peek/LICENSE](mods/quick-peek/LICENSE).
 - `braves-save` y `braves-notebook` son ports de
   [BrainClaude](https://github.com/Carlos-Vera/BrainClaude) (Carlos Vera).
 

@@ -263,6 +263,23 @@ when applicable) and save the result to `~/.claude/braves-skills.json`.
     - If NO: save `"panel": { "enabled": false }`. On a re-run that turns
       it off, offer `claude plugin uninstall braves-panel@braves-skills`
       and run it only on an explicit yes.
+17. **Modern Web Guidance** — skip if `claude plugin list` already shows
+    `modern-web-guidance`. Explain in two lines: "Google Chrome's official
+    skill: when Claude writes web code it looks up expert guidance on
+    modern browser APIs, layouts, accessibility and Baseline compatibility
+    through a local CLI (offline, no API key)." Recommend it (default: yes
+    when the user builds for the web) and install only on an explicit yes:
+    ```bash
+    claude plugin marketplace add GoogleChrome/modern-web-guidance
+    claude plugin install modern-web-guidance@googlechrome
+    ```
+    The skill already prefers `pnpx` when pnpm exists. Then offer to
+    allowlist its CLI so each lookup doesn't prompt: append
+    `Bash(pnpx modern-web-guidance@latest *)` (or
+    `Bash(npx -y modern-web-guidance@latest *)` without pnpm) to
+    `permissions.allow` in `~/.claude/settings.json`, never a bare
+    `pnpx *`/`npx *`. Record `modern-web-guidance` in the config's
+    `plugins` and tell them to run `/reload-plugins`.
 
 ## Writing the configuration
 
