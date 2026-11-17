@@ -89,8 +89,9 @@ el puntero sobre su `[Image #N]`:
 claude plugin install image-preview@braves-skills
 ```
 
-Y `quick-peek` convierte en enlaces las rutas que Claude escribe: al pasar
-el puntero ves el archivo y con un clic lo abres en Finder:
+Y `quick-peek` convierte en enlaces las rutas que Claude escribe y las de
+los mensajes que tú envías: al pasar el puntero ves el archivo y con un
+clic lo abres en Finder:
 
 ```bash
 claude plugin install quick-peek@braves-skills
