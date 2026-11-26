@@ -1,12 +1,13 @@
 # Worker Subagent Prompt Template
 
 Use this template when dispatching a subagent with the `Agent` tool. Pick the
-`model` per the model-selection table in SKILL.md.
+agent per the model-selection table in SKILL.md; the model comes from the
+agent. Pass `model: "opus"` only as an escalation override.
 
 ```
 Agent tool:
   description: "[3-5 word task summary]"
-  model: haiku | sonnet | opus
+  subagent_type: braves-skills:explore | braves-skills:implementer
   prompt: |
     Report tersely: findings and evidence only, no preamble, no restating the
     task, and no closing summary. This applies to what you SAY, never to the

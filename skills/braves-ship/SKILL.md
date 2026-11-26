@@ -35,6 +35,9 @@ In order, using the project's commands:
    node_modules).
 4. If scope changed relative to the plan/docs, update `PLAN.md`/docs in
    the same commit or say why not.
+5. If no fresh-context review ran on this branch (e.g. via braves-fix),
+   the main session runs `/braves-audit diff` before opening the PR (its
+   reviewers are the fresh context, never the agent that wrote the change). Confirmed blocking findings stop the ship.
 
 Pre-flight red = no commit. Fix first (braves-fix if it's a bug).
 
@@ -55,7 +58,9 @@ Pre-flight red = no commit. Fix first (braves-fix if it's a bug).
 
 - `pr.create: true` → PR with `gh pr create`: title = main commit
   message; body with **What / Why / How to verify** (concrete commands
-  from pre-flight).
+  from pre-flight) and the verification evidence: commands run +
+  results, screenshots for UI changes. The reviewer reviews evidence,
+  not only the diff.
 - Merge with the configured strategy (`merge_strategy`), and ONLY if
   `who_merges` allows it — if the user merges, leave the PR ready and
   the link.

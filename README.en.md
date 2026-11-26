@@ -56,6 +56,7 @@ You can run it like this:
 | `codebase-memory` | Structural code queries via the codebase-memory-mcp graph. |
 | `delegate-by-default` | Orchestrator mode: dispatch subagents instead of working inline, ideal for saving tokens. Every subagent spawns with the house rules already injected (artifacts in English, smallest thing that works, no client names, verify before claiming done, commit signature). |
 | `caveman` | Ultra-compressed replies: strips filler, keeps every technical detail. Spends far fewer tokens — for you and for the subagents you dispatch. |
+| `explore` and `implementer` agents | Plugin subagents: `explore` (haiku, read-only) locates code and returns file:line pointers; `implementer` (sonnet) writes code from a spec and runs the checks. The orchestrator escalates to opus only when the implementer is blocked. |
 | `humanizar` | Brand voice for Spanish copy — you can customize it with your own copy style. |
 | `n8n-workflow-builder` | Build/debug n8n workflows with node validation and CVE (vulnerabilities) check. |
 | `wordpress-spanish` | es_ES translation for WordPress plugins, ideal if you build WordPress plugins. |
