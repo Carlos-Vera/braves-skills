@@ -11,13 +11,14 @@ const LINE = /:\d+(?::\d+)?$/
 // An address: never a path, nor the paths inside it.
 const URL = /\b[a-z][a-z0-9+.-]*:\/\/[^\s<>()]+/gi
 // Absolute, from home or explicitly relative; a relative path with a folder in it; a file name with
-// an extension. None starts inside a word, an address or another path.
+// an extension. The last two may start with a dot, as a hidden folder or file does (`.github/x`,
+// `.env.local`). None starts inside a word, an address or another path.
 const CANDIDATE = new RegExp(
   [
     String.raw`(?:~|\.{1,2})?\/[^\s\`'"<>()[\]{}|*]+`,
     String.raw`[A-Za-z]:\\[^\s\`'"<>()[\]{}|*]+`,
-    String.raw`[\w@+-][\w@.+-]*(?:\/[\w@.+-]+)+\/?`,
-    String.raw`[\w@+-][\w@.+-]*\.[A-Za-z][A-Za-z0-9]{0,9}`
+    String.raw`\.?[\w@+-][\w@.+-]*(?:\/[\w@.+-]+)+\/?`,
+    String.raw`\.?[\w@+-][\w@.+-]*\.[A-Za-z][A-Za-z0-9]{0,9}`
   ].map(source => `(?<![\\w/.~:\\\\@-])(?:${source})(?::\\d+(?::\\d+)?)?`).join('|'),
   'g'
 )
@@ -60,12 +61,19 @@ export function pathOfSpan (code: string): string | undefined {
   return found.length === 1 && found[0]!.start === 0 && found[0]!.end === text.length ? found[0]!.target : undefined
 }
 
+/** What `path` is called: its last part, after a `/`, or after a `\` in a Windows path (`C:\…`). */
+export function nameOf (path: string) {
+  return path.slice((DRIVE.test(path) ? Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\')) : path.lastIndexOf('/')) + 1)
+}
+
 /**
  * Where `target` lands: home for `~`, the working folder for a relative path; `.` and `..`
- * folded, no trailing `/`. A Windows path stays as written.
+ * folded, no trailing `/`. A Windows path stays as written; from a Windows folder (`C:\…`) a
+ * path lands on a Windows path, its parts joined by `\`.
  */
 export function resolve (target: string, cwd: string, home: string | undefined) {
   if (/^[A-Za-z]:\\/.test(target)) return target
+  if (DRIVE.test(cwd)) return resolveOnWindows(target, cwd, home)
   let path = target
   if (path === '~' || path.startsWith('~/')) {
     if (!home) return undefined
@@ -114,4 +122,34 @@ export function spacedAfter (text: string, found: Found, most: number): Found[] 
     if (target !== undefined) out.unshift({ start: found.start, end: found.start + written.length, target })
   }
   return out
+}
+
+// A folder on a Windows drive, written either way: `C:\Users\ana`, `C:/Users/ana`.
+const DRIVE = /^[A-Za-z]:[\\/]/
+
+/**
+ * `resolve` from a Windows folder. A path from the root leads from the folder's drive, but for
+ * the form Git Bash writes, which names its drive: `/c/Users/ana` is `C:\Users\ana`.
+ */
+function resolveOnWindows (target: string, cwd: string, home: string | undefined) {
+  let path = target
+  if (path === '~' || path.startsWith('~/')) {
+    if (!home) return undefined
+    path = home + path.slice(1)
+  } else if (!path.startsWith('/')) {
+    path = `${cwd}/${path}`
+  }
+  // From the root, home too: under Git Bash, HOME is `/c/Users/ana`.
+  if (path.startsWith('/')) {
+    const drive = path.match(/^\/([A-Za-z])(?=\/|$)/)?.[1]
+    path = drive ? `${drive.toUpperCase()}:${path.slice(2) || '/'}` : cwd.slice(0, 2) + path
+  }
+  if (!DRIVE.test(path)) return undefined
+  const parts: string[] = []
+  for (const part of path.slice(2).split(/[\\/]/)) {
+    if (part === '' || part === '.') continue
+    if (part === '..') parts.pop()
+    else parts.push(part)
+  }
+  return `${path.slice(0, 2)}\\${parts.join('\\')}`
 }

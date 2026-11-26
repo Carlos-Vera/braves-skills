@@ -1,9 +1,10 @@
 // Mod tests, run against the engine itself: `claude plugin test .`
 import { expect, mock, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import type { On, RenderElement } from 'claude-code'
+import type { ImageSource, On, RenderElement } from 'claude-code'
 
 import { fit, parseBmp, toCells } from './pixels'
+import { OPEN_FILE, powershell } from './window'
 
 const FOLDER = '/tmp/claude-501/-project-app/s-1'
 const RED = 0xff0000
@@ -45,7 +46,7 @@ const posix = (path: string) => path.replace(/^[A-Za-z]:(?=[\\/])/, '').replaceA
  */
 function world (
   on: On,
-  { files = { '1.png': 300 * 1024 }, draft = '', env = {}, window = 'shown', system = 'Darwin', temp = '/tmp/claude-501', missing = [] }: { files?: Record<string, number>; draft?: string; env?: Record<string, string>; window?: 'shown' | 'error'; system?: string; temp?: string; missing?: string[] } = {}
+  { files = { '1.png': 300 * 1024 }, draft = '', env = {}, window = 'shown', system = 'Darwin', temp = '/tmp/claude-501', missing = [], deny = () => undefined }: { files?: Record<string, number>; draft?: string; env?: Record<string, string>; window?: 'shown' | 'error'; system?: string; temp?: string; missing?: string[]; deny?: (source: ImageSource) => string | undefined } = {}
 ) {
   const folder = `${temp}/-project-app/s-1`
   const box = { text: draft }
@@ -100,7 +101,15 @@ function world (
     const { Box } = $.ui.resolve(e)
     return <Box key="engine" />
   })
-  return { clock, runs, runEnvs, box, session, windows }
+  // A picture sent again to the terminal: taken, or why not (the Image drawing its alt there).
+  const blits: ImageSource[] = []
+  on('ui.blit', ($, e) => {
+    if (!('source' in e)) return { value: {} }
+    blits.push(e.source)
+    const denied = deny(e.source)
+    return { value: denied === undefined ? {} : { deny: denied } }
+  })
+  return { clock, runs, runEnvs, box, session, windows, blits }
 }
 
 type Drawn = RenderElement & { children?: Drawn[]; props?: { key?: string } }
@@ -417,6 +426,63 @@ test('told the terminal draws pictures, the card sends it the picture as PNG byt
   expect(w.runs).toContainEqual(['sips', '-s', 'format', 'png', '-Z', '1024', `${FOLDER}/images/1.png`, '--out', `${FOLDER}/image-preview/1.view.png`])
 })
 
+// What the engine says of an Image whose terminal cannot read the file, or draws no picture at all.
+const NO_FILES = 'the Image draws its alt here: this terminal cannot read files on this machine (probe: no answer); a { file } or { shm } source shows nothing, bytes still draw'
+const NO_PICTURES = 'the Image draws its alt here: the terminal draws neither kitty placeholder images (env: terminal=ghostty) nor iTerm2 inline images (env: terminal=ghostty)'
+
+test('in Ghostty the card has the terminal read the picture\'s file, and asks it once whether it drew it', cells, async ($, on) => {
+  const w = world(on, { draft: '[Image #1]', env: { TERM_PROGRAM: 'ghostty' } })
+  await startSession($)
+  await w.clock.settle()
+  const ui = await band($)
+  await point(ui, 'chip:1')
+  expect(await ui.find({ key: 'image-1' })).toMatchObject({ type: 'Image', props: { source: { file: `${FOLDER}/images/1.png`, format: 'png' } } })
+  await w.clock.advance(100)
+  expect(w.blits).toEqual([{ file: `${FOLDER}/images/1.png`, format: 'png' }])
+
+  await point(ui, 'chip:1', 'leave')
+  await point(ui, 'chip:1')
+  await w.clock.advance(300)
+  expect(w.blits).toHaveLength(1)
+})
+
+test('a terminal that cannot read the picture\'s file (Ghostty in a Flatpak) is sent its bytes', cells, async ($, on) => {
+  const w = world(on, { draft: '[Image #1]', system: 'Linux', env: { TERM_PROGRAM: 'ghostty', TERM: 'xterm-256color' }, deny: source => ('file' in source ? NO_FILES : undefined) })
+  await startSession($)
+  await w.clock.settle()
+  const ui = await band($)
+  await point(ui, 'chip:1')
+  await w.clock.advance(100)
+  expect(w.runs).toContainEqual(['magick', `${FOLDER}/images/1.png`, '-resize', '1024x1024>', `PNG:${FOLDER}/image-preview/1.view.png`])
+  expect(await ui.find({ key: 'image-1' })).toMatchObject({ type: 'Image', props: { source: { png: PNG } } })
+  await w.clock.advance(100)
+  expect(w.blits).toEqual([{ file: `${FOLDER}/images/1.png`, format: 'png' }, { png: PNG }])
+})
+
+test('a terminal that draws no picture it is sent has the card open in a window of its own', async ($, on) => {
+  const w = world(on, { draft: '[Image #1]', system: 'Linux', env: { TERM_PROGRAM: 'ghostty', DISPLAY: ':0' }, deny: () => NO_PICTURES })
+  await startSession($)
+  await w.clock.settle()
+  const ui = await band($)
+  await point(ui, 'chip:1')
+  await w.clock.advance(300)
+  expect(w.blits.map(source => Object.keys(source)[0])).toEqual(['file', 'png'])
+  expect(w.windows).toHaveLength(1)
+  expect(w.windows[0]!.env.IMAGE_PREVIEW_FILE).toBe(`${FOLDER}/image-preview/1.window.png`)
+  expect(await ui.find({ key: 'image-1' })).toBeUndefined()
+})
+
+test('without the window, a terminal that draws no picture it is sent gets the card in cells', cells, async ($, on) => {
+  const w = world(on, { draft: '[Image #1]', env: { TERM_PROGRAM: 'ghostty' }, deny: () => NO_PICTURES })
+  await startSession($)
+  await w.clock.settle()
+  const ui = await band($)
+  await point(ui, 'chip:1')
+  await w.clock.advance(300)
+  expect(w.windows).toHaveLength(0)
+  expect(await ui.find({ key: 'image-1' })).toMatchObject({ type: 'Raster' })
+})
+
 test('moving from one listed image to the next opens the next card, the leave and the enter in either order', cells, async ($, on) => {
   const w = world(on, { files: { '1.png': 2048, '2.png': 2048 } })
   await running($, w.clock)
@@ -609,7 +675,12 @@ test('on Windows a click opens the image in its own viewer', async ($, on) => {
   await ui.pointer({ type: 'down', x: 2, y: 0, button: 'left', in: 'chip:1' })
   await ui.pointer({ type: 'up', x: 2, y: 0, button: 'left', in: 'chip:1' })
   await w.clock.settle()
-  expect(w.runs).toContainEqual(['explorer', '\\Users\\me\\AppData\\Local\\Temp\\claude\\-project-app\\s-1\\images\\1.png'])
+  // Through the shell, never a new Explorer: `explorer <file>` leaves its process behind.
+  expect(w.runs.some(argv => /^explorer/i.test(argv[0]!))).toBe(false)
+  expect(OPEN_FILE).toBe('Invoke-Item -LiteralPath $env:IMAGE_PREVIEW_FILE')
+  const at = w.runs.findIndex(argv => argv.join(' ') === powershell(OPEN_FILE).join(' '))
+  expect(at).toBeGreaterThanOrEqual(0)
+  expect(w.runEnvs[at]).toEqual({ IMAGE_PREVIEW_FILE: '\\Users\\me\\AppData\\Local\\Temp\\claude\\-project-app\\s-1\\images\\1.png' })
 })
 
 // Under WSL the session is Linux, but the desktop, the pointer and the viewer are Windows'.
@@ -639,7 +710,7 @@ test('under WSL without ImageMagick, Windows\' PowerShell shrinks the picture fo
   expect(await ui.find({ key: 'image-1' })).toMatchObject({ type: 'Raster' })
 })
 
-test('under WSL a click opens the image in Windows\' viewer', async ($, on) => {
+test('under WSL a click opens the image in Windows\' viewer, through powershell.exe, never a new Explorer', async ($, on) => {
   const w = world(on, { draft: '[Image #1]', system: 'Linux', env: WSL })
   await startSession($)
   await w.clock.settle()
@@ -647,6 +718,10 @@ test('under WSL a click opens the image in Windows\' viewer', async ($, on) => {
   await ui.pointer({ type: 'down', x: 2, y: 0, button: 'left', in: 'chip:1' })
   await ui.pointer({ type: 'up', x: 2, y: 0, button: 'left', in: 'chip:1' })
   await w.clock.settle()
-  expect(w.runs).toContainEqual(['explorer.exe', '\\\\wsl.localhost\\Ubuntu\\tmp\\claude-501\\-project-app\\s-1\\images\\1.png'])
+  expect(w.runs.some(argv => /^explorer/i.test(argv[0]!))).toBe(false)
+  // The path crosses over in its Windows form (`/p`), as WSL turns it.
+  const at = w.runs.findIndex(argv => argv.join(' ') === ['powershell.exe', ...powershell(OPEN_FILE).slice(1)].join(' '))
+  expect(at).toBeGreaterThanOrEqual(0)
+  expect(w.runEnvs[at]).toEqual({ IMAGE_PREVIEW_FILE: `${FOLDER}/images/1.png`, WSLENV: 'WT_SESSION:IMAGE_PREVIEW_FILE/p' })
   expect(w.runs.some(argv => argv[0] === 'xdg-open')).toBe(false)
 })
