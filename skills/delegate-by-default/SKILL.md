@@ -78,20 +78,30 @@ When a task finishes:
 
 ## Model Selection
 
-**Hard ceiling: never dispatch a subagent on `fable`.** The orchestrator runs
-on Fable 5; workers always run on a smaller model, matched to the task:
+The main session is the architect, orchestrator and quality gate, on Opus (the
+user picks it with `/model`; the plugin does not set it). It plans, dispatches
+and reviews the real output.
 
-| Task type | Model |
-|-----------|-------|
-| Mechanical, search, file reading | `haiku` |
-| Integration, multi-file edits, judgment | `sonnet` |
-| Design, architecture, review | `opus` (top escalation, still below fable) |
+**Hard ceiling: never dispatch a subagent on `fable`.**
 
-**Cost exception:** the cheap model is not always the cheapest. If a task is
-complex enough that `haiku`/`sonnet` will likely fail or iterate many times —
-burning more tokens than a bigger model with no guaranteed success — dispatch
-`opus` up front. Optimize tokens-to-success, not price-per-token. The `fable`
-ceiling holds regardless.
+| Work | Agent | Model |
+|------|-------|-------|
+| Reading, search, mechanical | `braves-skills:explore` | `haiku` |
+| Writing / editing code | `braves-skills:implementer` | `sonnet` (the alias tracks the latest Sonnet; never hardcode a version) |
+| Escalation only | fresh `braves-skills:implementer` with `model: "opus"` | `opus` |
+
+Reviewers (e.g. braves-audit's diff reviewers) run on `opus`: quality is the
+Opus role, so that is not an escalation.
+
+Do not use the built-in `Explore`: it runs on the parent model, i.e. Opus.
+
+**Escalation:** Opus works only as an escalation. Re-dispatch a FRESH
+implementer with the per-invocation `model: "opus"` parameter when the
+implementer reports `BLOCKED`, when two correction rounds fail verification,
+or when the same error comes back. Hand over what was already tried.
+
+**Haiku output is pointers, not truth.** Before a decision that depends on a
+cited line, read that line yourself (one targeted Read counts as trivial work).
 
 **Frontend tasks:** always go to Gemini, never to a Claude subagent. Follow
 the `desarrollo` skill's triage and its `agy` dispatch — the command, the
@@ -105,7 +115,8 @@ then review the resulting changes when they land.
 Subagents report with a status: `DONE`, `DONE_WITH_CONCERNS`, `BLOCKED`, or
 `NEEDS_CONTEXT`. Review the real output. On error, give specific concise fix
 instructions and re-dispatch a fresh agent — never patch it yourself (context
-pollution) and never force the same model to retry unchanged.
+pollution) and never retry unchanged. Re-dispatching on the same model is fine with new,
+specific instructions; repeated failure falls under the escalation rule.
 
 ## Red Flags
 
@@ -114,7 +125,7 @@ pollution) and never force the same model to retry unchanged.
 | "It's quick, I'll just do it myself" | Quick for you = your context grows every task. Delegate. |
 | "I'll reuse the agent, it already has context" | Old context is noise for a new task. Fresh agent, or `/compact` first. |
 | "I'll pass the whole conversation just in case" | Extra context inflates tokens. Pass only what the task needs. |
-| "Cheap model to save money" | A model that flails costs more. Match model to difficulty. |
+| "Cheap model to save money" | Start on `sonnet`, but a worker that flails costs more: on `BLOCKED`, two failed correction rounds or a repeated error, re-dispatch a fresh implementer on `opus` with what was tried. |
 
 ## Cross-References
 

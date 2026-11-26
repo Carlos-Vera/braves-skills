@@ -29,8 +29,8 @@ exception: trivial few-line changes in 1 file.
 | Task | Executor | How |
 |---|---|---|
 | Frontend — UI, views, HTML, CSS, interface JS, components. ALWAYS, no exception | Gemini (the user picks the model) | `agy` (command below) |
-| Simple backend — CRUD, targeted fix, mechanical refactor, tests | Sonnet 5 | Agent tool with `model: "sonnet"` |
-| Complex backend — architecture, critical business logic, migrations, security | Opus 4.8 | Agent tool with `model: "opus"` |
+| Simple backend — CRUD, targeted fix, mechanical refactor, tests | `braves-skills:implementer` (sonnet) | Agent tool with `subagent_type: "braves-skills:implementer"` |
+| Complex backend — architecture, critical business logic, migrations, security | `braves-skills:implementer` (sonnet); opus only on escalation (BLOCKED, two failed correction rounds, repeated error), per delegate-by-default | Agent tool with `subagent_type: "braves-skills:implementer"` |
 
 Mixed task → split it: the frontend part still goes to Gemini.
 

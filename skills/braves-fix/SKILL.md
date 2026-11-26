@@ -34,6 +34,9 @@ most recent one) and the user doesn't bring a concrete bug:
    eyes (command, curl, browser flow). If you can't reproduce it, you
    can't verify the fix: instrument (logs, real inputs) until you
    reproduce it, or say so honestly.
+   If the project has a test runner, write the reproduction as a
+   failing test first (RED) and keep it as the regression test. No
+   runner: keep the exact repro command for the report.
 2. **Read the full error.** The message, the stack, the line. Don't
    guess from the title.
 3. **Root cause, not symptom.** Trace back to the real origin. Patching
@@ -41,12 +44,23 @@ most recent one) and the user doesn't bring a concrete bug:
    next week wearing a different disguise.
 4. **Minimal fix** in the right place. No opportunistic refactors in the
    same diff.
-5. **Reproduce AFTER.** The same flow from step 1, now green. Paste the
-   evidence in the response.
+5. **Reproduce AFTER.** The same flow from step 1, now green (with a
+   runner: the step 1 test going GREEN). Paste the evidence in the
+   response.
 6. **Look for the pattern.** Does the same bug live in other files?
    (`rg` for the pattern). List them even if they don't get fixed today.
 7. **Minimal regression test** that fails if the bug comes back. One,
-   small, no new frameworks.
+   small, no new frameworks (already done in step 1 when there's a
+   runner).
+8. **Recurring bug** ("already fixed" and it came back): the correction
+   must land as a deterministic check (a test, lint rule, type or
+   assertion), never only as a code comment or a note in
+   CLAUDE.md/AGENTS.md. Prose doesn't stop the next agent from
+   repeating it.
+9. **Fresh-context review.** After green, the main session runs
+   `/braves-audit diff` over the change. Its reviewers are the fresh
+   context (never the agent that wrote the fix). Fix confirmed findings, each
+   with its own regression test.
 
 ## Anti-"it's fine now"
 
@@ -58,6 +72,7 @@ most recent one) and the user doesn't bring a concrete bug:
 | "I changed the line that caused the error" | Did you see it fail before and pass after? If not, you don't know. |
 | "I can't reproduce it, but the fix makes sense" | Not reproduced = not verified. Tell the user exactly that. |
 | "It's a trivial change" | "Trivial" changes are 50% of rollbacks. Verify anyway. |
+| "I left a comment / a note in CLAUDE.md so it won't happen again" | Prose doesn't stop the next agent. Encode it as a test, lint rule, type or assertion. |
 
 ## Red flags — stop and verify
 

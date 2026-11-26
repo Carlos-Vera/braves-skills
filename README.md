@@ -56,6 +56,7 @@ Puedes ejecutarlo así:
 | `codebase-memory` | Consultas estructurales de código mediante el grafo de codebase-memory-mcp. |
 | `delegate-by-default` | Modo orquestador: despacha subagentes en vez de trabajar en línea, ideal para ahorro de tokens. Cada subagente arranca ya con las reglas de la casa inyectadas (artefactos en inglés, solución mínima, nada de nombres de clientes, verificar antes de decir "listo", firma de commit). |
 | `caveman` | Respuestas ultracomprimidas: quita la paja, conserva cada detalle técnico. Gasta muchos menos tokens — tú y los subagentes que despachas. |
+| agentes `explore` e `implementer` | Subagentes del plugin: `explore` (haiku, solo lectura) localiza código y devuelve punteros archivo:línea; `implementer` (sonnet) escribe código desde una especificación y corre las comprobaciones. El orquestador escala a opus solo si el implementer se bloquea. |
 | `humanizar` | Voz de marca para copy en español, puedes personalizarla con tu estilo de copy. |
 | `n8n-workflow-builder` | Construye/depura workflows de n8n con validación de nodos y chequeo de CVE (vulnerabilidades). |
 | `wordpress-spanish` | Traducción es_ES para plugins de WordPress, ideal si creas plugins para WordPress. |
