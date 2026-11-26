@@ -18,7 +18,7 @@ Plugin root: `~/.claude/skills/braves-skills` (a git clone).
 1. `git -C <root> fetch --tags --quiet origin`
 2. Latest version = highest `v*` tag. Installed version = `version` in
    `<root>/.claude-plugin/plugin.json`.
-3. Equal → tell the user they're up to date (vX.Y.Z), run **Panel**
+3. Equal → tell the user they're up to date (vX.Y.Z), run **Mods**
    below, and stop.
 4. Newer → show what's new: `gh release view v<latest>` if `gh` is
    available, otherwise list the tags between installed and latest.
@@ -29,23 +29,26 @@ Plugin root: `~/.claude/skills/braves-skills` (a git clone).
    STOP — never stomp the user's modifications.
 2. Ask before applying, unless the user already asked to update.
 3. `git -C <root> pull --ff-only origin master`
-4. Run **Panel** below.
+4. Run **Mods** below.
 5. Confirm the new version from plugin.json and remind the user to restart
    Claude Code (or run /reload-plugins) so the new version loads.
 
-## Panel
+## Mods
 
-The optional braves-panel is a separate plugin: Claude Code runs it from
-an installed copy that the pull above doesn't refresh. Only if
-`claude plugin list` shows `braves-panel@braves-skills`:
+The optional mods (braves-panel, image-preview, quick-peek, and any added
+later) are separate plugins: Claude Code runs each from an installed copy
+that the pull above doesn't refresh. Update every one that
+`claude plugin list` shows as `<name>@braves-skills`:
 
 ```bash
 claude plugin marketplace update braves-skills
-claude plugin update braves-panel@braves-skills
+for p in $(claude plugin list | grep -o '[a-z0-9-]*@braves-skills' | sort -u); do
+  claude plugin update "$p"
+done
 ```
 
-Report the old → new version it prints (or "already up to date"); a new
-version needs a Claude Code restart. Not installed → skip silently.
+Report the old → new version each one prints (or "already up to date"); a
+new version needs a Claude Code restart. None installed → skip silently.
 
 ## After updating
 
