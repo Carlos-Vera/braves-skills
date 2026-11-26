@@ -34,7 +34,7 @@ Turn it off with the **Preview in a window** option (`/config`) to keep the prev
 
 ## In the terminal
 
-In Ghostty and kitty the terminal draws the picture itself, through the kitty graphics protocol. Elsewhere, without the window, it is drawn in colored block elements: each cell is sampled at eight by eight points, in linear light, and drawn with the half, eighth or quarter block (`▀ ▂ ▎ ▚ …`) that splits those points best, in their two colors, in any terminal with true color. Cells are coarse: a screenshot of text shows its layout, not text you can read.
+In Ghostty and kitty the terminal draws the picture itself, through the kitty graphics protocol, reading it from its file. The first card asks Claude Code whether the terminal drew it: one that cannot read the file (one in a sandbox with a `/tmp` of its own, as Ghostty installed as a Flatpak) is sent the picture's bytes instead, and one that draws no picture at all gets the window, or the cells. Elsewhere, without the window, it is drawn in colored block elements: each cell is sampled at eight by eight points, in linear light, and drawn with the half, eighth or quarter block (`▀ ▂ ▎ ▚ …`) that splits those points best, in their two colors, in any terminal with true color. Cells are coarse: a screenshot of text shows its layout, not text you can read.
 
 ```text
   12
@@ -62,7 +62,7 @@ Warp speaks the kitty graphics protocol, but not the Unicode placeholders Claude
 - The text inside the prompt box can only be colored by a mod, not hovered, so while you write the pointer target is the row above it, not the `[Image #N]` in the box itself.
 - In a sent prompt, the `[Image #N]` takes the pointer and the click in the prompt's first line only, before it would wrap: past that, the mod cannot tell where the line puts it. The `⎿ [Image #N]` rows show the preview but take no click, which Claude Code keeps for itself.
 - A window stays two minutes at most, even with the pointer still on its `[Image #N]`: move off and back on to open it again.
-- A click opens the image with `open -a Preview` on macOS, `explorer` on Windows, `explorer.exe` under WSL (the path turned into its Windows form by `wslpath -w`), `xdg-open` elsewhere.
+- A click opens the image with `open -a Preview` on macOS, its app on Windows and under WSL (`Invoke-Item`, never a new Explorer, which would stay behind; under WSL through `powershell.exe`, the path crossing over in its Windows form), `xdg-open` elsewhere.
 - On Linux the window needs X11 (or XWayland): under Wayland alone there is none, and the terminal draws the card. Under XWayland the window may not stand by the pointer when the terminal is a Wayland window.
 - On Windows the first window compiles a small helper into the temp folder, which takes a second. The Windows window and converter have been written and checked (the scripts parse, the commands are tested) and have been run on Windows from WSL.
 - Under WSL (`WSL_DISTRO_NAME` is set) the session is Linux but the desktop is Windows', so the window, the converter and the viewer are Windows': a WSLg window could not tell where the pointer is over a Windows terminal.
@@ -80,6 +80,7 @@ One hooks module ([`hooks/register.tsx`](hooks/register.tsx)), a surface module 
 - Each `[Image #N]` is a `Client`: in the band, a chip it draws; in a sent prompt, an unpainted region laid over the `[Image #N]` Claude Code draws, in the prompt and in the rows under it. It posts when the pointer comes onto it, moves on it and leaves it, and when it is clicked; a `ui.message` hook opens and closes the preview, or opens the image.
 - In a window, a hover starts the system's program with `$.process.spawn`, told the picture, its largest side and how long it may stay (`IMAGE_PREVIEW_FILE`, `IMAGE_PREVIEW_SIZE`, `IMAGE_PREVIEW_LIFE`). It says `shown` once the window is up, then a `.` every tenth of a second, so the mod wakes to end it when the pointer leaves: it stops reading, and the program ends. One that ends without saying `shown` hands the previews back to the terminal.
 - In the terminal, a `ui.render` hook on every transcript row notes which of its rows show. The card is drawn `position: "absolute"` (out of the flow, so it moves nothing) in the row that holds it: the lowest on screen for a chip of the band, the sent prompt itself or the lowest row for its list. It covers only rows drawn before that row, never the `[Image #N]` that opened it. Only the row the card leaves and the one it joins draw again (a state family, one flag per row).
+- Where the terminal is sent the picture, the first card is sent again with `$.ui.blit`: taken, the terminal draws it; denied because the `Image` draws its `alt` there, the mod steps down, from the file to its bytes, then to the window or the cells.
 
 ## Development
 

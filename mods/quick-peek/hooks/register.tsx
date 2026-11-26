@@ -4,9 +4,9 @@ import { excerptOf, languageOf } from './code'
 import type { Excerpt } from './code'
 import { blocks, inline, items, markerOf, widthOf, wrap } from './markdown'
 import type { Item, Row, Run } from './markdown'
-import { lineOf, pathOfSpan, pathsIn, quotedIn, resolve, spacedAfter } from './paths'
+import { lineOf, nameOf, pathOfSpan, pathsIn, quotedIn, resolve, spacedAfter } from './paths'
 import type { Found } from './paths'
-import { MACOS } from './window'
+import { MACOS, explorer } from './window'
 
 type Engine = EngineInterface
 type Ui = Elements['terminal']
@@ -308,7 +308,7 @@ const ago = (ms: number) => {
 
 /** The line the terminal shows over a path where no window can: what it is, and what a click does. */
 function cardOf (target: Target) {
-  const name = target.path.slice(target.path.lastIndexOf('/') + 1) || target.path
+  const name = nameOf(target.path) || target.path
   const what = target.stat.kind === 'dir' ? 'folder' : sizeOf(target.stat.size)
   return ` ${name} · ${what} · ${ago(target.stat.mtimeMs)} · click: show in folder `
 }
@@ -428,19 +428,25 @@ function swap (drawn: RenderElement, mine: RenderElement): RenderElement {
 /** Shows `path` in the system's file manager, selected; with `isOpening`, opens it instead. */
 async function reveal ($: Engine, path: string, isOpening: boolean) {
   const run = (argv: string[]) => $.process.run(argv).catch(() => undefined)
-  if (await wslOf($)) {
-    const windows = (await run(['wslpath', '-w', path]))?.stdout.trim()
-    if (windows) await run(isOpening ? ['explorer.exe', windows] : ['explorer.exe', `/select,${windows}`])
-    return
-  }
-  const system = await platformOf($)
+  const [system, isWsl] = await Promise.all([platformOf($), wslOf($)])
   if (system === 'macos') {
     await run(isOpening ? ['open', path] : ['open', '-R', path])
     return
   }
-  if (system === 'windows') {
-    const windows = path.replaceAll('/', '\\')
-    await run(isOpening ? ['explorer', windows] : ['explorer', `/select,${windows}`])
+  if (system === 'windows' || isWsl) {
+    // Windows' shell is asked the same way under WSL, the path in its Windows form, PowerShell as
+    // `powershell.exe`, its variables crossing over through WSLENV.
+    const windows = isWsl ? (await run(['wslpath', '-w', path]))?.stdout.trim() : path.replaceAll('/', '\\')
+    if (!windows) return
+    // A folder opens in its own window: selected, it would show in its parent's.
+    const isFolder = (await statOf($, path))?.kind === 'dir'
+    const { argv, env } = explorer(windows, isOpening || isFolder)
+    if (!isWsl) {
+      await $.process.run(argv, { env }).catch(() => undefined)
+      return
+    }
+    const inherited = await $.env.get('WSLENV')
+    await $.process.run(['powershell.exe', ...argv.slice(1)], { env: { ...env, WSLENV: [inherited, ...Object.keys(env)].filter(Boolean).join(':') } }).catch(() => undefined)
     return
   }
   if (isOpening) {

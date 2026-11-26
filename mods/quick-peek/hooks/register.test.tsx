@@ -5,13 +5,15 @@ import type { On } from 'claude-code'
 
 import { excerptOf, languageOf, tokenize } from './code'
 import { blocks, inline, items, wrap } from './markdown'
-import { lineOf, pathOfSpan, pathsIn, quotedIn, resolve, spacedAfter } from './paths'
+import { lineOf, nameOf, pathOfSpan, pathsIn, quotedIn, resolve, spacedAfter } from './paths'
+import { SHELL_HELPER_FILE, explorer } from './window'
 
 const VIDEO = '/Users/ana/videos/borrador.mp4'
 const FOLDER = '/Users/ana/videos'
 const README = '/project/app/README.md'
 const SOURCE = '/project/app/src/app.ts'
 const SHOT = '/Users/ana/Library/Application Support/CleanShot/media/CleanShot 2026-11-17 at 09.38.56.webp'
+const HIDDEN = '/project/app/.github/workflows/ci.yml'
 const CODE = ['import { run } from \'./run\'', '', '// Starts it', 'export async function start (port: number) {', '  const server = await run(port)', '  return server', '}', ''].join('\n')
 const SCREEN = { columns: 60, rows: 40, isFullscreen: true }
 
@@ -22,13 +24,16 @@ const SCREEN = { columns: 60, rows: 40, isFullscreen: true }
 function world (on: On, { system = 'Darwin', env = {}, cwd = '/project/app' }: { system?: string; env?: Record<string, string>; cwd?: string } = {}) {
   const clock = mock.clock(on, { now: 0 })
   mock.env(on, { HOME: '/Users/ana', ...env })
-  const there: Record<string, 'file' | 'dir'> = { [VIDEO]: 'file', [FOLDER]: 'dir', [README]: 'file', [SOURCE]: 'file', [SHOT]: 'file' }
+  const there: Record<string, 'file' | 'dir'> = { [VIDEO]: 'file', [FOLDER]: 'dir', [README]: 'file', [SOURCE]: 'file', [SHOT]: 'file', [HIDDEN]: 'file' }
   const runs: string[][] = []
+  // The variables each run was given, in the order of `runs`.
+  const runEnvs: Record<string, string>[] = []
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('session.cwd', () => ({ value: cwd }))
   on('session.root', () => ({ value: '/project/app' }))
   on('process.run', ($, e) => {
     runs.push([...e.argv])
+    runEnvs.push({ ...e.init?.env })
     const stdout = e.argv[0] === 'uname' ? `${system}\n` : e.argv[0] === 'wslpath' ? 'C:\\Users\\ana\\videos\\borrador.mp4\n' : ''
     return { value: { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
@@ -57,7 +62,7 @@ function world (on: On, { system = 'Darwin', env = {}, cwd = '/project/app' }: {
     const { Box } = $.ui.resolve(e)
     return <Box key="engine" />
   })
-  return { clock, runs, windows }
+  return { clock, runs, runEnvs, windows }
 }
 
 const startSession = ($: Engine) => $.session.start({ cwd: '/project/app', surface: 'terminal', isInteractive: true })
@@ -81,10 +86,65 @@ test('finds absolute, home, relative and bare paths, and cuts what a sentence ad
   expect(found('Mira src/app.ts:42 y README.md (la raíz).')).toEqual([['src/app.ts:42', 'src/app.ts'], ['README.md', 'README.md']])
   expect(found('see https://example.com/a/b.html and/or 1/2')).toEqual([['and/or', 'and/or'], ['1/2', '1/2']])
   expect(found('a word, then this')).toEqual([])
+  // A hidden folder or file starts with a dot; an ellipsis, a number or `..x` names none.
+  expect(found('Ver .github/ci.yml, .env.local y ./.agents/a.md.')).toEqual([['.github/ci.yml', '.github/ci.yml'], ['.env.local', '.env.local'], ['./.agents/a.md', './.agents/a.md']])
+  expect(found('Y entonces... .5 o ..x/y')).toEqual([])
+  expect(pathOfSpan('.github/workflows/ci.yml:3')).toBe('.github/workflows/ci.yml')
   expect(pathOfSpan('~/My Videos/a b.mp4')).toBe('~/My Videos/a b.mp4')
   expect(pathOfSpan('npm run build')).toBeUndefined()
   expect(resolve('../b/./c.txt', '/project/app', '/Users/ana')).toBe('/project/b/c.txt')
   expect(resolve('~/x', '/project/app', '/Users/ana')).toBe('/Users/ana/x')
+})
+
+test('from a Windows folder a path lands on a Windows path; the form Git Bash writes names its drive', () => {
+  const app = 'C:\\Users\\ana\\app'
+  const home = 'C:\\Users\\ana'
+  expect(resolve('README.md', app, home)).toBe('C:\\Users\\ana\\app\\README.md')
+  expect(resolve('src/app.ts', 'C:/Users/ana/app', home)).toBe('C:\\Users\\ana\\app\\src\\app.ts')
+  expect(resolve('../b/./c.txt', app, home)).toBe('C:\\Users\\ana\\b\\c.txt')
+  expect(resolve('~/My Videos/a b.mp4', app, home)).toBe('C:\\Users\\ana\\My Videos\\a b.mp4')
+  expect(resolve('~/x', app, undefined)).toBeUndefined()
+  expect(resolve('~/x', app, '/c/Users/ana')).toBe('C:\\Users\\ana\\x')
+  expect(resolve('/c/Users/ana/x.mp4', 'D:\\app', home)).toBe('C:\\Users\\ana\\x.mp4')
+  expect(resolve('/Users/ana/x.mp4', 'D:\\app', home)).toBe('D:\\Users\\ana\\x.mp4')
+  expect(resolve('../../../..', app, home)).toBe('C:\\')
+  expect(resolve('D:\\videos\\a.mp4', app, home)).toBe('D:\\videos\\a.mp4')
+  // Elsewhere a path from the root stays one.
+  expect(resolve('/c/Users/ana', '/project/app', '/Users/ana')).toBe('/c/Users/ana')
+})
+
+test('a Windows path is called by its last part, and its language known by it', () => {
+  expect(['C:\\Users\\ana\\app\\README.md', 'C:/Users/ana/app/src/app.ts', 'D:\\', '/Users/ana/a\\b.txt'].map(nameOf)).toEqual(['README.md', 'app.ts', '', 'a\\b.txt'])
+  expect(['C:\\Users\\ana\\app\\Dockerfile', 'C:\\Users\\ana.b\\app\\.env.local'].map(path => languageOf(path)?.name)).toEqual(['Dockerfile', 'Environment'])
+})
+
+test('on Windows, the running shell is asked through PowerShell, never a new Explorer: a file selected, a folder opened', () => {
+  const file = 'C:\\Users\\ana\\My Videos\\a, b.mp4'
+  const { argv, env } = explorer(file, false)
+  expect(argv.slice(0, -1)).toEqual(['powershell', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand'])
+  // The script, as `-EncodedCommand` takes it: UTF-16LE, base64.
+  const bytes = Uint8Array.fromBase64(argv.at(-1)!)
+  const script = String.fromCharCode(...bytes.filter((_, i) => i % 2 === 0))
+  expect(script).toContain('SHOpenFolderAndSelectItems')
+  expect(script).toContain('Shell.Application')
+  // `explorer.exe <path>` leaves an Explorer process behind on every click: it is started only
+  // where the shell cannot be asked, PowerShell held to its constrained language among them.
+  expect(script.match(/Start-Process[^\n]*/g)).toEqual(['Start-Process explorer.exe -WindowStyle Normal -ArgumentList $arguments'])
+  expect(script).toContain("if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') { Start-Explorer }")
+  // The window is found by its folder as the shell writes it, shown without waiting on a thread
+  // that may hang, and the program ends by a deadline.
+  expect(script).toContain('$shell.NameSpace($folder).Self.Path')
+  expect(script).toContain('ShowWindowAsync(window')
+  expect(script).not.toMatch(/\bShowWindow\(/)
+  expect(script).toContain('[QuickPeekShell]::Deadline(')
+  // The helper's file is named by what it holds, and every path is taken as written.
+  expect(SHELL_HELPER_FILE).toMatch(/^quick-peek-shell-[0-9a-f]{8}\.dll$/)
+  expect(script).toContain(`Join-Path $env:TEMP '${SHELL_HELPER_FILE}'`)
+  expect(script).not.toMatch(/(Test-Path|Add-Type|Invoke-Item|Remove-Item) (-Path )?\$/)
+  // Opening is asked as '1' alone: another value left in the environment selects.
+  expect(script).toContain("$isOpening = $env:QUICK_PEEK_OPEN -eq '1'")
+  expect(env).toEqual({ QUICK_PEEK_PATH: file, QUICK_PEEK_OPEN: '0' })
+  expect(explorer('C:\\Users\\ana\\My Videos', true).env).toEqual({ QUICK_PEEK_PATH: 'C:\\Users\\ana\\My Videos', QUICK_PEEK_OPEN: '1' })
 })
 
 test('a path with a line names it; a file of code or text is known by its name, and its lines are tokens', () => {
@@ -147,6 +207,14 @@ test('after a `cd` into a folder of the project, a relative path leads from ther
   expect(await ui.find({ key: 'path:0:0' })).toMatchObject({ props: { props: { label: 'src/app.ts', path: SOURCE } } })
   expect(await ui.find({ key: 'path:1:0' })).toMatchObject({ props: { props: { label: 'app.ts', path: SOURCE } } })
   expect(await ui.find({ key: 'path:2:0' })).toMatchObject({ props: { props: { label: 'README.md', path: README } } })
+})
+
+test('a path into a hidden folder of the project is a link, in plain text or in backticks', async ($, on) => {
+  world(on)
+  await startSession($)
+  const ui = await reply($, 'El flujo está en .github/workflows/ci.yml y en `.github/workflows/ci.yml:3`')
+  expect(await ui.find({ key: 'path:0:0' })).toMatchObject({ props: { props: { label: '.github/workflows/ci.yml', path: HIDDEN } } })
+  expect(await ui.find({ key: 'path:1:0' })).toMatchObject({ props: { props: { path: HIDDEN } } })
 })
 
 test('a reply naming no path that is there is the engine\'s, and so is one off fullscreen', async ($, on) => {
@@ -251,14 +319,18 @@ test('on Linux a click asks the file manager to select the path, with no window'
   expect(w.windows).toHaveLength(0)
 })
 
-test('under WSL a click selects the path in Explorer', async ($, on) => {
-  const w = world(on, { system: 'Linux', env: { WSL_DISTRO_NAME: 'Ubuntu' } })
+test('under WSL a click asks Windows\' shell through powershell.exe, the path in its Windows form, never a new Explorer', async ($, on) => {
+  const w = world(on, { system: 'Linux', env: { WSL_DISTRO_NAME: 'Ubuntu', WSLENV: 'WT_SESSION' } })
   await startSession($)
   const ui = await reply($, `Listo: ${VIDEO}`)
   await ui.pointer({ type: 'down', x: 2, y: 0, button: 'left', in: 'path:0:0' })
   await ui.pointer({ type: 'up', x: 2, y: 0, button: 'left', in: 'path:0:0' })
   await w.clock.settle()
-  expect(w.runs).toContainEqual(['explorer.exe', '/select,C:\\Users\\ana\\videos\\borrador.mp4'])
+  expect(w.runs.some(argv => /^explorer/i.test(argv[0]!))).toBe(false)
+  const at = w.runs.findIndex(argv => argv[0] === 'powershell.exe')
+  const windows = 'C:\\Users\\ana\\videos\\borrador.mp4'
+  expect(w.runs[at]).toEqual(['powershell.exe', ...explorer(windows, false).argv.slice(1)])
+  expect(w.runEnvs[at]).toEqual({ QUICK_PEEK_PATH: windows, QUICK_PEEK_OPEN: '0', WSLENV: 'WT_SESSION:QUICK_PEEK_PATH:QUICK_PEEK_OPEN' })
 })
 
 test('a path in quotes is one, spaces and all; one with none takes the words after it that make a path there', () => {
